@@ -134,8 +134,8 @@ const app = {
     else if (viewName === 'timetable') this.renderTimetablePivot();
     
     if (window.flatpickr) {
-      flatpickr('.date-picker-input', { locale: "ko", dateFormat: "Y-m-d(D)" });
-      flatpickr('.time-picker-input', { locale: "ko", enableTime: true, noCalendar: true, dateFormat: "H:i", time_24hr: true });
+      flatpickr('.date-picker-input', { locale: "ko", dateFormat: "Y-m-d (D)" });
+      flatpickr('.time-picker-input', { locale: "ko", enableTime: true, noCalendar: true, dateFormat: "H:i", time_24hr: true, minuteIncrement: 10 });
     }
   },
 
@@ -303,7 +303,7 @@ const app = {
     if (!tbody) return;
     const thead = tbody.previousElementSibling;
     if(thead && thead.querySelector('tr')) {
-      let ths = '<th style="width:40px; text-align:center;">⇅</th>';
+      let ths = '';
       cols.forEach((c, i) => {
         if (type === 'student' || type === 'instructor') {
           ths += `<th>${this.renderSortableHeader(c, type, i)}</th>`;
@@ -317,7 +317,6 @@ const app = {
     let html = '';
     dataArray.forEach(row => {
       const id = row[0]; html += `<tr data-id="${id}">`;
-      html += `<td style="text-align:center; color: var(--text-muted); cursor: grab;"><span class="drag-handle" title="이 아이콘을 상하로 드래그하여 행 순서를 변경할 수 있습니다">☰</span></td>`;
       for(let i=0; i<cols.length; i++) {
         const val = row[i+1] || '';
         if (cols[i] === '일자') {
@@ -405,7 +404,7 @@ const app = {
       const arr = type === 'preschedule' ? this.data.preschedules : (type === 'student' ? this.data.students : this.data.instructors);
       const newRow = [''];
       const tbody = document.getElementById(`tbody-${type}`);
-      const colCount = tbody.parentElement.querySelectorAll('th').length - 1;
+      const colCount = tbody.parentElement.querySelectorAll('th').length;
       for(let i=0; i<colCount; i++) newRow.push('');
       arr.push(newRow); this.renderView(type);
 
@@ -442,7 +441,7 @@ const app = {
 
   renderCurriculumPivot: function() {
     const table = document.querySelector('#view-curriculum .excel-table');
-    let headHtml = `<thead><tr><th style="width:40px; text-align:center;">⇅</th><th style="width:150px;">주차</th>`;
+    let headHtml = `<thead><tr><th style="width:150px;">주차</th>`;
     this.dynamicCols.curriculum.forEach(sub => {
       headHtml += `<th data-colname="${sub}">${sub}</th>`;
     });
@@ -452,7 +451,7 @@ const app = {
     if (weeks.length === 0) weeks.push('1주차');
 
     weeks.forEach(week => {
-      headHtml += `<tr><td style="text-align:center; color: var(--text-muted); cursor: grab;"><span class="drag-handle" title="이 아이콘을 상하로 드래그하여 행 순서를 변경할 수 있습니다">☰</span></td>
+      headHtml += `<tr>
       <td style="background: rgba(255,255,255,0.05); font-weight:bold; text-align:center;" contenteditable="true" onblur="app.updatePivotRowLabel('curriculum', '${week}', this.innerText.trim())">${week}</td>`;
       this.dynamicCols.curriculum.forEach(sub => {
         const row = this.data.curriculums.find(r => r[1] === week && r[2] === sub);
@@ -482,7 +481,7 @@ const app = {
 
   renderTimetablePivot: function() {
     const table = document.querySelector('#view-timetable .excel-table');
-    let headHtml = `<thead><tr><th style="width:40px; text-align:center;">⇅</th><th style="width:120px;">시작시간</th><th style="width:150px;">종료시간</th>`;
+    let headHtml = `<thead><tr><th style="width:120px;">시작시간</th><th style="width:150px;">종료시간</th>`;
     this.dynamicCols.timetable.forEach(cls => {
       headHtml += `<th data-colname="${cls}">${cls}</th>`;
     });
@@ -494,7 +493,6 @@ const app = {
     timePairs.forEach(pair => {
       const [start, end] = pair.split('|');
       headHtml += `<tr>
-        <td style="text-align:center; color: var(--text-muted); cursor: grab;"><span class="drag-handle" title="이 아이콘을 상하로 드래그하여 행 순서를 변경할 수 있습니다">☰</span></td>
         <td style="background: rgba(255,255,255,0.05); padding:0; text-align:center;"><input type="text" class="time-picker-input" value="${start}" onchange="app.updatePivotRowTime('${pair}', 'start', this.value)" placeholder="00:00" style="width:100%; height:100%; min-height:40px; background:transparent; color:white; border:none; outline:none; text-align:center; font-family:inherit; font-size:inherit; cursor:pointer;" required></td>
         <td style="background: rgba(255,255,255,0.05); padding:0; text-align:center;"><input type="text" class="time-picker-input" value="${end}" onchange="app.updatePivotRowTime('${pair}', 'end', this.value)" placeholder="00:00" style="width:100%; height:100%; min-height:40px; background:transparent; color:white; border:none; outline:none; text-align:center; font-family:inherit; font-size:inherit; cursor:pointer;" required></td>`;
       this.dynamicCols.timetable.forEach(cls => {

@@ -415,6 +415,14 @@ span.flatpickr-weekday {
 }
 .flatpickr-time {
   border-top: 1px solid var(--border-glass) !important;
+  max-height: 40px !important;
+}
+.flatpickr-calendar.noCalendar {
+  max-width: 140px !important;
+  min-width: 140px !important;
+}
+.flatpickr-time input {
+  font-size: 14px !important;
 }
 .flatpickr-time input:hover, .flatpickr-time .flatpickr-am-pm:hover, .flatpickr-time input:focus, .flatpickr-time .flatpickr-am-pm:focus {
   background: rgba(255, 255, 255, 0.1) !important;
@@ -428,6 +436,11 @@ span.flatpickr-weekday {
   margin: 0 !important;
   padding: 0 !important;
   font-size: 14px !important;
+}
+
+.date-picker-input {
+  word-break: break-all;
+  white-space: normal;
 }
 
 /* Status Button Styles */
