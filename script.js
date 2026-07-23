@@ -216,7 +216,7 @@ const app = {
   renderCurriculumPivot: function() {
     const table = document.querySelector('#view-curriculum .excel-table');
     const subjects = this.dynamicCols.curriculum;
-    let headHtml = `<thead><tr><th>주차 <button class="btn" style="padding:2px 4px;font-size:10px;margin-left:5px;" onclick="app.addColumn('curriculum')">+</button></th>`;
+    let headHtml = `<thead><tr><th style="width:150px;">주차 <button class="btn" style="padding:2px 4px;font-size:10px;margin-left:5px;" onclick="app.addColumn('curriculum')">+</button></th>`;
     subjects.forEach(sub => headHtml += `<th>${sub}</th>`);
     headHtml += `</tr></thead>`;
 
@@ -268,7 +268,7 @@ const app = {
   renderTimetablePivot: function() {
     const table = document.querySelector('#view-timetable .excel-table');
     const classes = this.dynamicCols.timetable;
-    let headHtml = `<thead><tr><th>시작시간</th><th>종료시간 <button class="btn" style="padding:2px 4px;font-size:10px;margin-left:5px;" onclick="app.addColumn('timetable')">+</button></th>`;
+    let headHtml = `<thead><tr><th style="width:120px;">시작시간</th><th style="width:150px;">종료시간 <button class="btn" style="padding:2px 4px;font-size:10px;margin-left:5px;" onclick="app.addColumn('timetable')">+</button></th>`;
     classes.forEach(cls => headHtml += `<th>${cls}</th>`);
     headHtml += `</tr></thead>`;
 
