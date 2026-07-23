@@ -14,7 +14,20 @@
   <div id="loadingSpinner" class="hidden"><div class="spinner"></div></div>
   <div id="toastContainer" class="toast-container"></div>
 
-  <div class="app-container">
+  <!-- 로그인 오버레이 -->
+  <div id="login-overlay" class="login-overlay">
+    <div class="login-card">
+      <h1 class="login-title">2028 영재학교<br>전원 합격!</h1>
+      <p class="login-subtitle">주말반 관리 사이트</p>
+      <form id="login-form" onsubmit="event.preventDefault(); app.login();">
+        <input type="password" id="login-password" placeholder="비밀번호를 입력하세요" required>
+        <button type="submit" id="login-btn">접속하기</button>
+      </form>
+      <p id="login-error" class="hidden text-danger" style="margin-top:15px; font-size:14px; text-align:center;">비밀번호가 일치하지 않습니다.</p>
+    </div>
+  </div>
+
+  <div class="app-container" id="main-app" style="display:none;">
     <nav class="sidebar">
       <div class="sidebar-header" onclick="app.goHome()" style="cursor: pointer;" title="첫 화면으로 이동">
         <div class="logo">

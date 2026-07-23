@@ -12,7 +12,11 @@ const app = {
 
   init: function() {
     this.bindEvents();
-    this.fetchInitialData();
+    if (sessionStorage.getItem('auth_pass')) {
+      document.getElementById('login-overlay').style.display = 'none';
+      document.getElementById('main-app').style.display = 'block';
+      this.fetchInitialData();
+    }
     
     document.addEventListener('mousedown', (e) => {
       const tb = document.getElementById('rich-toolbar');
@@ -39,9 +43,10 @@ const app = {
 
   apiPost: async function(action, payloadData) {
     try {
+      const authPass = sessionStorage.getItem('auth_pass') || '';
       const response = await fetch(API_URL, {
         method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-        body: JSON.stringify({ action, ...payloadData })
+        body: JSON.stringify({ action, authPass, ...payloadData })
       });
       return await response.json();
     } catch (e) { return { success: false, message: e.message }; }
@@ -54,20 +59,60 @@ const app = {
     } catch (e) { return { success: false, error: e.message }; }
   },
 
+  login: async function() {
+    const pw = document.getElementById('login-password').value;
+    if (!pw) return;
+    this.showLoading();
+    try {
+      const response = await fetch(API_URL, {
+        method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify({ action: 'getInitialData', authPass: pw })
+      });
+      const res = await response.json();
+      
+      if (res.success === false) {
+        document.getElementById('login-error').classList.remove('hidden');
+        this.hideLoading();
+      } else {
+        sessionStorage.setItem('auth_pass', pw);
+        document.getElementById('login-error').classList.add('hidden');
+        document.getElementById('login-overlay').style.display = 'none';
+        document.getElementById('main-app').style.display = 'block';
+        this.processInitialData(res);
+      }
+    } catch (e) {
+      alert("로그인 중 에러가 발생했습니다: " + e.message);
+      this.hideLoading();
+    }
+  },
+
   fetchInitialData: async function() {
     this.showLoading();
-    const res = await this.apiGet('getInitialData');
-    if (res.error || res.success === false) { alert("데이터 로딩 에러: " + (res.error || res.message)); }
-    else {
-      this.data.preschedules = res['사전준비일정'] || [];
-      this.data.curriculums = res['수업진도계획'] || [];
-      this.data.timetables = res['시간표'] || [];
-      this.data.students = res['학생관리'] || [];
-      this.data.instructors = res['강사관리'] || [];
-      this.uiSettings = res.uiSettings || {};
-      this.extractDynamicCols();
-      this.renderAllViews();
+    const res = await this.apiPost('getInitialData');
+    if (res.error || res.success === false) {
+      if (res.message === '비밀번호 인증 실패') {
+        sessionStorage.removeItem('auth_pass');
+        location.reload();
+      } else {
+        alert("데이터 로딩 에러: " + (res.error || res.message));
+        this.hideLoading();
+      }
+    } else {
+      this.processInitialData(res);
     }
+  },
+
+  processInitialData: function(res) {
+    this.data.preschedules = res['사전준비일정'] || [];
+    this.data.curriculums = res['수업진도계획'] || [];
+    this.data.timetables = res['시간표'] || [];
+    this.data.students = res['학생관리'] || [];
+    this.data.instructors = res['강사관리'] || [];
+    
+    this.uiSettings = res['UI설정'] ? (res['UI설정'].reduce((acc, row) => { acc[row[0]] = row[1]; return acc; }, {})) : {};
+    
+    this.extractDynamicCols();
+    this.renderAllViews();
     this.hideLoading();
   },
 

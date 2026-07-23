@@ -2,14 +2,34 @@
 const ROOT_FOLDER_ID = '1w8Wyg4Yuurltlwnc8VNKdbz0DcvtxZvp';
 const DB_FILE_NAME = '[2028 영재학교반 통합 DB]';
 
+function getAuthPassword() {
+  const ss = getDbSpreadsheet();
+  let sheet = ss.getSheetByName('설정');
+  if (!sheet) {
+    sheet = ss.insertSheet('설정');
+    sheet.getRange('A1:B1').setValues([['비밀번호', '2028w!']]);
+    return '2028w!';
+  }
+  const pwd = sheet.getRange('B1').getValue();
+  return pwd ? pwd.toString() : '';
+}
+
 function doPost(e) {
   try {
     const payloadStr = e.parameter.payload || (e.postData ? e.postData.contents : '{}');
     const payload = JSON.parse(payloadStr);
     const action = e.parameter.action || payload.action;
+    
+    // Check password for ALL POST actions
+    const authPass = payload.authPass || '';
+    if (authPass !== getAuthPassword()) {
+      return ContentService.createTextOutput(JSON.stringify({success: false, message: '비밀번호 인증 실패'})).setMimeType(ContentService.MimeType.JSON);
+    }
+    
     let result = { success: false, message: '알 수 없는 액션' };
     
-    if (action === 'upsertPreSchedule') result = upsertPreSchedule(payload);
+    if (action === 'getInitialData') result = getInitialData();
+    else if (action === 'upsertPreSchedule') result = upsertPreSchedule(payload);
     else if (action === 'upsertCurriculum') result = upsertCurriculum(payload);
     else if (action === 'upsertTimetable') result = upsertTimetable(payload);
     else if (action === 'upsertStudent') result = upsertStudent(payload);
