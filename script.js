@@ -128,7 +128,7 @@ const app = {
 
   renderView: function(viewName) {
     if (viewName === 'preschedule') this.renderFlatTable('preschedule', this.data.preschedules, ['일자', '내용', '상태', '비고']);
-    else if (viewName === 'student') this.renderFlatTable('student', this.data.students, ['이름', '센터', '학교', '학년', '학부모연락처', '학생연락처', '비고']);
+    else if (viewName === 'student') this.renderFlatTable('student', this.data.students, ['이름', '센터', '학교', '학년', '학부모 연락처', '학생 연락처', '비고']);
     else if (viewName === 'instructor') this.renderFlatTable('instructor', this.data.instructors, ['강사명', '영역', '과목', '연락처', '지메일', '비고']);
     else if (viewName === 'curriculum') this.renderCurriculumPivot();
     else if (viewName === 'timetable') this.renderTimetablePivot();
@@ -253,8 +253,10 @@ const app = {
         const id = th.closest('.view-section').id + '-col-' + i;
         
         const mouseMoveHandler = (e) => { 
-          const newWidth = Math.round(Math.max(30, w + e.clientX - x));
-          th.style.width = `${newWidth}px`; 
+          const newWidthPx = Math.round(Math.max(30, w + e.clientX - x));
+          const tableWidth = tableEl.getBoundingClientRect().width;
+          const newWidthPct = (newWidthPx / tableWidth) * 100;
+          th.style.width = `${newWidthPct}%`; 
           
           if (!this.resizeTooltip) {
             this.resizeTooltip = document.createElement('div');
@@ -264,7 +266,7 @@ const app = {
           }
           this.resizeTooltip.style.left = (e.clientX + 15) + 'px';
           this.resizeTooltip.style.top = (e.clientY - 30) + 'px';
-          this.resizeTooltip.innerText = newWidth + 'px';
+          this.resizeTooltip.innerText = Math.round(newWidthPct) + '%';
         };
         const mouseUpHandler = () => {
           document.removeEventListener('mousemove', mouseMoveHandler);
