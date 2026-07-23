@@ -54,6 +54,18 @@ const app = {
     }
   },
 
+  deleteItem: async function(sheetName, id) {
+    if(!confirm("정말 삭제하시겠습니까?")) return;
+    this.showLoading();
+    const res = await this.apiPost('deleteData', { sheetName, id });
+    if(res.success) {
+      this.fetchInitialData();
+    } else {
+      alert("백엔드 에러: " + res.message);
+      this.hideLoading();
+    }
+  },
+
   fetchInitialData: async function() {
     this.showLoading();
     const res = await this.apiGet('getInitialData');
@@ -300,14 +312,30 @@ const app = {
     if (this.data.classes.length === 0) {
       classList.innerHTML = '<li class="empty-msg">등록된 학급이 없습니다.</li>';
     } else {
-      classList.innerHTML = this.data.classes.map(r => `<li>[${r[1]}] ${r[2]} > ${r[3]} > <strong>${r[4]}</strong></li>`).join('');
+      // 정렬 로직 (대분류 -> 중분류 -> 소분류 -> 반이름)
+      const sortedClasses = [...this.data.classes].sort((a, b) => {
+        if (a[1] !== b[1]) return a[1].localeCompare(b[1]);
+        if (a[2] !== b[2]) return a[2].localeCompare(b[2]);
+        if (a[3] !== b[3]) return a[3].localeCompare(b[3]);
+        return a[4].localeCompare(b[4]);
+      });
+
+      classList.innerHTML = sortedClasses.map(r => `
+        <li style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 5px; padding-bottom: 5px; border-bottom: 1px dashed rgba(255,255,255,0.1);">
+          <span>[${r[1]}] ${r[2]} &gt; ${r[3]} &gt; <strong>${r[4]}</strong></span>
+          <button class="btn btn-danger" style="padding: 2px 8px; font-size:11px;" onclick="app.deleteItem('설정_학급명', '${r[0]}')">삭제</button>
+        </li>`).join('');
     }
 
     const instList = document.getElementById('instructor-list');
     if (this.data.instructors.length === 0) {
       instList.innerHTML = '<p class="empty-msg">등록된 강사 정보가 없습니다.</p>';
     } else {
-      instList.innerHTML = this.data.instructors.map(r => `<div style="padding:10px; border-bottom:1px solid rgba(255,255,255,0.1);">${r[1]} (${r[3]}) - ${r[2]}</div>`).join('');
+      instList.innerHTML = this.data.instructors.map(r => `
+        <div style="padding:10px; border-bottom:1px solid rgba(255,255,255,0.1); display:flex; justify-content:space-between; align-items:center;">
+          <span>${r[1]} (${r[3]}) - ${r[2]}</span>
+          <button class="btn btn-danger" style="padding: 2px 8px; font-size:11px;" onclick="app.deleteItem('설정_강사정보', '${r[0]}')">삭제</button>
+        </div>`).join('');
     }
   },
 
@@ -326,19 +354,31 @@ const app = {
     const timeData = this.data.timetables.filter(r => r[1] === this.currentCategory && (!fTime.mid || r[2] === fTime.mid) && (!fTime.cName || r[4].toLowerCase().includes(fTime.cName)));
     const timeEl = document.getElementById('timetable-list');
     if(timeData.length === 0) timeEl.innerHTML = '<p class="empty-msg">데이터가 없습니다.</p>';
-    else timeEl.innerHTML = timeData.map(r => `<div class="info-box mb-5"><strong>[${r[5]}] ${r[6]}~${r[7]}</strong> | ${r[4]} (${r[8]} 강사님)</div>`).join('');
+    else timeEl.innerHTML = timeData.map(r => `
+      <div class="info-box mb-5" style="display:flex; justify-content:space-between; align-items:center;">
+        <span><strong>[${r[5]}] ${r[6]}~${r[7]}</strong> | ${r[4]} (${r[8]} 강사님)</span>
+        <button class="btn btn-danger" style="padding: 2px 8px; font-size:11px;" onclick="app.deleteItem('시간표', '${r[0]}')">삭제</button>
+      </div>`).join('');
 
     const fCurr = getFilterValues('view-curriculum');
     const currData = this.data.curriculums.filter(r => r[1] === this.currentCategory && (!fCurr.mid || r[2] === fCurr.mid) && (!fCurr.cName || r[4].toLowerCase().includes(fCurr.cName)));
     const currEl = document.getElementById('curriculum-list');
     if(currData.length === 0) currEl.innerHTML = '<p class="empty-msg">데이터가 없습니다.</p>';
-    else currEl.innerHTML = currData.map(r => `<div class="info-box mb-5"><strong>${r[5]}</strong> | ${r[4]} - ${r[6]}</div>`).join('');
+    else currEl.innerHTML = currData.map(r => `
+      <div class="info-box mb-5" style="display:flex; justify-content:space-between; align-items:center;">
+        <span><strong>${r[5]}</strong> | ${r[4]} - ${r[6]}</span>
+        <button class="btn btn-danger" style="padding: 2px 8px; font-size:11px;" onclick="app.deleteItem('수업진도계획', '${r[0]}')">삭제</button>
+      </div>`).join('');
 
     const fPre = getFilterValues('view-preschedule');
     const preData = this.data.preschedules.filter(r => r[1] === this.currentCategory && (!fPre.mid || r[2] === fPre.mid) && (!fPre.cName || r[4].toLowerCase().includes(fPre.cName)));
     const preEl = document.getElementById('preschedule-list');
     if(preData.length === 0) preEl.innerHTML = '<p class="empty-msg">데이터가 없습니다.</p>';
-    else preEl.innerHTML = preData.map(r => `<div class="info-box mb-5"><strong>${r[5]}</strong> | ${r[4]} - ${r[6]} (${r[7]})</div>`).join('');
+    else preEl.innerHTML = preData.map(r => `
+      <div class="info-box mb-5" style="display:flex; justify-content:space-between; align-items:center;">
+        <span><strong>${r[5]}</strong> | ${r[4]} - ${r[6]} (${r[7]})</span>
+        <button class="btn btn-danger" style="padding: 2px 8px; font-size:11px;" onclick="app.deleteItem('사전준비일정', '${r[0]}')">삭제</button>
+      </div>`).join('');
   }
 };
 

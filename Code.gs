@@ -17,6 +17,7 @@ function doPost(e) {
     else if (action === 'savePreSchedule') result = savePreSchedule(payload.mainCat, payload.midCat, payload.subCat, payload.className, payload.date, payload.content, payload.note);
     else if (action === 'saveCurriculum') result = saveCurriculum(payload.mainCat, payload.midCat, payload.subCat, payload.className, payload.week, payload.content);
     else if (action === 'saveTimetable') result = saveTimetable(payload.mainCat, payload.midCat, payload.subCat, payload.className, payload.day, payload.start, payload.end, payload.instructor);
+    else if (action === 'deleteData') result = deleteData(payload.sheetName, payload.id);
     
     return ContentService.createTextOutput(JSON.stringify(result)).setMimeType(ContentService.MimeType.JSON);
   } catch (error) {
@@ -28,7 +29,6 @@ function doGet(e) {
   if (e.parameter.action === 'getInitialData') {
     return ContentService.createTextOutput(JSON.stringify(getInitialData())).setMimeType(ContentService.MimeType.JSON);
   }
-  // 혹시 몰라서 남겨두는 웹앱 직접 접속 시의 HTML 반환
   return HtmlService.createHtmlOutputFromFile('index')
       .setTitle('2028 영재학교반 관리')
       .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
@@ -165,6 +165,29 @@ function saveTimetable(mainCat, midCat, subCat, className, day, startTime, endTi
       const sheet = ss.getSheetByName('시간표');
       sheet.appendRow([generateId(), mainCat, midCat, subCat, className, day, startTime, endTime, instructor, getCurrentTime()]);
       return { success: true };
+    } catch (error) { return { success: false, message: error.message }; } finally { lock.releaseLock(); }
+  } else { return { success: false, message: '동시 접속 지연' }; }
+}
+
+// ==========================================
+// 삭제 로직
+// ==========================================
+function deleteData(sheetName, id) {
+  const lock = LockService.getScriptLock();
+  if (lock.tryLock(10000)) {
+    try {
+      const ss = getDbSpreadsheet();
+      const sheet = ss.getSheetByName(sheetName);
+      if (!sheet) return { success: false, message: '시트를 찾을 수 없습니다.' };
+      
+      const data = sheet.getDataRange().getValues();
+      for (let i = 1; i < data.length; i++) {
+        if (data[i][0] === id) {
+          sheet.deleteRow(i + 1); // sheet 1-indexed (data[0] is header)
+          return { success: true };
+        }
+      }
+      return { success: false, message: '해당 ID를 찾을 수 없습니다.' };
     } catch (error) { return { success: false, message: error.message }; } finally { lock.releaseLock(); }
   } else { return { success: false, message: '동시 접속 지연' }; }
 }
