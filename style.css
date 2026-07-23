@@ -188,7 +188,8 @@ body {
   border-radius: 8px;
   border: 1px solid var(--border-glass);
 }
-.excel-table {\n  table-layout: fixed;
+.excel-table {
+  table-layout: fixed;
   width: 100%;
   border-collapse: collapse;
   font-size: 14px;
