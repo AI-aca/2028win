@@ -293,6 +293,11 @@ const app = {
         const val = row[i+1] || '';
         if (cols[i] === '일자') {
           html += `<td data-col-idx="${i+1}" style="background: rgba(255,255,255,0.05); padding:0; text-align:center;"><input type="text" class="date-picker-input" value="${val}" onchange="app.onFlatCellBlur('${type}', this.parentElement)" placeholder="날짜 선택" style="width:100%; height:100%; min-height:40px; background:transparent; border:none; color:inherit; text-align:center; outline:none; font-family:inherit; font-size:inherit; cursor:pointer; padding:0; margin:0;"></td>`;
+        } else if (cols[i] === '상태') {
+          const isDone = val === '완료';
+          const statusTxt = isDone ? '완료' : '진행 중';
+          const btnClass = isDone ? 'status-done' : 'status-progress';
+          html += `<td data-col-idx="${i+1}" style="text-align:center;"><button class="status-btn ${btnClass}" onclick="app.toggleStatus(this, '${type}', ${i+1})">${statusTxt}</button></td>`;
         } else {
           html += `<td contenteditable="true" data-col-idx="${i+1}" onblur="app.onFlatCellBlur('${type}', this)" onkeydown="app.onKeyDown(event, this)">${val}</td>`;
         }
@@ -302,6 +307,33 @@ const app = {
     tbody.innerHTML = html;
     tbody.querySelectorAll('tr').forEach(tr => this.bindRowEvents(tr, type));
     this.initResizers();
+  },
+  toggleStatus: function(btn, type, colIdx) {
+    const isDone = btn.classList.contains('status-done');
+    const newStatus = isDone ? '진행 중' : '완료';
+    
+    btn.textContent = newStatus;
+    btn.className = 'status-btn ' + (isDone ? 'status-progress' : 'status-done');
+    
+    const rowEl = btn.closest('tr');
+    const currentId = rowEl.getAttribute('data-id');
+    const rowIndex = Array.from(rowEl.parentElement.children).indexOf(rowEl);
+    
+    let dataArray = this.data.preschedules;
+    let keys = ['date', 'content', 'status', 'note'];
+    
+    const rowObj = dataArray[rowIndex];
+    if (rowObj) {
+      rowObj[colIdx] = newStatus;
+      const payload = { id: currentId };
+      for(let i=0; i<keys.length; i++) payload[keys[i]] = rowObj[i+1];
+      
+      this.apiPost('upsertPreSchedule', payload).then(res => {
+        if(res.success && res.id) {
+          rowObj[0] = res.id; rowEl.setAttribute('data-id', res.id);
+        }
+      });
+    }
   },
 
   onFlatCellBlur: function(type, cell) {
@@ -316,7 +348,7 @@ const app = {
     }
 
     let dataArray, upsertAction, keys;
-    if (type === 'preschedule') { dataArray = this.data.preschedules; upsertAction = 'upsertPreSchedule'; keys = ['date', 'content', 'note']; }
+    if (type === 'preschedule') { dataArray = this.data.preschedules; upsertAction = 'upsertPreSchedule'; keys = ['date', 'content', 'status', 'note']; }
     else if (type === 'student') { dataArray = this.data.students; upsertAction = 'upsertStudent'; keys = ['center', 'name', 'school', 'grade', 'parentPhone', 'studentPhone', 'note']; }
     else if (type === 'instructor') { dataArray = this.data.instructors; upsertAction = 'upsertInstructor'; keys = ['instructorName', 'subject', 'subSubject', 'phone', 'email', 'note']; }
 
