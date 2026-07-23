@@ -291,7 +291,7 @@ const app = {
       for(let i=0; i<cols.length; i++) {
         const val = row[i+1] || '';
         if (cols[i] === '일자') {
-          html += `<td data-col-idx="${i+1}" style="background: rgba(255,255,255,0.05); padding:0; text-align:center;"><input type="text" class="date-picker-input" value="${val}" onchange="app.onFlatCellBlur('${type}', this.parentElement)" placeholder="날짜 선택" style="width:100%; height:100%; min-height:40px; background:transparent; border:none; color:inherit; text-align:center; outline:none; font-family:inherit; font-size:inherit; cursor:pointer;"></td>`;
+          html += `<td data-col-idx="${i+1}" style="background: rgba(255,255,255,0.05); padding:0; text-align:center;"><input type="text" class="date-picker-input" value="${val}" onchange="app.onFlatCellBlur('${type}', this.parentElement)" placeholder="날짜 선택" style="width:100%; height:100%; min-height:40px; background:transparent; border:none; color:inherit; text-align:center; outline:none; font-family:inherit; font-size:inherit; cursor:pointer; padding:0; margin:0;"></td>`;
         } else {
           html += `<td contenteditable="true" data-col-idx="${i+1}" onblur="app.onFlatCellBlur('${type}', this)" onkeydown="app.onKeyDown(event, this)">${val}</td>`;
         }
