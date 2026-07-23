@@ -127,7 +127,7 @@ const app = {
   },
 
   renderView: function(viewName) {
-    if (viewName === 'preschedule') this.renderFlatTable('preschedule', this.data.preschedules, ['일자', '내용', '비고']);
+    if (viewName === 'preschedule') this.renderFlatTable('preschedule', this.data.preschedules, ['일자', '내용', '상태', '비고']);
     else if (viewName === 'student') this.renderFlatTable('student', this.data.students, ['센터', '이름', '학교', '학년', '학부모연락처', '학생연락처', '비고']);
     else if (viewName === 'instructor') this.renderFlatTable('instructor', this.data.instructors, ['강사명', '과목', '세부과목', '연락처', '지메일', '비고']);
     else if (viewName === 'curriculum') this.renderCurriculumPivot();
@@ -304,7 +304,13 @@ const app = {
     const thead = tbody.previousElementSibling;
     if(thead && thead.querySelector('tr')) {
       let ths = '<th style="width:40px; text-align:center;">⇅</th>';
-      cols.forEach((c, i) => ths += `<th>${this.renderSortableHeader(c, type, i)}</th>`);
+      cols.forEach((c, i) => {
+        if (type === 'student' || type === 'instructor') {
+          ths += `<th>${this.renderSortableHeader(c, type, i)}</th>`;
+        } else {
+          ths += `<th>${c}</th>`;
+        }
+      });
       thead.querySelector('tr').innerHTML = ths;
     }
 
@@ -402,14 +408,34 @@ const app = {
       const colCount = tbody.parentElement.querySelectorAll('th').length - 1;
       for(let i=0; i<colCount; i++) newRow.push('');
       arr.push(newRow); this.renderView(type);
+
+      let upsertAction = type === 'preschedule' ? 'upsertPreSchedule' : (type === 'student' ? 'upsertStudent' : 'upsertInstructor');
+      let keys = type === 'preschedule' ? ['date', 'content', 'status', 'note'] : (type === 'student' ? ['center', 'name', 'school', 'grade', 'parentPhone', 'studentPhone', 'note'] : ['instructorName', 'subject', 'subSubject', 'phone', 'email', 'note']);
+      let payload = { id: '' };
+      for(let i=0; i<keys.length; i++) payload[keys[i]] = '';
+      this.apiPost(upsertAction, payload).then(res => {
+        if(res.success && res.id) { newRow[0] = res.id; this.renderView(type); }
+      });
     } else if (type === 'curriculum') {
       const weeks = new Set(this.data.curriculums.map(r => r[1]).filter(Boolean));
       let nextWeek = `${weeks.size + 1}주차`;
-      this.dynamicCols.curriculum.forEach(sub => this.data.curriculums.push(['', nextWeek, sub, '', '']));
+      this.dynamicCols.curriculum.forEach(sub => {
+        const rowObj = ['', nextWeek, sub, '', ''];
+        this.data.curriculums.push(rowObj);
+        this.apiPost('upsertCurriculum', { id: '', week: nextWeek, subject: sub, content: '' }).then(res => {
+          if (res.success && res.id) rowObj[0] = res.id;
+        });
+      });
       this.renderView(type);
     } else if (type === 'timetable') {
       let nextStart = '18:00', nextEnd = '20:00';
-      this.dynamicCols.timetable.forEach(cls => this.data.timetables.push(['', '', '', nextStart, nextEnd, cls, '', '', '', '']));
+      this.dynamicCols.timetable.forEach(cls => {
+        const rowObj = ['', '', '', nextStart, nextEnd, cls, '', '', '', ''];
+        this.data.timetables.push(rowObj);
+        this.apiPost('upsertTimetable', { id: '', date: '', type: '', startTime: nextStart, endTime: nextEnd, targetClass: cls, instructorName: '', room: '', note: '' }).then(res => {
+          if (res.success && res.id) rowObj[0] = res.id;
+        });
+      });
       this.renderView(type);
     }
   },

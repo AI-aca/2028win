@@ -338,7 +338,7 @@ body {
 .sort-icon {
   margin-left: 5px;
   cursor: pointer;
-  font-size: 14px;
+  font-size: 10px;
   color: var(--text-muted);
 }
 .sort-icon:hover { color: white; }
