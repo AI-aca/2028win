@@ -127,9 +127,9 @@ const app = {
   },
 
   renderView: function(viewName) {
-    if (viewName === 'preschedule') this.renderFlatTable('preschedule', this.data.preschedules, ['일자', '내용', '상태', '비고']);
-    else if (viewName === 'student') this.renderFlatTable('student', this.data.students, [{label:'이름', idx:1}, {label:'센터', idx:2}, {label:'학교', idx:3}, {label:'학년', idx:4}, {label:'학부모 연락처', idx:5}, {label:'학생 연락처', idx:6}, {label:'비고', idx:7}]);
-    else if (viewName === 'instructor') this.renderFlatTable('instructor', this.data.instructors, ['강사명', '영역', '과목', '연락처', '지메일', '비고']);
+    if (viewName === 'preschedule') this.renderFlatTable('preschedule', this.data.preschedules, [{label:'일자', idx:1, fixed:true, width:'10%'}, {label:'상태', idx:3, fixed:true, width:'10%'}, {label:'내용', idx:2}, {label:'비고', idx:4}]);
+    else if (viewName === 'student') this.renderFlatTable('student', this.data.students, [{label:'이름', idx:1, fixed:true, width:'10%'}, {label:'센터', idx:2}, {label:'학교', idx:3}, {label:'학년', idx:4}, {label:'학부모 연락처', idx:5}, {label:'학생 연락처', idx:6}, {label:'비고', idx:7}]);
+    else if (viewName === 'instructor') this.renderFlatTable('instructor', this.data.instructors, [{label:'강사명', idx:1, fixed:true, width:'10%'}, {label:'영역', idx:2}, {label:'과목', idx:3}, {label:'연락처', idx:4}, {label:'지메일', idx:5}, {label:'비고', idx:6}]);
     else if (viewName === 'curriculum') this.renderCurriculumPivot();
     else if (viewName === 'timetable') this.renderTimetablePivot();
     
@@ -243,7 +243,7 @@ const app = {
   },
 
   initResizers: function() {
-    document.querySelectorAll('.excel-table th').forEach((th) => {
+    document.querySelectorAll('.excel-table th:not(.fixed-col)').forEach((th) => {
       if (!th.querySelector('.resizer')) {
         const resizer = document.createElement('div');
         resizer.className = 'resizer'; th.appendChild(resizer);
@@ -257,7 +257,7 @@ const app = {
           let deltaPct = (deltaPx / tableWidth) * 100;
           
           const startPct = parseFloat(th.getAttribute('data-start-pct'));
-          const allThs = Array.from(tableEl.querySelectorAll('th'));
+          const allThs = Array.from(tableEl.querySelectorAll('th:not(.fixed-col)'));
           const myIdx = allThs.indexOf(th);
           const rightThs = allThs.slice(myIdx + 1);
           
@@ -304,7 +304,7 @@ const app = {
             this.resizeTooltip.remove();
             this.resizeTooltip = null;
           }
-          Array.from(tableEl.querySelectorAll('th')).forEach(col => {
+          Array.from(tableEl.querySelectorAll('th:not(.fixed-col)')).forEach(col => {
             if (col.style.width && col.style.width.includes('%')) {
                const i = Array.from(col.parentNode.children).indexOf(col);
                const dynId = col.closest('.view-section').id + '-col-' + i;
@@ -318,7 +318,7 @@ const app = {
           tableEl = th.closest('.excel-table');
           const tableWidth = tableEl.getBoundingClientRect().width;
           
-          Array.from(tableEl.querySelectorAll('th')).forEach(col => {
+          Array.from(tableEl.querySelectorAll('th:not(.fixed-col)')).forEach(col => {
             const currentW = col.getBoundingClientRect().width;
             const pct = (currentW / tableWidth) * 100;
             col.setAttribute('data-start-pct', pct);
@@ -330,32 +330,27 @@ const app = {
           resizer.classList.add('resizing');
         });
         resizer.addEventListener('dblclick', (e) => {
-          const colname = th.getAttribute('data-colname');
-          if (colname) {
-            const table = th.closest('.excel-table');
-            const tableWidth = table.getBoundingClientRect().width;
-            const currentWidthPx = th.getBoundingClientRect().width;
-            const targetPct = (currentWidthPx / tableWidth) * 100;
-            const allDynamicThs = table.querySelectorAll('th[data-colname]');
-            allDynamicThs.forEach(dynTh => {
-              dynTh.style.width = `${targetPct}%`;
-              const dynIdx = Array.from(dynTh.parentNode.children).indexOf(dynTh);
-              const dynId = dynTh.closest('.view-section').id + '-col-' + dynIdx;
-              this.silentSave('saveUISettings', { key: dynId, value: `${targetPct}%` });
-              this.uiSettings[dynId] = `${targetPct}%`;
-            });
-            const viewId = th.closest('.view-section').id;
-            const targetName = viewId === 'view-curriculum' ? '과목' : '반';
-            
-            const tooltip = document.createElement('div');
-            tooltip.className = 'resize-tooltip';
-            tooltip.style.cssText = 'position: fixed; background: rgba(16,185,129,0.9); color: white; padding: 6px 12px; border-radius: 4px; font-size: 13px; font-weight: bold; pointer-events: none; z-index: 9999; box-shadow: 0 4px 15px rgba(0,0,0,0.3);';
-            tooltip.innerText = `모든 ${targetName} 너비 일괄 적용 완료!`;
-            tooltip.style.left = (e.clientX + 15) + 'px';
-            tooltip.style.top = (e.clientY - 30) + 'px';
-            document.body.appendChild(tooltip);
-            setTimeout(() => tooltip.remove(), 1500);
-          }
+          const table = th.closest('.excel-table');
+          const tableWidth = table.getBoundingClientRect().width;
+          const currentWidthPx = th.getBoundingClientRect().width;
+          const targetPct = (currentWidthPx / tableWidth) * 100;
+          const allDynamicThs = table.querySelectorAll('th:not(.fixed-col)');
+          allDynamicThs.forEach(dynTh => {
+            dynTh.style.width = `${targetPct}%`;
+            const dynIdx = Array.from(dynTh.parentNode.children).indexOf(dynTh);
+            const dynId = dynTh.closest('.view-section').id + '-col-' + dynIdx;
+            this.silentSave('saveUISettings', { key: dynId, value: `${targetPct}%` });
+            this.uiSettings[dynId] = `${targetPct}%`;
+          });
+          
+          const tooltip = document.createElement('div');
+          tooltip.className = 'resize-tooltip';
+          tooltip.style.cssText = 'position: fixed; background: rgba(16,185,129,0.9); color: white; padding: 6px 12px; border-radius: 4px; font-size: 13px; font-weight: bold; pointer-events: none; z-index: 9999; box-shadow: 0 4px 15px rgba(0,0,0,0.3);';
+          tooltip.innerText = `모든 열 너비 일괄 적용 완료!`;
+          tooltip.style.left = (e.clientX + 15) + 'px';
+          tooltip.style.top = (e.clientY - 30) + 'px';
+          document.body.appendChild(tooltip);
+          setTimeout(() => tooltip.remove(), 1500);
         });
         const savedW = this.uiSettings[id];
         if (savedW && savedW.includes('%')) th.style.width = savedW;
@@ -382,7 +377,9 @@ const app = {
       let ths = '';
       cols.forEach((c) => {
         const label = typeof c === 'object' ? c.label : c;
-        ths += `<th>${label}</th>`;
+        const widthStr = (typeof c === 'object' && c.width) ? `width:${c.width};` : '';
+        const fixedClass = (typeof c === 'object' && c.fixed) ? 'fixed-col label-col-header' : '';
+        ths += `<th class="${fixedClass}" style="${widthStr}">${label}</th>`;
       });
       thead.querySelector('tr').innerHTML = ths;
     }
@@ -393,18 +390,18 @@ const app = {
       for(let i=0; i<cols.length; i++) {
         const c = cols[i];
         const label = typeof c === 'object' ? c.label : c;
-        const colIdx = typeof c === 'object' ? c.idx : i + 1;
+        const colIdx = typeof c === 'object' ? (c.idx !== undefined ? c.idx : i+1) : i+1;
+        const isFixed = typeof c === 'object' && c.fixed;
+        const cellClassStr = isFixed ? 'class="label-col"' : '';
         const val = row[colIdx] || '';
-        const isFirstCol = (i === 0 && (type === 'student' || type === 'instructor'));
-        const cellClassStr = isFirstCol ? 'class="label-col"' : '';
         
         if (label === '일자') {
-          html += `<td data-col-idx="${colIdx}" class="label-col" style="padding:0; text-align:center;"><input type="text" class="date-picker-input" value="${val}" onchange="app.onFlatCellBlur('${type}', this.parentElement)" placeholder="날짜 선택" style="width:100%; height:100%; min-height:40px; background:transparent; border:none; color:inherit; text-align:center; outline:none; font-family:inherit; font-size:inherit; cursor:pointer; padding:0; margin:0;"></td>`;
+          html += `<td data-col-idx="${colIdx}" ${cellClassStr} style="padding:0; text-align:center;"><input type="text" class="date-picker-input" value="${val}" onchange="app.onFlatCellBlur('${type}', this.parentElement)" placeholder="날짜 선택" style="width:100%; height:100%; min-height:40px; background:transparent; border:none; color:inherit; text-align:center; outline:none; font-family:inherit; font-size:inherit; cursor:pointer; padding:0; margin:0;"></td>`;
         } else if (label === '상태') {
           const isDone = val === '완료';
           const statusTxt = isDone ? '완료' : '진행 중';
           const btnClass = isDone ? 'status-done' : 'status-progress';
-          html += `<td data-col-idx="${colIdx}" style="text-align:center;"><button class="status-btn ${btnClass}" onclick="app.toggleStatus(this, '${type}', ${colIdx})">${statusTxt}</button></td>`;
+          html += `<td data-col-idx="${colIdx}" ${cellClassStr} style="text-align:center;"><button class="status-btn ${btnClass}" onclick="app.toggleStatus(this, '${type}', ${colIdx})">${statusTxt}</button></td>`;
         } else {
           html += `<td ${cellClassStr} contenteditable="true" data-col-idx="${colIdx}" onblur="app.onFlatCellBlur('${type}', this)" onkeydown="app.onKeyDown(event, this)">${val}</td>`;
         }
@@ -529,7 +526,7 @@ const app = {
 
   renderCurriculumPivot: function() {
     const table = document.querySelector('#view-curriculum .excel-table');
-    let headHtml = `<thead><tr><th style="width:150px;">주차</th>`;
+    let headHtml = `<thead><tr><th class="label-col-header fixed-col" style="width:10%;">주차</th>`;
     this.dynamicCols.curriculum.forEach(sub => {
       headHtml += `<th data-colname="${sub}">${sub}</th>`;
     });
@@ -540,7 +537,7 @@ const app = {
 
     weeks.forEach(week => {
       headHtml += `<tr>
-      <td style="background: rgba(255,255,255,0.05); font-weight:bold; text-align:center;" contenteditable="true" onblur="app.updatePivotRowLabel('curriculum', '${week}', this.innerText.trim())">${week}</td>`;
+      <td class="label-col" style="font-weight:bold; text-align:center;" contenteditable="true" onblur="app.updatePivotRowLabel('curriculum', '${week}', this.innerText.trim())">${week}</td>`;
       this.dynamicCols.curriculum.forEach(sub => {
         const row = this.data.curriculums.find(r => r[1] === week && r[2] === sub);
         const content = row ? row[3] : '';
@@ -569,7 +566,7 @@ const app = {
 
   renderTimetablePivot: function() {
     const table = document.querySelector('#view-timetable .excel-table');
-    let headHtml = `<thead><tr><th class="label-col-header" style="width:130px;">일자</th><th class="label-col-header" style="width:120px;">시작시간</th><th class="label-col-header" style="width:150px;">종료시간</th>`;
+    let headHtml = `<thead><tr><th class="label-col-header fixed-col" style="width:10%;">일자</th><th class="label-col-header fixed-col" style="width:10%;">시작 시간</th><th class="label-col-header fixed-col" style="width:10%;">종료 시간</th>`;
     this.dynamicCols.timetable.forEach(cls => {
       headHtml += `<th data-colname="${cls}">${cls}</th>`;
     });
