@@ -243,6 +243,43 @@ const app = {
   },
 
   initResizers: function() {
+    document.querySelectorAll('.excel-table').forEach(table => {
+      const fixedThs = table.querySelectorAll('th.fixed-col');
+      const dynThs = table.querySelectorAll('th:not(.fixed-col)');
+      if (dynThs.length === 0) return;
+      
+      let fixedTotalPct = 0;
+      fixedThs.forEach(th => {
+        let w = th.style.width;
+        if (w && w.includes('%')) fixedTotalPct += parseFloat(w);
+        else fixedTotalPct += 10;
+      });
+      
+      const expectedDynTotal = 100 - fixedTotalPct;
+      let currentDynTotal = 0;
+      let dynWidths = [];
+      
+      dynThs.forEach((th, i) => {
+        const dynId = th.closest('.view-section').id + '-col-' + i;
+        let w = this.uiSettings[dynId];
+        let val = (w && w.includes('%')) ? parseFloat(w) : (expectedDynTotal / dynThs.length);
+        dynWidths.push(val);
+        currentDynTotal += val;
+      });
+      
+      if (Math.abs(currentDynTotal - expectedDynTotal) > 0.1) {
+        const scale = expectedDynTotal / currentDynTotal;
+        dynThs.forEach((th, i) => {
+          const newPct = dynWidths[i] * scale;
+          th.style.width = newPct + '%';
+        });
+      } else {
+        dynThs.forEach((th, i) => {
+          th.style.width = dynWidths[i] + '%';
+        });
+      }
+    });
+
     document.querySelectorAll('.excel-table th:not(.fixed-col)').forEach((th) => {
       if (!th.querySelector('.resizer')) {
         const resizer = document.createElement('div');
@@ -357,9 +394,6 @@ const app = {
           document.body.appendChild(tooltip);
           setTimeout(() => tooltip.remove(), 1500);
         });
-        const savedW = this.uiSettings[id];
-        if (savedW && savedW.includes('%')) th.style.width = savedW;
-        else if (savedW) th.style.width = ''; // ignore legacy px widths to prevent scrollbar
       }
       // Add right-click for column deletion
       if (th.getAttribute('data-colname') && !th.hasAttribute('data-ctx-bound')) {
@@ -586,7 +620,7 @@ const app = {
       const isTmpDate = date.startsWith('tmp-');
       const displayDate = isTmpDate ? '' : date;
       
-      headHtml += `<tr><td class="label-col" style="text-align:center;"><input type="text" class="date-picker-input" value="${displayDate}" onchange="app.updatePivotRowDate('${grp}', this.value)" placeholder="날짜 선택" style="width:100%; background:transparent; border:none; color:inherit; text-align:center; outline:none; font-family:inherit; font-size:inherit; line-height:1; cursor:pointer; padding:0; margin:0;"></td>`;
+      headHtml += `<tr data-grp="${grp}"><td class="label-col" style="text-align:center;"><input type="text" class="date-picker-input" value="${displayDate}" onchange="app.updatePivotRowDate('${grp}', this.value)" placeholder="날짜 선택" style="width:100%; background:transparent; border:none; color:inherit; text-align:center; outline:none; font-family:inherit; font-size:inherit; line-height:1; cursor:pointer; padding:0; margin:0;"></td>`;
 
       if (isHoliday) {
         const holidayRow = this.data.timetables.find(r => r[1] === date && r[2] === '휴일');
@@ -885,18 +919,26 @@ const app = {
     const type = this.ctxTargetType;
     const id = this.ctxTargetRow.getAttribute('data-id');
     
-    if (type === 'curriculum' || type === 'timetable') {
+    if (type === 'curriculum') {
       if(!confirm("이 줄에 입력된 모든 데이터가 삭제됩니다. 정말 삭제하시겠습니까?")) return;
-      const idCells = this.ctxTargetRow.querySelectorAll('td[data-id]');
+      const week = this.ctxTargetRow.getAttribute('data-week');
+      const toDelete = this.data.curriculums.filter(r => r[1] === week);
       this.showLoading();
-      for(const c of Array.from(idCells)) {
-        const itemID = c.getAttribute('data-id');
-        if(itemID) {
-           let sheetName = type === 'curriculum' ? '수업진도계획' : '시간표';
-           await this.silentSave('deleteData', { sheetName, id: itemID });
+      for(const r of toDelete) {
+        if(r[0]) await this.silentSave('deleteData', { sheetName: '수업진도계획', id: r[0] });
+      }
+      this.fetchInitialData();
+    } else if (type === 'timetable') {
+      if(!confirm("이 줄에 입력된 모든 데이터가 삭제됩니다. 정말 삭제하시겠습니까?")) return;
+      const grp = this.ctxTargetRow.getAttribute('data-grp');
+      this.showLoading();
+      if (grp) {
+        const [date, tType, start, end] = grp.split('|');
+        const toDelete = this.data.timetables.filter(r => r[1] === date && r[2] === tType && r[3] === start && r[4] === end);
+        for(const r of toDelete) {
+          if(r[0]) await this.silentSave('deleteData', { sheetName: '시간표', id: r[0] });
         }
       }
-      this.ctxTargetRow.remove();
       this.fetchInitialData();
     } else {
       this.deleteItem(type, id, this.ctxTargetRow);
