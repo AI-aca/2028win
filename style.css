@@ -208,7 +208,10 @@ body {
   border-collapse: collapse;
   font-size: 14px;
 }
-.excel-table th, .excel-table td {\n  white-space: pre-wrap;\n  word-break: keep-all;\n  overflow-wrap: break-word;
+.excel-table th, .excel-table td {
+  white-space: pre-wrap;
+  word-break: keep-all;
+  overflow-wrap: break-word;
   border: 1px solid rgba(255,255,255,0.15);
   padding: 12px 10px;
   text-align: left;
@@ -229,7 +232,6 @@ body {
   cursor: text;
   background: transparent;
   color: inherit;
-  border: none;
   width: 100%;
 }
 .excel-table td[contenteditable="true"]:focus,
@@ -243,9 +245,10 @@ body {
 .resizer:hover, .resizer.resizing { background: rgba(16, 185, 129, 0.5); }
 .excel-table th { position: relative; }
 
-/* Sticky first column */
+/* Sticky first column and border fixes */
 .excel-table th:first-child,
 .excel-table td:first-child {
+  border-left: none;
   position: sticky;
   left: 0;
   z-index: 2;
@@ -253,6 +256,10 @@ body {
 }
 .excel-table th:first-child {
   z-index: 3;
+}
+.excel-table th:last-child,
+.excel-table td:last-child {
+  border-right: none;
 }
 .drag-handle {
   cursor: grab;
