@@ -213,67 +213,9 @@ const app = {
       e.preventDefault(); this.ctxTargetRow = tr; this.ctxTargetType = type;
       this.showContextMenu(e.pageX, e.pageY);
     });
-    this.makeDraggable(tr, type);
   },
 
-  makeDraggable: function(tr, type) {
-    const handle = tr.querySelector('.drag-handle');
-    if(!handle) return;
-    handle.addEventListener('mousedown', () => tr.setAttribute('draggable', 'true'));
-    handle.addEventListener('mouseup', () => tr.removeAttribute('draggable'));
-    tr.addEventListener('dragstart', (e) => {
-      this.draggedRow = tr; this.draggedType = type;
-      e.dataTransfer.effectAllowed = 'move';
-      setTimeout(() => tr.classList.add('dragging-row'), 0);
-    });
-    tr.addEventListener('dragend', () => {
-      tr.classList.remove('dragging-row'); tr.removeAttribute('draggable'); this.draggedRow = null;
-    });
-    tr.addEventListener('dragover', (e) => {
-      e.preventDefault();
-      const rect = tr.getBoundingClientRect();
-      const offset = rect.y + (rect.height / 2);
-      if (e.clientY < offset) { tr.style.borderTop = "2px solid #10b981"; tr.style.borderBottom = ""; }
-      else { tr.style.borderBottom = "2px solid #10b981"; tr.style.borderTop = ""; }
-    });
-    tr.addEventListener('dragleave', () => { tr.style.borderTop = ""; tr.style.borderBottom = ""; });
-    tr.addEventListener('drop', (e) => {
-      e.preventDefault(); tr.style.borderTop = ""; tr.style.borderBottom = "";
-      if (this.draggedRow && this.draggedRow !== tr && this.draggedType === type) {
-        const tbody = tr.parentNode;
-        const rect = tr.getBoundingClientRect();
-        if (e.clientY < rect.y + (rect.height / 2)) tbody.insertBefore(this.draggedRow, tr);
-        else tbody.insertBefore(this.draggedRow, tr.nextSibling);
-        this.saveOrder(type, tbody);
-      }
-    });
-  },
 
-  saveOrder: function(type, tbody) {
-    const rows = Array.from(tbody.querySelectorAll('tr'));
-    let orderedIds = [];
-    if (type === 'timetable') {
-      rows.forEach(tr => {
-        tr.querySelectorAll('td[data-id]').forEach(td => {
-          const id = td.getAttribute('data-id');
-          if (id) orderedIds.push(id);
-        });
-      });
-    } else {
-      orderedIds = rows.map(r => r.getAttribute('data-id')).filter(id => id);
-    }
-    let sheetName = '';
-    if (type === 'preschedule') sheetName = '사전준비일정';
-    if (type === 'curriculum') sheetName = '수업진도계획';
-    if (type === 'timetable') sheetName = '시간표';
-    if (type === 'student') sheetName = '학생관리';
-    if (type === 'instructor') sheetName = '강사관리';
-    if (sheetName && orderedIds.length > 0) {
-      this.silentSave('reorderRows', { sheetName, orderedIds }).then(() => {
-        setTimeout(() => this.fetchInitialData(), 200);
-      });
-    }
-  },
 
   renderSortableHeader: function(label, type, colIdx) {
     return `${label} <span class="sort-icon" onclick="app.sortTable('${type}', ${colIdx}, this)">▼</span>`;
@@ -1030,7 +972,6 @@ const app = {
        const newRow = tbody.lastElementChild;
        if(pos === 'above') tbody.insertBefore(newRow, targetRow);
        else tbody.insertBefore(newRow, targetRow.nextSibling);
-       this.saveOrder(type, tbody);
     }
   }
 };

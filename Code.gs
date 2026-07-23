@@ -35,7 +35,6 @@ function doPost(e) {
     else if (action === 'upsertStudent') result = upsertStudent(payload);
     else if (action === 'upsertInstructor') result = upsertInstructor(payload);
     else if (action === 'deleteData') result = deleteData(payload.sheetName, payload.id);
-    else if (action === 'reorderRows') result = reorderRows(payload);
     else if (action === 'saveUISettings') result = saveUISettings(payload);
     
     return ContentService.createTextOutput(JSON.stringify(result)).setMimeType(ContentService.MimeType.JSON);
@@ -130,8 +129,9 @@ function upsertRow(sheetName, id, rowDataArray) {
       if (id) {
         const data = sheet.getDataRange().getValues();
         for (let i = 1; i < data.length; i++) {
-          if (data[i][0] === id) {
-            sheet.getRange(i + 1, 1, 1, rowDataArray.length).setValues([rowDataArray]);
+          if (String(data[i][0]) === String(id)) {
+            const safeRowDataArray = rowDataArray.map(v => v === undefined ? '' : v);
+            sheet.getRange(i + 1, 1, 1, safeRowDataArray.length).setValues([safeRowDataArray]);
             return { success: true, message: '업데이트 완료', id: id };
           }
         }
@@ -140,7 +140,8 @@ function upsertRow(sheetName, id, rowDataArray) {
       const newId = id || generateId();
       rowDataArray[0] = newId;
       rowDataArray[rowDataArray.length - 1] = getCurrentTime();
-      sheet.appendRow(rowDataArray);
+      const safeRowDataArray = rowDataArray.map(v => v === undefined ? '' : v);
+      sheet.appendRow(safeRowDataArray);
       return { success: true, message: '생성 완료', id: newId };
     } catch (error) {
       return { success: false, message: error.message };
@@ -168,7 +169,7 @@ function deleteData(sheetName, id) {
       
       const data = sheet.getDataRange().getValues();
       for (let i = 1; i < data.length; i++) {
-        if (data[i][0] === id) {
+        if (String(data[i][0]) === String(id)) {
           sheet.deleteRow(i + 1);
           return { success: true };
         }
@@ -178,49 +179,7 @@ function deleteData(sheetName, id) {
   } else { return { success: false, message: '동시 접속 지연' }; }
 }
 
-function reorderRows(payload) {
-  const lock = LockService.getScriptLock();
-  if (lock.tryLock(10000)) {
-    try {
-      const ss = getDbSpreadsheet();
-      const sheet = ss.getSheetByName(payload.sheetName);
-      if (!sheet) return { success: false, message: '시트를 찾을 수 없습니다.' };
-      
-      const data = sheet.getDataRange().getValues();
-      if (data.length <= 1) return { success: true }; // No data to reorder
-      
-      const headers = data[0];
-      const rows = data.slice(1);
-      const orderedIds = payload.orderedIds;
-      
-      const rowMap = {};
-      rows.forEach(r => { rowMap[r[0]] = r; });
-      
-      const newRows = [];
-      // Push ordered rows first
-      orderedIds.forEach(id => {
-        if (rowMap[id]) {
-          newRows.push(rowMap[id]);
-          delete rowMap[id];
-        }
-      });
-      // Push remaining rows if any
-      for (const id in rowMap) {
-        newRows.push(rowMap[id]);
-      }
-      
-      sheet.getRange(2, 1, newRows.length, headers.length).setValues(newRows);
-      
-      return { success: true };
-    } catch (error) {
-      return { success: false, message: error.message };
-    } finally {
-      lock.releaseLock();
-    }
-  } else {
-    return { success: false, message: '동시 접속 지연' };
-  }
-}
+
 
 function saveUISettings(payload) {
   const lock = LockService.getScriptLock();
