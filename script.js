@@ -474,10 +474,15 @@ const app = {
       });
       this.renderView(type);
     } else if (type === 'holiday') {
-      const today = new Date().toISOString().split('T')[0];
-      const rowObj = ['', today, '휴일', '00:00', '00:00', '전체', '휴일', '', '', ''];
+      let nextDate = new Date();
+      let dateStr = nextDate.toISOString().split('T')[0];
+      while(this.data.timetables.some(r => r[1] === dateStr && r[2] === '휴일')) {
+        nextDate.setDate(nextDate.getDate() + 1);
+        dateStr = nextDate.toISOString().split('T')[0];
+      }
+      const rowObj = ['', dateStr, '휴일', '00:00', '00:00', '전체', '휴일', '', '', ''];
       this.data.timetables.push(rowObj);
-      this.apiPost('upsertTimetable', { id: '', date: today, type: '휴일', start: '00:00', end: '00:00', className: '전체', subject: '휴일', instructor: '', note: '' }).then(res => {
+      this.apiPost('upsertTimetable', { id: '', date: dateStr, type: '휴일', start: '00:00', end: '00:00', className: '전체', subject: '휴일', instructor: '', note: '' }).then(res => {
         if (res.success && res.id) rowObj[0] = res.id;
       });
       this.renderView('timetable');

@@ -453,6 +453,14 @@ span.flatpickr-weekday {
 .label-col input {
   font-weight: bold !important;
 }
+
+[contenteditable="true"]:empty:before {
+  content: attr(placeholder);
+  color: rgba(255, 255, 255, 0.3);
+  pointer-events: none;
+  display: block;
+}
+
 /* Status Button Styles */
 .status-btn {
   padding: 6px 12px;
