@@ -14,7 +14,7 @@ const app = {
     this.bindEvents();
     if (sessionStorage.getItem('auth_pass')) {
       document.getElementById('login-overlay').style.display = 'none';
-      document.getElementById('main-app').style.display = 'block';
+      document.getElementById('main-app').style.display = 'flex';
       this.fetchInitialData();
     }
     
@@ -77,7 +77,7 @@ const app = {
         sessionStorage.setItem('auth_pass', pw);
         document.getElementById('login-error').classList.add('hidden');
         document.getElementById('login-overlay').style.display = 'none';
-        document.getElementById('main-app').style.display = 'block';
+        document.getElementById('main-app').style.display = 'flex';
         this.processInitialData(res);
       }
     } catch (e) {
