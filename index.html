@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>2028 영재학교반 관리</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <!-- 로딩 스피너 -->
+  <div id="loadingSpinner" class="hidden">
+    <div class="spinner"></div>
+  </div>
+
+  <!-- 알림(Toast) -->
+  <div id="toastContainer" class="toast-container"></div>
+
+  <div class="app-container">
+    <!-- 좌측 사이드바 -->
+    <nav class="sidebar">
+      <div class="sidebar-header">
+        <div class="logo">
+          <span class="logo-icon">✨</span>
+          <span class="logo-text">2028 영재학교</span>
+        </div>
+      </div>
+      
+      <ul class="nav-menu">
+        <li class="nav-item active" data-target="view-preschedule">
+          <span class="icon">📅</span>
+          <span class="text">사전 준비일정</span>
+        </li>
+        <li class="nav-item" data-target="view-curriculum">
+          <span class="icon">📚</span>
+          <span class="text">수업 진도계획</span>
+        </li>
+        <li class="nav-item" data-target="view-timetable">
+          <span class="icon">⏰</span>
+          <span class="text">시간표 관리</span>
+        </li>
+      </ul>
+
+      <div class="sidebar-footer">
+        <ul class="nav-menu">
+          <li class="nav-item" data-target="view-settings">
+            <span class="icon">⚙️</span>
+            <span class="text">기초 설정</span>
+          </li>
+        </ul>
+      </div>
+    </nav>
+
+    <!-- 메인 콘텐츠 영역 -->
+    <main class="main-content">
+      <header class="top-header">
+        <h1 id="pageTitle">사전 준비일정</h1>
+        <div class="user-info">
+          <span class="user-name">관리자</span>
+        </div>
+      </header>
+
+      <div class="content-wrapper">
+        <!-- 뷰 1: 사전 준비일정 -->
+        <div id="view-preschedule" class="view-section active">
+          <div class="glass-panel">
+            <div class="panel-header">
+              <h2>사전 준비일정 목록</h2>
+              <button class="btn btn-primary" onclick="app.openModal('preschedule-modal')">일정 추가</button>
+            </div>
+            <div class="panel-content">
+              <!-- 데이터 리스트 렌더링 영역 -->
+              <div id="preschedule-list" class="data-list">
+                <p class="empty-msg">등록된 일정이 없습니다.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 뷰 2: 수업 진도계획 -->
+        <div id="view-curriculum" class="view-section hidden">
+          <div class="glass-panel">
+            <div class="panel-header">
+              <h2>수업 진도계획</h2>
+              <button class="btn btn-primary" onclick="app.openModal('curriculum-modal')">계획 추가</button>
+            </div>
+            <div class="panel-content">
+              <div id="curriculum-list" class="data-list">
+                <p class="empty-msg">등록된 진도계획이 없습니다.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 뷰 3: 시간표 관리 -->
+        <div id="view-timetable" class="view-section hidden">
+          <div class="glass-panel">
+            <div class="panel-header">
+              <h2>주간 시간표 관리</h2>
+              <button class="btn btn-primary" onclick="app.openModal('timetable-modal')">시간표 등록</button>
+            </div>
+            <div class="panel-content">
+              <div id="timetable-list" class="data-list">
+                <p class="empty-msg">등록된 시간표가 없습니다.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 뷰 4: 기초 설정 -->
+        <div id="view-settings" class="view-section hidden">
+          <div class="glass-panel" style="margin-bottom: 30px;">
+            <div class="panel-header">
+              <h2>학급명 관리</h2>
+              <button class="btn btn-primary" onclick="app.openModal('class-modal')">학급 추가</button>
+            </div>
+            <div class="panel-content">
+              <ul id="class-list" class="class-list">
+                <li class="empty-msg">등록된 학급이 없습니다.</li>
+              </ul>
+            </div>
+          </div>
+
+          <div class="glass-panel">
+            <div class="panel-header">
+              <h2>강사 정보 관리</h2>
+              <button class="btn btn-primary" onclick="app.openModal('instructor-modal')">강사 추가</button>
+            </div>
+            <div class="panel-content">
+              <div id="instructor-list" class="data-list">
+                <p class="empty-msg">등록된 강사 정보가 없습니다.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- 모달 템플릿 영역 (뼈대) -->
+  <div id="modal-container" class="modal-overlay hidden">
+    <!-- 모달 내용이 JS로 동적 삽입됨 -->
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
