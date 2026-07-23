@@ -84,8 +84,8 @@
             <div class="panel-header">
               <h2>수업 진도계획</h2>
               <div>
-                <button class="btn btn-primary" onclick="app.addRow('curriculum')">+</button>
-                <button class="btn btn-primary" style="background:#06b6d4;" onclick="app.addColumn('curriculum')">+</button>
+                <button class="btn btn-primary" onclick="app.addRow('curriculum')">+ 주차(행) 추가</button>
+                <button class="btn btn-primary" style="background:#06b6d4;" onclick="app.addColumn('curriculum')">+ 과목(열) 추가</button>
               </div>
             </div>
             <div class="panel-content table-container">
@@ -101,8 +101,8 @@
             <div class="panel-header">
               <h2>시간표 관리</h2>
               <div>
-                <button class="btn btn-primary" onclick="app.addRow('timetable')">+</button>
-                <button class="btn btn-primary" style="background:#06b6d4;" onclick="app.addColumn('timetable')">+</button>
+                <button class="btn btn-primary" onclick="app.addRow('timetable')">+ 시간(행) 추가</button>
+                <button class="btn btn-primary" style="background:#06b6d4;" onclick="app.addColumn('timetable')">+ 반이름(열) 추가</button>
               </div>
             </div>
             <div class="panel-content table-container">
@@ -173,11 +173,14 @@
 
   <!-- Context Menu -->
   <div id="context-menu" class="context-menu hidden">
-    <ul>
+    <ul id="ctx-menu-row">
       <li onclick="app.ctxInsertRowAbove()">행 위에 삽입</li>
       <li onclick="app.ctxInsertRowBelow()">행 아래에 삽입</li>
       <li class="menu-separator"></li>
       <li class="text-danger" onclick="app.ctxDeleteRow()">행 삭제</li>
+    </ul>
+    <ul id="ctx-menu-col" class="hidden">
+      <li class="text-danger" onclick="app.ctxDeleteCol()">이 열 삭제</li>
     </ul>
   </div>
 

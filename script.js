@@ -250,6 +250,16 @@ const app = {
         const savedW = this.uiSettings[id];
         if (savedW) th.style.width = savedW;
       }
+      // Add right-click for column deletion
+      if (th.getAttribute('data-colname') && !th.hasAttribute('data-ctx-bound')) {
+        th.setAttribute('data-ctx-bound', 'true');
+        th.addEventListener('contextmenu', (e) => {
+          e.preventDefault();
+          this.ctxTargetColName = th.getAttribute('data-colname');
+          this.ctxTargetType = th.closest('#view-curriculum') ? 'curriculum' : 'timetable';
+          this.showContextMenu(e.pageX, e.pageY, 'col');
+        });
+      }
     });
   },
 
@@ -269,7 +279,7 @@ const app = {
       const id = row[0]; html += `<tr data-id="${id}">`;
       for(let i=0; i<cols.length; i++) {
         const val = row[i+1] || '';
-        const dragHtml = i === 0 ? `<span class="drag-handle">☰</span>` : '';
+        const dragHtml = i === 0 ? `<span class="drag-handle" title="이 아이콘을 상하로 드래그하여 행 순서를 변경할 수 있습니다">☰</span>` : '';
         html += `<td contenteditable="true" data-col-idx="${i+1}" onblur="app.onFlatCellBlur('${type}', this)" onkeydown="app.onKeyDown(event, this)">${dragHtml}${val}</td>`;
       }
       html += `<td style="text-align:center;"><button class="btn btn-danger" style="padding:4px 8px;font-size:12px;" onclick="app.deleteItem('${type}', '${id}', this)">삭제</button></td></tr>`;
@@ -334,7 +344,7 @@ const app = {
     const table = document.querySelector('#view-curriculum .excel-table');
     let headHtml = `<thead><tr><th style="width:150px;">주차 <button class="btn" style="padding:2px 4px;font-size:10px;margin-left:5px;" onclick="app.addColumn('curriculum')">+</button></th>`;
     this.dynamicCols.curriculum.forEach(sub => {
-      headHtml += `<th>${sub} <button class="remove-col-btn" onclick="app.removeColumn('curriculum', '${sub}')">[x]</button></th>`;
+      headHtml += `<th data-colname="${sub}">${sub}</th>`;
     });
     headHtml += `</tr></thead><tbody id="tbody-curriculum">`;
 
@@ -342,7 +352,7 @@ const app = {
     if (weeks.length === 0) weeks.push('1주차');
 
     weeks.forEach(week => {
-      headHtml += `<tr><td style="background: rgba(255,255,255,0.05); font-weight:bold; text-align:center;" contenteditable="true" onblur="app.updatePivotRowLabel('curriculum', '${week}', this.innerText.trim())"><span class="drag-handle">☰</span>${week}</td>`;
+      headHtml += `<tr><td style="background: rgba(255,255,255,0.05); font-weight:bold; text-align:center;" contenteditable="true" onblur="app.updatePivotRowLabel('curriculum', '${week}', this.innerText.trim())"><span class="drag-handle" title="이 아이콘을 상하로 드래그하여 행 순서를 변경할 수 있습니다">☰</span>${week}</td>`;
       this.dynamicCols.curriculum.forEach(sub => {
         const row = this.data.curriculums.find(r => r[1] === week && r[2] === sub);
         const content = row ? row[3] : '';
@@ -373,7 +383,7 @@ const app = {
     const table = document.querySelector('#view-timetable .excel-table');
     let headHtml = `<thead><tr><th style="width:120px;">시작시간</th><th style="width:150px;">종료시간 <button class="btn" style="padding:2px 4px;font-size:10px;margin-left:5px;" onclick="app.addColumn('timetable')">+</button></th>`;
     this.dynamicCols.timetable.forEach(cls => {
-      headHtml += `<th>${cls} <button class="remove-col-btn" onclick="app.removeColumn('timetable', '${cls}')">[x]</button></th>`;
+      headHtml += `<th data-colname="${cls}">${cls}</th>`;
     });
     headHtml += `</tr></thead><tbody id="tbody-timetable">`;
 
@@ -384,7 +394,7 @@ const app = {
       const [start, end] = pair.split('|');
       headHtml += `<tr>
         <td style="background: rgba(255,255,255,0.05); text-align:center;">
-          <span class="drag-handle">☰</span><input type="time" value="${start}" onblur="app.updatePivotRowTime('${pair}', 'start', this.value)" style="background:transparent; color:white; border:none; outline:none; text-align:center; cursor:pointer;" required>
+          <span class="drag-handle" title="이 아이콘을 상하로 드래그하여 행 순서를 변경할 수 있습니다">☰</span><input type="time" value="${start}" onblur="app.updatePivotRowTime('${pair}', 'start', this.value)" style="background:transparent; color:white; border:none; outline:none; text-align:center; cursor:pointer;" required>
         </td>
         <td style="background: rgba(255,255,255,0.05); text-align:center;">
           <input type="time" value="${end}" onblur="app.updatePivotRowTime('${pair}', 'end', this.value)" style="background:transparent; color:white; border:none; outline:none; text-align:center; cursor:pointer;" required>
@@ -513,9 +523,19 @@ const app = {
   },
 
   // Context Menu
-  showContextMenu: function(x, y) {
+  showContextMenu: function(x, y, mode = 'row') {
     const ctx = document.getElementById('context-menu');
     if(!ctx) return;
+    
+    document.getElementById('ctx-menu-row').classList.add('hidden');
+    document.getElementById('ctx-menu-col').classList.add('hidden');
+    
+    if (mode === 'col') {
+      document.getElementById('ctx-menu-col').classList.remove('hidden');
+    } else {
+      document.getElementById('ctx-menu-row').classList.remove('hidden');
+    }
+
     ctx.style.left = `${x}px`; ctx.style.top = `${y}px`;
     ctx.classList.remove('hidden');
   },
@@ -543,6 +563,10 @@ const app = {
       });
       setTimeout(() => this.fetchInitialData(), 500);
     }
+  },
+  ctxDeleteCol: function() {
+    this.hideContextMenu(); if(!this.ctxTargetColName) return;
+    this.removeColumn(this.ctxTargetType, this.ctxTargetColName);
   },
   addRowToUI: function(type, targetRow, pos) {
     this.addRow(type);
