@@ -73,6 +73,7 @@ body {
   color: var(--text-muted);
   transition: all 0.2s ease;
   font-size: 14px;
+  font-weight: 600;
 }
 .single-item:hover, .link-item:hover {
   background: rgba(255, 255, 255, 0.05);
@@ -235,6 +236,7 @@ body {
   color: inherit;
   width: 100%;
   font-size: 14px;
+  font-weight: inherit;
 }
 .excel-table td[contenteditable="true"]:focus,
 .excel-table td[contenteditable="true"]:hover {
@@ -255,6 +257,7 @@ body {
   left: 0;
   z-index: 2;
   background: #1e293b; /* Fallback for panels */
+  font-weight: bold;
 }
 .excel-table th:first-child {
   z-index: 3;
@@ -443,6 +446,10 @@ span.flatpickr-weekday {
 
 .label-col {
   background: rgba(255, 255, 255, 0.05) !important;
+  font-weight: bold !important;
+}
+.label-col input {
+  font-weight: bold !important;
 }
 /* Status Button Styles */
 .status-btn {
