@@ -243,20 +243,48 @@ const app = {
   },
 
   initResizers: function() {
-    document.querySelectorAll('.excel-table th').forEach((th, i) => {
+    document.querySelectorAll('.excel-table th').forEach((th) => {
       if (!th.querySelector('.resizer')) {
         const resizer = document.createElement('div');
         resizer.className = 'resizer'; th.appendChild(resizer);
-        let x = 0, w = 0;
-        let startTableWidth = 0;
-        let tableEl = null;
-        const id = th.closest('.view-section').id + '-col-' + i;
+        let x = 0, tableEl = null;
+        const idx = Array.from(th.parentNode.children).indexOf(th);
+        const id = th.closest('.view-section').id + '-col-' + idx;
         
         const mouseMoveHandler = (e) => { 
-          const newWidthPx = Math.round(Math.max(30, w + e.clientX - x));
           const tableWidth = tableEl.getBoundingClientRect().width;
-          const newWidthPct = (newWidthPx / tableWidth) * 100;
-          th.style.width = `${newWidthPct}%`; 
+          let deltaPx = e.clientX - x;
+          let deltaPct = (deltaPx / tableWidth) * 100;
+          
+          const startPct = parseFloat(th.getAttribute('data-start-pct'));
+          const allThs = Array.from(tableEl.querySelectorAll('th'));
+          const myIdx = allThs.indexOf(th);
+          const rightThs = allThs.slice(myIdx + 1);
+          
+          if (rightThs.length === 0) return;
+          
+          const totalRightPct = rightThs.reduce((sum, col) => sum + parseFloat(col.getAttribute('data-start-pct')), 0);
+          const MIN_PCT = 3;
+          let newPct = startPct + deltaPct;
+          
+          if (newPct < MIN_PCT) {
+            newPct = MIN_PCT;
+            deltaPct = newPct - startPct;
+          }
+          
+          const maxSteal = totalRightPct - (rightThs.length * MIN_PCT);
+          if (deltaPct > maxSteal) {
+            deltaPct = maxSteal;
+            newPct = startPct + deltaPct;
+          }
+          
+          th.style.width = `${newPct}%`;
+          
+          rightThs.forEach(col => {
+            const startRightPct = parseFloat(col.getAttribute('data-start-pct'));
+            const stealAmount = (startRightPct / totalRightPct) * deltaPct;
+            col.style.width = `${startRightPct - stealAmount}%`;
+          });
           
           if (!this.resizeTooltip) {
             this.resizeTooltip = document.createElement('div');
@@ -266,7 +294,7 @@ const app = {
           }
           this.resizeTooltip.style.left = (e.clientX + 15) + 'px';
           this.resizeTooltip.style.top = (e.clientY - 30) + 'px';
-          this.resizeTooltip.innerText = Math.round(newWidthPct) + '%';
+          this.resizeTooltip.innerText = Math.round(newPct) + '%';
         };
         const mouseUpHandler = () => {
           document.removeEventListener('mousemove', mouseMoveHandler);
@@ -276,13 +304,26 @@ const app = {
             this.resizeTooltip.remove();
             this.resizeTooltip = null;
           }
-          this.silentSave('saveUISettings', { key: id, value: th.style.width });
-          this.uiSettings[id] = th.style.width;
+          Array.from(tableEl.querySelectorAll('th')).forEach(col => {
+            if (col.style.width && col.style.width.includes('%')) {
+               const i = Array.from(col.parentNode.children).indexOf(col);
+               const dynId = col.closest('.view-section').id + '-col-' + i;
+               this.silentSave('saveUISettings', { key: dynId, value: col.style.width });
+               this.uiSettings[dynId] = col.style.width;
+            }
+          });
         };
         resizer.addEventListener('mousedown', (e) => {
           x = e.clientX; 
-          w = th.getBoundingClientRect().width;
           tableEl = th.closest('.excel-table');
+          const tableWidth = tableEl.getBoundingClientRect().width;
+          
+          Array.from(tableEl.querySelectorAll('th')).forEach(col => {
+            const currentW = col.getBoundingClientRect().width;
+            const pct = (currentW / tableWidth) * 100;
+            col.setAttribute('data-start-pct', pct);
+            col.style.width = `${pct}%`;
+          });
           
           document.addEventListener('mousemove', mouseMoveHandler);
           document.addEventListener('mouseup', mouseUpHandler);
@@ -291,15 +332,17 @@ const app = {
         resizer.addEventListener('dblclick', (e) => {
           const colname = th.getAttribute('data-colname');
           if (colname) {
-            const currentWidth = th.style.width || th.getBoundingClientRect().width + 'px';
             const table = th.closest('.excel-table');
+            const tableWidth = table.getBoundingClientRect().width;
+            const currentWidthPx = th.getBoundingClientRect().width;
+            const targetPct = (currentWidthPx / tableWidth) * 100;
             const allDynamicThs = table.querySelectorAll('th[data-colname]');
             allDynamicThs.forEach(dynTh => {
-              dynTh.style.width = currentWidth;
-              const idx = Array.from(dynTh.parentNode.children).indexOf(dynTh);
-              const dynId = dynTh.closest('.view-section').id + '-col-' + idx;
-              this.silentSave('saveUISettings', { key: dynId, value: currentWidth });
-              this.uiSettings[dynId] = currentWidth;
+              dynTh.style.width = `${targetPct}%`;
+              const dynIdx = Array.from(dynTh.parentNode.children).indexOf(dynTh);
+              const dynId = dynTh.closest('.view-section').id + '-col-' + dynIdx;
+              this.silentSave('saveUISettings', { key: dynId, value: `${targetPct}%` });
+              this.uiSettings[dynId] = `${targetPct}%`;
             });
             const viewId = th.closest('.view-section').id;
             const targetName = viewId === 'view-curriculum' ? '과목' : '반';
