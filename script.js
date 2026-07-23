@@ -500,7 +500,7 @@ const app = {
       const isHoliday = (type === '휴일');
       
       headHtml += `<tr>
-        <td style="background: rgba(255,255,255,0.05); padding:0; text-align:center;">
+        <td class="label-col" style="padding:0; text-align:center;">
           <input type="text" class="date-picker-input" value="${date}" onchange="app.updatePivotRowDate('${grp}', this.value)" placeholder="날짜 선택" style="width:100%; height:100%; min-height:40px; background:transparent; border:none; color:inherit; text-align:center; outline:none; font-family:inherit; font-size:inherit; cursor:pointer; padding:0; margin:0;">
         </td>`;
 
@@ -513,8 +513,8 @@ const app = {
           <td colspan="${this.dynamicCols.timetable.length}" contenteditable="true" data-id="${holidayId}" data-date="${date}" onblur="app.onTimetableHolidayBlur(this)" onkeydown="app.onKeyDown(event, this)" placeholder="어떠한 휴일인가요? (비고 입력)" style="text-align:center; color:#94a3b8;">${holidayNote}</td>`;
       } else {
         headHtml += `
-          <td style="background: rgba(255,255,255,0.05); padding:0; text-align:center;"><input type="text" class="time-picker-input" value="${start}" onchange="app.updatePivotRowTime('${grp}', 'start', this.value)" placeholder="00:00" style="width:100%; height:100%; min-height:40px; background:transparent; color:white; border:none; outline:none; text-align:center; font-family:inherit; font-size:inherit; cursor:pointer;" required></td>
-          <td style="background: rgba(255,255,255,0.05); padding:0; text-align:center;"><input type="text" class="time-picker-input" value="${end}" onchange="app.updatePivotRowTime('${grp}', 'end', this.value)" placeholder="00:00" style="width:100%; height:100%; min-height:40px; background:transparent; color:white; border:none; outline:none; text-align:center; font-family:inherit; font-size:inherit; cursor:pointer;" required></td>`;
+          <td class="label-col" style="padding:0; text-align:center;"><input type="text" class="time-picker-input" value="${start}" onchange="app.updatePivotRowTime('${grp}', 'start', this.value)" placeholder="00:00" style="width:100%; height:100%; min-height:40px; background:transparent; color:white; border:none; outline:none; text-align:center; font-family:inherit; font-size:inherit; cursor:pointer;" required></td>
+          <td class="label-col" style="padding:0; text-align:center;"><input type="text" class="time-picker-input" value="${end}" onchange="app.updatePivotRowTime('${grp}', 'end', this.value)" placeholder="00:00" style="width:100%; height:100%; min-height:40px; background:transparent; color:white; border:none; outline:none; text-align:center; font-family:inherit; font-size:inherit; cursor:pointer;" required></td>`;
         this.dynamicCols.timetable.forEach(cls => {
           const row = this.data.timetables.find(r => r[1] === date && r[2] === type && r[3] === start && r[4] === end && r[5] === cls);
           let displayStr = row && (row[6] || row[7]) ? `${row[6]||''}${row[7]?'('+row[7]+')':''}` : '';
