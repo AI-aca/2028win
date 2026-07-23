@@ -268,7 +268,7 @@ const app = {
     if (!tbody) return;
     const thead = tbody.previousElementSibling;
     if(thead && thead.querySelector('tr')) {
-      let ths = '<th style="width:40px; text-align:center;">순서</th>';
+      let ths = '<th style="width:40px; text-align:center;">⇅</th>';
       cols.forEach((c, i) => ths += `<th>${this.renderSortableHeader(c, type, i)}</th>`);
       ths += `<th style="width:60px;">삭제</th>`;
       thead.querySelector('tr').innerHTML = ths;
@@ -342,7 +342,7 @@ const app = {
 
   renderCurriculumPivot: function() {
     const table = document.querySelector('#view-curriculum .excel-table');
-    let headHtml = `<thead><tr><th style="width:40px; text-align:center;">순서</th><th style="width:150px;">주차 <button class="btn" style="padding:2px 4px;font-size:10px;margin-left:5px;" onclick="app.addColumn('curriculum')">+</button></th>`;
+    let headHtml = `<thead><tr><th style="width:40px; text-align:center;">⇅</th><th style="width:150px;">주차 <button class="btn" style="padding:2px 4px;font-size:10px;margin-left:5px;" onclick="app.addColumn('curriculum')">+</button></th>`;
     this.dynamicCols.curriculum.forEach(sub => {
       headHtml += `<th data-colname="${sub}">${sub}</th>`;
     });
@@ -382,7 +382,7 @@ const app = {
 
   renderTimetablePivot: function() {
     const table = document.querySelector('#view-timetable .excel-table');
-    let headHtml = `<thead><tr><th style="width:40px; text-align:center;">순서</th><th style="width:120px;">시작시간</th><th style="width:150px;">종료시간 <button class="btn" style="padding:2px 4px;font-size:10px;margin-left:5px;" onclick="app.addColumn('timetable')">+</button></th>`;
+    let headHtml = `<thead><tr><th style="width:40px; text-align:center;">⇅</th><th style="width:120px;">시작시간</th><th style="width:150px;">종료시간 <button class="btn" style="padding:2px 4px;font-size:10px;margin-left:5px;" onclick="app.addColumn('timetable')">+</button></th>`;
     this.dynamicCols.timetable.forEach(cls => {
       headHtml += `<th data-colname="${cls}">${cls}</th>`;
     });
