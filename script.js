@@ -104,6 +104,10 @@ const app = {
   renderAllViews: function() {
     this.renderView('preschedule'); this.renderView('curriculum');
     this.renderView('timetable'); this.renderView('student'); this.renderView('instructor');
+    if (window.flatpickr) {
+      flatpickr('.date-picker-input', { locale: "ko", theme: "dark", dateFormat: "Y-m-d" });
+      flatpickr('.time-picker-input', { locale: "ko", theme: "dark", enableTime: true, noCalendar: true, dateFormat: "H:i", time_24hr: true });
+    }
   },
 
   renderView: function(viewName) {
@@ -279,7 +283,11 @@ const app = {
       html += `<td style="text-align:center; color: var(--text-muted); cursor: grab;"><span class="drag-handle" title="이 아이콘을 상하로 드래그하여 행 순서를 변경할 수 있습니다">☰</span></td>`;
       for(let i=0; i<cols.length; i++) {
         const val = row[i+1] || '';
-        html += `<td contenteditable="true" data-col-idx="${i+1}" onblur="app.onFlatCellBlur('${type}', this)" onkeydown="app.onKeyDown(event, this)">${val}</td>`;
+        if (cols[i] === '일자') {
+          html += `<td data-col-idx="${i+1}" style="padding:0;"><input type="text" class="date-picker-input" value="${val}" onchange="app.onFlatCellBlur('${type}', this.parentElement)" placeholder="날짜 선택" style="width:100%; height:100%; min-height:40px; background:transparent; border:none; color:inherit; text-align:center; outline:none; font-family:inherit; font-size:inherit; cursor:pointer;"></td>`;
+        } else {
+          html += `<td contenteditable="true" data-col-idx="${i+1}" onblur="app.onFlatCellBlur('${type}', this)" onkeydown="app.onKeyDown(event, this)">${val}</td>`;
+        }
       }
       html += `</tr>`;
     });
@@ -289,9 +297,15 @@ const app = {
   },
 
   onFlatCellBlur: function(type, cell) {
-    const valHtml = this.getCleanHTML(cell);
-    let newValue = valHtml.replace(/<span class="drag-handle">.*?<\/span>/g, '').trim();
-    if(newValue === '<br>') newValue = '';
+    let newValue = '';
+    const input = cell.querySelector('input');
+    if (input) {
+      newValue = input.value.trim();
+    } else {
+      const valHtml = this.getCleanHTML(cell);
+      newValue = valHtml.replace(/<span class="drag-handle">.*?<\/span>/g, '').trim();
+      if(newValue === '<br>') newValue = '';
+    }
 
     let dataArray, upsertAction, keys;
     if (type === 'preschedule') { dataArray = this.data.preschedules; upsertAction = 'upsertPreSchedule'; keys = ['date', 'content', 'note']; }
@@ -393,10 +407,10 @@ const app = {
       headHtml += `<tr>
         <td style="text-align:center; color: var(--text-muted); cursor: grab;"><span class="drag-handle" title="이 아이콘을 상하로 드래그하여 행 순서를 변경할 수 있습니다">☰</span></td>
         <td style="background: rgba(255,255,255,0.05); text-align:center;">
-          <input type="time" value="${start}" onblur="app.updatePivotRowTime('${pair}', 'start', this.value)" style="background:transparent; color:white; border:none; outline:none; text-align:center; cursor:pointer;" required>
+          <input type="text" class="time-picker-input" value="${start}" onchange="app.updatePivotRowTime('${pair}', 'start', this.value)" placeholder="00:00" style="background:transparent; color:white; border:none; outline:none; text-align:center; cursor:pointer;" required>
         </td>
         <td style="background: rgba(255,255,255,0.05); text-align:center;">
-          <input type="time" value="${end}" onblur="app.updatePivotRowTime('${pair}', 'end', this.value)" style="background:transparent; color:white; border:none; outline:none; text-align:center; cursor:pointer;" required>
+          <input type="text" class="time-picker-input" value="${end}" onchange="app.updatePivotRowTime('${pair}', 'end', this.value)" placeholder="00:00" style="background:transparent; color:white; border:none; outline:none; text-align:center; cursor:pointer;" required>
         </td>`;
       this.dynamicCols.timetable.forEach(cls => {
         const row = this.data.timetables.find(r => r[3] === start && r[4] === end && r[5] === cls);
