@@ -604,10 +604,11 @@ const app = {
     }
 
     const instructors = Array.from(new Set(this.data.instructors.map(r => r[1]).filter(Boolean)));
-    const subjects = ['수학', '과학', '물리', '화학', '생명과학', '지구과학', '정보', '국어', '영어'];
+    const subjects = Array.from(new Set([...this.data.curriculums.map(r => r[2]), ...this.data.instructors.map(r => r[2])].filter(Boolean)));
 
-    let instructorOpts = `<option value="">-- 강사 선택 --</option>` + instructors.map(i => `<option value="${i}" ${instructor===i?'selected':''}>${i}</option>`).join('');
-    let subjectOpts = `<option value="">-- 과목 선택 --</option>` + subjects.map(s => `<option value="${s}" ${subject===s?'selected':''}>${s}</option>`).join('');
+    const optStyle = 'background:#1e293b; color:#f8fafc;';
+    let instructorOpts = `<option value="" style="${optStyle}">-- 강사 선택 --</option>` + instructors.map(i => `<option value="${i}" style="${optStyle}" ${instructor===i?'selected':''}>${i}</option>`).join('');
+    let subjectOpts = `<option value="" style="${optStyle}">-- 과목 선택 --</option>` + subjects.map(s => `<option value="${s}" style="${optStyle}" ${subject===s?'selected':''}>${s}</option>`).join('');
 
     modal.innerHTML = `
       <h3 style="margin:0; font-size:16px; color:var(--primary); text-align:center;">${cls} 수업 편집</h3>
