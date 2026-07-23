@@ -352,15 +352,18 @@ const app = {
         const label = typeof c === 'object' ? c.label : c;
         const colIdx = typeof c === 'object' ? c.idx : i + 1;
         const val = row[colIdx] || '';
+        const isFirstCol = (i === 0 && (type === 'student' || type === 'instructor'));
+        const cellClassStr = isFirstCol ? 'class="label-col"' : '';
+        
         if (label === '일자') {
-          html += `<td data-col-idx="${colIdx}" style="background: rgba(255,255,255,0.05); padding:0; text-align:center;"><input type="text" class="date-picker-input" value="${val}" onchange="app.onFlatCellBlur('${type}', this.parentElement)" placeholder="날짜 선택" style="width:100%; height:100%; min-height:40px; background:transparent; border:none; color:inherit; text-align:center; outline:none; font-family:inherit; font-size:inherit; cursor:pointer; padding:0; margin:0;"></td>`;
+          html += `<td data-col-idx="${colIdx}" class="label-col" style="padding:0; text-align:center;"><input type="text" class="date-picker-input" value="${val}" onchange="app.onFlatCellBlur('${type}', this.parentElement)" placeholder="날짜 선택" style="width:100%; height:100%; min-height:40px; background:transparent; border:none; color:inherit; text-align:center; outline:none; font-family:inherit; font-size:inherit; cursor:pointer; padding:0; margin:0;"></td>`;
         } else if (label === '상태') {
           const isDone = val === '완료';
           const statusTxt = isDone ? '완료' : '진행 중';
           const btnClass = isDone ? 'status-done' : 'status-progress';
           html += `<td data-col-idx="${colIdx}" style="text-align:center;"><button class="status-btn ${btnClass}" onclick="app.toggleStatus(this, '${type}', ${colIdx})">${statusTxt}</button></td>`;
         } else {
-          html += `<td contenteditable="true" data-col-idx="${colIdx}" onblur="app.onFlatCellBlur('${type}', this)" onkeydown="app.onKeyDown(event, this)">${val}</td>`;
+          html += `<td ${cellClassStr} contenteditable="true" data-col-idx="${colIdx}" onblur="app.onFlatCellBlur('${type}', this)" onkeydown="app.onKeyDown(event, this)">${val}</td>`;
         }
       }
       html += `</tr>`;
