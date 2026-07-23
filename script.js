@@ -268,7 +268,7 @@ const app = {
     if (!tbody) return;
     const thead = tbody.previousElementSibling;
     if(thead && thead.querySelector('tr')) {
-      let ths = '';
+      let ths = '<th style="width:40px; text-align:center;">순서</th>';
       cols.forEach((c, i) => ths += `<th>${this.renderSortableHeader(c, type, i)}</th>`);
       ths += `<th style="width:60px;">삭제</th>`;
       thead.querySelector('tr').innerHTML = ths;
@@ -277,10 +277,10 @@ const app = {
     let html = '';
     dataArray.forEach(row => {
       const id = row[0]; html += `<tr data-id="${id}">`;
+      html += `<td style="text-align:center; color: var(--text-muted); cursor: grab;"><span class="drag-handle" title="이 아이콘을 상하로 드래그하여 행 순서를 변경할 수 있습니다">☰</span></td>`;
       for(let i=0; i<cols.length; i++) {
         const val = row[i+1] || '';
-        const dragHtml = i === 0 ? `<span class="drag-handle" title="이 아이콘을 상하로 드래그하여 행 순서를 변경할 수 있습니다">☰</span>` : '';
-        html += `<td contenteditable="true" data-col-idx="${i+1}" onblur="app.onFlatCellBlur('${type}', this)" onkeydown="app.onKeyDown(event, this)">${dragHtml}${val}</td>`;
+        html += `<td contenteditable="true" data-col-idx="${i+1}" onblur="app.onFlatCellBlur('${type}', this)" onkeydown="app.onKeyDown(event, this)">${val}</td>`;
       }
       html += `<td style="text-align:center;"><button class="btn btn-danger" style="padding:4px 8px;font-size:12px;" onclick="app.deleteItem('${type}', '${id}', this)">삭제</button></td></tr>`;
     });
@@ -342,7 +342,7 @@ const app = {
 
   renderCurriculumPivot: function() {
     const table = document.querySelector('#view-curriculum .excel-table');
-    let headHtml = `<thead><tr><th style="width:150px;">주차 <button class="btn" style="padding:2px 4px;font-size:10px;margin-left:5px;" onclick="app.addColumn('curriculum')">+</button></th>`;
+    let headHtml = `<thead><tr><th style="width:40px; text-align:center;">순서</th><th style="width:150px;">주차 <button class="btn" style="padding:2px 4px;font-size:10px;margin-left:5px;" onclick="app.addColumn('curriculum')">+</button></th>`;
     this.dynamicCols.curriculum.forEach(sub => {
       headHtml += `<th data-colname="${sub}">${sub}</th>`;
     });
@@ -352,7 +352,8 @@ const app = {
     if (weeks.length === 0) weeks.push('1주차');
 
     weeks.forEach(week => {
-      headHtml += `<tr><td style="background: rgba(255,255,255,0.05); font-weight:bold; text-align:center;" contenteditable="true" onblur="app.updatePivotRowLabel('curriculum', '${week}', this.innerText.trim())"><span class="drag-handle" title="이 아이콘을 상하로 드래그하여 행 순서를 변경할 수 있습니다">☰</span>${week}</td>`;
+      headHtml += `<tr><td style="text-align:center; color: var(--text-muted); cursor: grab;"><span class="drag-handle" title="이 아이콘을 상하로 드래그하여 행 순서를 변경할 수 있습니다">☰</span></td>
+      <td style="background: rgba(255,255,255,0.05); font-weight:bold; text-align:center;" contenteditable="true" onblur="app.updatePivotRowLabel('curriculum', '${week}', this.innerText.trim())">${week}</td>`;
       this.dynamicCols.curriculum.forEach(sub => {
         const row = this.data.curriculums.find(r => r[1] === week && r[2] === sub);
         const content = row ? row[3] : '';
@@ -381,7 +382,7 @@ const app = {
 
   renderTimetablePivot: function() {
     const table = document.querySelector('#view-timetable .excel-table');
-    let headHtml = `<thead><tr><th style="width:120px;">시작시간</th><th style="width:150px;">종료시간 <button class="btn" style="padding:2px 4px;font-size:10px;margin-left:5px;" onclick="app.addColumn('timetable')">+</button></th>`;
+    let headHtml = `<thead><tr><th style="width:40px; text-align:center;">순서</th><th style="width:120px;">시작시간</th><th style="width:150px;">종료시간 <button class="btn" style="padding:2px 4px;font-size:10px;margin-left:5px;" onclick="app.addColumn('timetable')">+</button></th>`;
     this.dynamicCols.timetable.forEach(cls => {
       headHtml += `<th data-colname="${cls}">${cls}</th>`;
     });
@@ -393,8 +394,9 @@ const app = {
     timePairs.forEach(pair => {
       const [start, end] = pair.split('|');
       headHtml += `<tr>
+        <td style="text-align:center; color: var(--text-muted); cursor: grab;"><span class="drag-handle" title="이 아이콘을 상하로 드래그하여 행 순서를 변경할 수 있습니다">☰</span></td>
         <td style="background: rgba(255,255,255,0.05); text-align:center;">
-          <span class="drag-handle" title="이 아이콘을 상하로 드래그하여 행 순서를 변경할 수 있습니다">☰</span><input type="time" value="${start}" onblur="app.updatePivotRowTime('${pair}', 'start', this.value)" style="background:transparent; color:white; border:none; outline:none; text-align:center; cursor:pointer;" required>
+          <input type="time" value="${start}" onblur="app.updatePivotRowTime('${pair}', 'start', this.value)" style="background:transparent; color:white; border:none; outline:none; text-align:center; cursor:pointer;" required>
         </td>
         <td style="background: rgba(255,255,255,0.05); text-align:center;">
           <input type="time" value="${end}" onblur="app.updatePivotRowTime('${pair}', 'end', this.value)" style="background:transparent; color:white; border:none; outline:none; text-align:center; cursor:pointer;" required>
