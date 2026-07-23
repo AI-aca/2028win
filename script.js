@@ -129,7 +129,7 @@ const app = {
   renderView: function(viewName) {
     if (viewName === 'preschedule') this.renderFlatTable('preschedule', this.data.preschedules, ['일자', '내용', '상태', '비고']);
     else if (viewName === 'student') this.renderFlatTable('student', this.data.students, ['센터', '이름', '학교', '학년', '학부모연락처', '학생연락처', '비고']);
-    else if (viewName === 'instructor') this.renderFlatTable('instructor', this.data.instructors, ['강사명', '과목', '세부과목', '연락처', '지메일', '비고']);
+    else if (viewName === 'instructor') this.renderFlatTable('instructor', this.data.instructors, ['강사명', '영역', '과목', '연락처', '지메일', '비고']);
     else if (viewName === 'curriculum') this.renderCurriculumPivot();
     else if (viewName === 'timetable') this.renderTimetablePivot();
     
@@ -612,15 +612,11 @@ const app = {
 
     modal.innerHTML = `
       <h3 style="margin:0; font-size:16px; color:var(--primary); text-align:center;">${cls} 수업 편집</h3>
-      <p style="margin:0; text-align:center; font-size:12px; color:var(--text-muted);">${date} | ${start} ~ ${end}</p>
       <div>
         <label style="font-size:12px; color:var(--text-muted); margin-bottom:5px; display:block;">과목</label>
         <select id="tt-edit-subject" style="width:100%; padding:10px; border-radius:6px; background:var(--bg-card); color:var(--text); border:1px solid var(--border-glass); outline:none;">
           ${subjectOpts}
         </select>
-        <div style="margin-top:8px;">
-           <input type="text" id="tt-edit-subject-custom" placeholder="기타 과목 직접 입력" value="${subjects.includes(subject)?'':subject}" style="width:100%; padding:10px; border-radius:6px; background:rgba(0,0,0,0.2); color:var(--text); border:1px solid var(--border-glass); outline:none;">
-        </div>
       </div>
       <div>
         <label style="font-size:12px; color:var(--text-muted); margin-bottom:5px; display:block;">담당자</label>
@@ -642,19 +638,12 @@ const app = {
       overlay.onclick = () => { overlay.remove(); modal.remove(); };
       document.body.appendChild(overlay);
     }
-    
-    const subSel = modal.querySelector('#tt-edit-subject');
-    const subInp = modal.querySelector('#tt-edit-subject-custom');
-    subSel.onchange = () => { if(subSel.value) subInp.value = ''; };
-    subInp.oninput = () => { if(subInp.value) subSel.value = ''; };
   },
 
   saveTimetableEditor: function(id, date, start, end, cls) {
     const modal = document.getElementById('timetable-editor-modal');
     if(!modal) return;
-    const subSel = modal.querySelector('#tt-edit-subject').value;
-    const subInp = modal.querySelector('#tt-edit-subject-custom').value;
-    const subject = subInp || subSel;
+    const subject = modal.querySelector('#tt-edit-subject').value;
     const instructor = modal.querySelector('#tt-edit-instructor').value;
 
     let rowObj = this.data.timetables.find(r => r[1] === date && r[2] === '수업' && r[3] === start && r[4] === end && r[5] === cls);
