@@ -128,7 +128,7 @@ const app = {
 
   renderView: function(viewName) {
     if (viewName === 'preschedule') this.renderFlatTable('preschedule', this.data.preschedules, ['일자', '내용', '상태', '비고']);
-    else if (viewName === 'student') this.renderFlatTable('student', this.data.students, ['센터', '이름', '학교', '학년', '학부모연락처', '학생연락처', '비고']);
+    else if (viewName === 'student') this.renderFlatTable('student', this.data.students, ['이름', '센터', '학교', '학년', '학부모연락처', '학생연락처', '비고']);
     else if (viewName === 'instructor') this.renderFlatTable('instructor', this.data.instructors, ['강사명', '영역', '과목', '연락처', '지메일', '비고']);
     else if (viewName === 'curriculum') this.renderCurriculumPivot();
     else if (viewName === 'timetable') this.renderTimetablePivot();
@@ -373,7 +373,7 @@ const app = {
 
     let dataArray, upsertAction, keys;
     if (type === 'preschedule') { dataArray = this.data.preschedules; upsertAction = 'upsertPreSchedule'; keys = ['date', 'content', 'status', 'note']; }
-    else if (type === 'student') { dataArray = this.data.students; upsertAction = 'upsertStudent'; keys = ['center', 'name', 'school', 'grade', 'parentPhone', 'studentPhone', 'note']; }
+    else if (type === 'student') { dataArray = this.data.students; upsertAction = 'upsertStudent'; keys = ['name', 'center', 'school', 'grade', 'parentPhone', 'studentPhone', 'note']; }
     else if (type === 'instructor') { dataArray = this.data.instructors; upsertAction = 'upsertInstructor'; keys = ['instructorName', 'subject', 'subSubject', 'phone', 'email', 'note']; }
 
     const colIdx = parseInt(cell.getAttribute('data-col-idx'));

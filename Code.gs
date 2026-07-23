@@ -49,7 +49,7 @@ function getDbSpreadsheet() {
       { name: '사전준비일정', headers: ['ID', '일자', '내용', '상태', '비고', '등록일시'] },
       { name: '수업진도계획', headers: ['ID', '주차', '과목', '진도내용', '등록일시'] },
       { name: '시간표', headers: ['ID', '일자', '구분', '시작시간', '종료시간', '반이름', '과목', '담당자', '비고', '등록일시'] },
-      { name: '학생관리', headers: ['ID', '센터', '이름', '학교', '학년', '학부모연락처', '학생연락처', '비고', '등록일시'] },
+      { name: '학생관리', headers: ['ID', '이름', '센터', '학교', '학년', '학부모연락처', '학생연락처', '비고', '등록일시'] },
       { name: '강사관리', headers: ['ID', '강사명', '영역', '과목', '연락처', '지메일', '비고', '등록일시'] }
     ];
     
@@ -138,7 +138,7 @@ function upsertRow(sheetName, id, rowDataArray) {
 function upsertPreSchedule(p) { return upsertRow('사전준비일정', p.id, [p.id, p.date, p.content, p.status, p.note, '']); }
 function upsertCurriculum(p) { return upsertRow('수업진도계획', p.id, [p.id, p.week, p.subject, p.content, '']); }
 function upsertTimetable(p) { return upsertRow('시간표', p.id, [p.id, p.date, p.type, p.start, p.end, p.className, p.subject, p.instructor, p.note, '']); }
-function upsertStudent(p) { return upsertRow('학생관리', p.id, [p.id, p.center, p.name, p.school, p.grade, p.parentPhone, p.studentPhone, p.note, '']); }
+function upsertStudent(p) { return upsertRow('학생관리', p.id, [p.id, p.name, p.center, p.school, p.grade, p.parentPhone, p.studentPhone, p.note, '']); }
 function upsertInstructor(p) { return upsertRow('강사관리', p.id, [p.id, p.instructorName, p.subject, p.subSubject, p.phone, p.email, p.note, '']); }
 
 function deleteData(sheetName, id) {
