@@ -140,16 +140,7 @@ const app = {
   },
 
   onKeyDown: function(e, cell) {
-    if (e.key === 'ArrowUp' || e.key === 'ArrowDown' || e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
-      const tr = cell.closest('tr');
-      const tdIdx = Array.from(tr.children).indexOf(cell);
-      let target = null;
-      if (e.key === 'ArrowUp' && tr.previousElementSibling) target = tr.previousElementSibling.children[tdIdx];
-      else if (e.key === 'ArrowDown' && tr.nextElementSibling) target = tr.nextElementSibling.children[tdIdx];
-      else if (e.key === 'ArrowLeft' && cell.previousElementSibling && cell.previousElementSibling.hasAttribute('contenteditable')) target = cell.previousElementSibling;
-      else if (e.key === 'ArrowRight' && cell.nextElementSibling && cell.nextElementSibling.hasAttribute('contenteditable')) target = cell.nextElementSibling;
-      if (target) target.focus();
-    }
+    // 화살표로 셀 간 이동하는 기능 완전 삭제 (글자 사이 커서 이동 기본 기능 복구)
   },
 
   bindRowEvents: function(tr, type) {
