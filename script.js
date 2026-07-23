@@ -72,13 +72,9 @@ const app = {
   },
 
   extractDynamicCols: function() {
-    const currSubjects = new Set(this.data.curriculums.map(r => r[2]).filter(Boolean));
-    this.dynamicCols.curriculum = Array.from(currSubjects);
-    if(this.dynamicCols.curriculum.length === 0) this.dynamicCols.curriculum = ['수학', '과학'];
-
-    const timeClasses = new Set(this.data.timetables.map(r => r[5]).filter(Boolean));
-    this.dynamicCols.timetable = Array.from(timeClasses);
-    if(this.dynamicCols.timetable.length === 0) this.dynamicCols.timetable = ['노바반', '퀀텀반'];
+    this.dynamicCols.curriculum = Array.from(new Set(this.data.curriculums.map(r => r[2]).filter(x => x)));
+    
+    this.dynamicCols.timetable = Array.from(new Set(this.data.timetables.map(r => r[5]).filter(x => x)));
   },
 
   bindEvents: function() {
