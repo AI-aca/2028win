@@ -477,8 +477,21 @@ const app = {
     this.currentModalAction = () => {
       const val = document.getElementById('new-col-input').value.trim();
       if(val) {
-        if(type === 'curriculum' && !this.dynamicCols.curriculum.includes(val)) this.dynamicCols.curriculum.push(val);
-        if(type === 'timetable' && !this.dynamicCols.timetable.includes(val)) this.dynamicCols.timetable.push(val);
+        if(type === 'curriculum' && !this.dynamicCols.curriculum.includes(val)) {
+            this.dynamicCols.curriculum.push(val);
+            const week = this.data.curriculums.length > 0 ? this.data.curriculums[0][1] : '1주차';
+            const rowObj = ['', week, val, '', ''];
+            this.data.curriculums.push(rowObj);
+            this.apiPost('upsertCurriculum', { id: '', week, subject: val, content: '', note: '' }).then(res => { if(res.success) rowObj[0] = res.id; });
+        }
+        if(type === 'timetable' && !this.dynamicCols.timetable.includes(val)) {
+            this.dynamicCols.timetable.push(val);
+            const start = this.data.timetables.length > 0 ? this.data.timetables[0][3] : '09:00';
+            const end = this.data.timetables.length > 0 ? this.data.timetables[0][4] : '12:00';
+            const rowObj = ['', '', '', start, end, val, '', '', '', ''];
+            this.data.timetables.push(rowObj);
+            this.apiPost('upsertTimetable', { id: '', date: '', day: '', start, end, className: val, subject: '', instructor: '', note: '' }).then(res => { if(res.success) rowObj[0] = res.id; });
+        }
         this.renderView(type);
       }
       this.closeModal();
