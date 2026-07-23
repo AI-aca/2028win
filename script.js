@@ -1,81 +1,149 @@
-// 프론트엔드 상태 및 유틸리티 객체
 const app = {
-  // 현재 활성화된 뷰
-  currentView: 'view-preschedule',
+  currentView: 'view-dashboard',
+  currentCategory: null,
 
-  // 초기화 함수
   init: function() {
     this.bindEvents();
-    // TODO: 초기 데이터 로드 호출 추가
   },
 
-  // 이벤트 바인딩
   bindEvents: function() {
-    const navItems = document.querySelectorAll('.nav-item');
-    navItems.forEach(item => {
+    // 사이드바 아코디언 토글
+    const groupHeaders = document.querySelectorAll('.nav-group-header');
+    groupHeaders.forEach(header => {
+      header.addEventListener('click', (e) => {
+        const group = e.currentTarget.parentElement;
+        group.classList.toggle('open');
+      });
+    });
+
+    // 서브 아이템(대분류) 클릭 -> 라우팅
+    const subItems = document.querySelectorAll('.sub-item');
+    subItems.forEach(item => {
       item.addEventListener('click', (e) => {
-        const targetViewId = e.currentTarget.getAttribute('data-target');
-        const titleText = e.currentTarget.querySelector('.text').innerText;
-        this.switchView(targetViewId, titleText);
-        
-        // 메뉴 활성화 UI 변경
-        document.querySelectorAll('.nav-item').forEach(nav => nav.classList.remove('active'));
+        // 활성화 표시 초기화
+        document.querySelectorAll('.sub-item, .single-item').forEach(el => el.classList.remove('active'));
         e.currentTarget.classList.add('active');
+
+        const targetViewId = e.currentTarget.getAttribute('data-target');
+        const category = e.currentTarget.getAttribute('data-category');
+        
+        // 뷰의 공통 타이틀 업데이트 (예: 주말반 사전 준비일정)
+        this.currentCategory = category;
+        const viewEl = document.getElementById(targetViewId);
+        if (viewEl) {
+          const label = viewEl.querySelector('.current-category-label');
+          if (label) label.innerText = `[${category}]`;
+        }
+
+        const titleText = e.currentTarget.parentElement.previousElementSibling.querySelector('.text').innerText;
+        document.getElementById('pageTitle').innerText = `${category} - ${titleText}`;
+
+        this.switchView(targetViewId);
+      });
+    });
+
+    // 단일 메뉴 (설정) 클릭
+    const singleItems = document.querySelectorAll('.single-item');
+    singleItems.forEach(item => {
+      item.addEventListener('click', (e) => {
+        document.querySelectorAll('.sub-item, .single-item').forEach(el => el.classList.remove('active'));
+        e.currentTarget.classList.add('active');
+
+        const targetViewId = e.currentTarget.getAttribute('data-target');
+        document.getElementById('pageTitle').innerText = e.currentTarget.querySelector('.text').innerText;
+        this.currentCategory = null;
+        this.switchView(targetViewId);
       });
     });
   },
 
-  // 뷰 전환 로직
-  switchView: function(viewId, title) {
-    if (this.currentView === viewId) return;
+  switchView: function(viewId) {
+    if (this.currentView === viewId && viewId !== 'view-settings') {
+      // 뷰가 같아도 카테고리가 다르면 다시 렌더링하도록 놔둠
+    }
 
-    // 기존 뷰 숨기기
     const oldView = document.getElementById(this.currentView);
     if (oldView) {
       oldView.classList.remove('active');
-      setTimeout(() => oldView.classList.add('hidden'), 300); // 애니메이션 대기
+      oldView.classList.add('hidden');
     }
 
-    // 새 뷰 보이기
     const newView = document.getElementById(viewId);
     if (newView) {
       newView.classList.remove('hidden');
-      // 레이아웃 스레드 갱신을 위한 지연
-      setTimeout(() => newView.classList.add('active'), 10);
-    }
-
-    // 타이틀 변경
-    const pageTitle = document.getElementById('pageTitle');
-    if (pageTitle) {
-      pageTitle.innerText = title;
+      newView.classList.add('active');
     }
 
     this.currentView = viewId;
   },
 
-  // 모달 열기 (더미 구현)
-  openModal: function(modalType) {
-    console.log('Open modal: ' + modalType);
-    // TODO: 실제 모달 UI 구현 및 렌더링 로직 추가
-    alert('모달 오픈: ' + modalType);
+  // 모달 제어
+  openModal: function(modalId) {
+    document.getElementById('modal-container').classList.remove('hidden');
+    document.querySelectorAll('.modal-content').forEach(m => m.classList.add('hidden'));
+    document.getElementById(modalId).classList.remove('hidden');
   },
 
-  // 로딩 스피너 제어
-  showLoading: function() {
-    document.getElementById('loadingSpinner').classList.remove('hidden');
-  },
-  hideLoading: function() {
-    document.getElementById('loadingSpinner').classList.add('hidden');
+  closeModal: function() {
+    document.getElementById('modal-container').classList.add('hidden');
+    document.querySelectorAll('.modal-content').forEach(m => m.classList.add('hidden'));
   },
 
-  // 알림(Toast) 메시지
-  showToast: function(message, type = 'info') {
-    // TODO: 토스트 UI 로직 구현
-    console.log(`[Toast] ${type}: ${message}`);
+  // 1. 학급 저장 로직 (대/중/소분류)
+  saveClass: function() {
+    const mainCat = document.getElementById('class-main-cat').value;
+    const midCat = document.getElementById('class-mid-cat').value;
+    const subCat = document.getElementById('class-sub-cat').value;
+
+    if(!midCat || !subCat) {
+      alert("중분류와 소분류를 모두 입력하세요.");
+      return;
+    }
+    
+    // TODO: google.script.run 연동하여 시트에 대/중/소 저장
+    console.log(`저장됨: [${mainCat}] ${midCat} - ${subCat}`);
+    this.closeModal();
+    alert(`학급 [${mainCat} > ${midCat} > ${subCat}] 추가 완료!`);
+  },
+
+  // 2. 강사 저장 및 초대 링크 안내
+  saveInstructor: function() {
+    const name = document.getElementById('inst-name').value;
+    const email = document.getElementById('inst-email').value;
+
+    if(!name || !email) {
+      alert("이름과 지메일을 입력하세요.");
+      return;
+    }
+
+    // TODO: DB 저장 후 초대 링크 복사 알림창
+    console.log(`강사 저장: ${name} (${email})`);
+    this.closeModal();
+
+    // 챗방 초대 우회(수동) 안내 팝업
+    const inviteLink = "https://chat.google.com/room/AAAAxxx"; // 예시 링크
+    alert(`강사 등록 완료!\n\n아래 구글 챗방 초대 링크를 강사님께 전달해주세요:\n${inviteLink}`);
+  },
+
+  savePreSchedule: function() {
+    if(!this.currentCategory) { alert("좌측에서 학급 대분류를 먼저 선택하세요."); return; }
+    alert(`${this.currentCategory} 사전 준비일정 저장 로직 실행`);
+    this.closeModal();
+  },
+
+  saveCurriculum: function() {
+    if(!this.currentCategory) { alert("좌측에서 학급 대분류를 먼저 선택하세요."); return; }
+    alert(`${this.currentCategory} 수업 진도계획 저장 로직 실행`);
+    this.closeModal();
+  },
+
+  saveTimetable: function() {
+    if(!this.currentCategory) { alert("좌측에서 학급 대분류를 먼저 선택하세요."); return; }
+    alert(`${this.currentCategory} 시간표 저장 로직 실행`);
+    this.closeModal();
   }
 };
 
-// DOM 로드 시 앱 초기화
 document.addEventListener('DOMContentLoaded', () => {
   app.init();
 });

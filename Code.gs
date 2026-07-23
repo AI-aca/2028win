@@ -1,71 +1,84 @@
-/**
- * 2028 영재학교반 관리 시스템 백엔드 (Google Apps Script)
- * 
- * 주요 기능:
- * 1. doGet(e)를 통한 웹앱 제공
- * 2. 다중 사용자 동시 접속 처리를 위한 LockService 구현
- */
-
-// 웹앱 진입점
+// 2028 영재학교반 관리 시스템 백엔드 (GAS)
+// 사용자 지정 데이터 저장 전용 구글 드라이브 폴더 ID
+const ROOT_FOLDER_ID = '1w8Wyg4Yuurltlwnc8VNKdbz0DcvtxZvp';
 function doGet(e) {
-  // index.html 파일을 HTML 출력으로 변환하여 반환
-  // X-Frame-Options 설정을 해제하여 다른 사이트에 임베드 가능하도록 할 수 있으나 기본 설정 유지
-  const htmlOutput = HtmlService.createHtmlOutputFromFile('index');
-  htmlOutput.setTitle('2028 영재학교반 관리');
-  htmlOutput.addMetaTag('viewport', 'width=device-width, initial-scale=1');
-  return htmlOutput;
+  return HtmlService.createHtmlOutputFromFile('index')
+      .setTitle('2028 영재학교반 관리')
+      .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
 }
 
-/**
- * 다른 html 파일을 include 하기 위한 유틸리티 함수 (필요시 사용)
- */
-function include(filename) {
-  return HtmlService.createHtmlOutputFromFile(filename).getContent();
-}
-
-/**
- * 데이터 생성/수정/삭제 시 동시성 제어를 위한 래퍼 함수 예시
- * 실제 데이터 처리 함수들은 이 패턴을 따라 작성해야 함
- */
-function executeWithLock(callback) {
-  // 스크립트 잠금 획득 (동시 수정 방지)
+// ==========================================
+// 1. 학급 트리 관리 (대/중/소분류)
+// ==========================================
+// 시트 구조: ID | 대분류 | 중분류 | 소분류 | 전체명(조합) | 사용여부
+function saveClassData(mainCat, midCat, subCat) {
   const lock = LockService.getScriptLock();
-  try {
-    // 최대 30초 대기
-    lock.waitLock(30000);
-    
-    // 실제 콜백 로직 실행
-    return callback();
-    
-  } catch (e) {
-    Logger.log('Lock timeout or error: ' + e.message);
-    throw new Error('시스템이 바쁩니다. 잠시 후 다시 시도해주세요.');
-  } finally {
-    // 잠금 해제
-    lock.releaseLock();
+  if (lock.tryLock(10000)) {
+    try {
+      // TODO: 스프레드시트에 저장하는 실제 로직 구현
+      const fullName = `[${mainCat}] ${midCat} - ${subCat}`;
+      return { success: true, message: '저장 완료', fullName: fullName };
+    } catch (error) {
+      return { success: false, message: error.message };
+    } finally {
+      lock.releaseLock();
+    }
+  } else {
+    return { success: false, message: '동시 접속자가 많아 처리가 지연되었습니다. 다시 시도해 주세요.' };
   }
 }
 
-/**
- * [API] 예시: 학급명 데이터 가져오기
- * DB 스키마 (Sheet: 설정_학급명): ID, 학급명, 정렬순서, 사용여부
- */
-function getClasses() {
-  // TODO: 실제 스프레드시트 접근 로직 구현
-  return [
-    { id: '1', name: '퀀텀', order: 1, active: true },
-    { id: '2', name: '노바', order: 2, active: true }
-  ];
+// ==========================================
+// 2. 강사 정보 관리
+// ==========================================
+// 시트 구조: ID | 강사명 | 연락처 | 지메일 | 사용여부
+function saveInstructorData(name, phone, email) {
+  const lock = LockService.getScriptLock();
+  if (lock.tryLock(10000)) {
+    try {
+      // TODO: 스프레드시트에 강사 저장
+      return { success: true, message: '강사 정보 등록 완료' };
+    } catch (error) {
+      return { success: false, message: error.message };
+    } finally {
+      lock.releaseLock();
+    }
+  } else {
+    return { success: false, message: '동시 접속 지연. 다시 시도해 주세요.' };
+  }
 }
 
-/**
- * [API] 예시: 강사 정보 데이터 가져오기
- * DB 스키마 (Sheet: 설정_강사정보): ID, 강사명, 연락처, 지메일
- */
-function getInstructors() {
-  // TODO: 실제 스프레드시트 접근 로직 구현
-  return [
-    { id: '1', name: '홍길동', phone: '010-1234-5678', email: 'hong@gmail.com' },
-    { id: '2', name: '김철수', phone: '010-9876-5432', email: 'kim@gmail.com' }
-  ];
+// ==========================================
+// 3. 사전 준비일정 관리
+// ==========================================
+// 시트 구조: ID | 대분류 | 일자 | 내용 | 비고 | 작성자
+function savePreSchedule(mainCat, date, content, note) {
+  // TODO: LockService 적용 및 DB 저장 로직
+}
+
+// ==========================================
+// 4. 수업 진도계획
+// ==========================================
+// 시트 구조: ID | 대분류 | 주차 | 소분류(과목) | 내용 | 작성자
+function saveCurriculum(mainCat, week, subject, content) {
+  // TODO: LockService 적용 및 DB 저장 로직
+}
+
+// ==========================================
+// 5. 시간표 관리
+// ==========================================
+// 시트 구조: ID | 대분류 | 요일 | 시간대 | 강사 | 작성자
+function saveTimetable(mainCat, day, hours, instructor) {
+  // TODO: LockService 적용 및 DB 저장 로직
+}
+
+// ==========================================
+// 기타 공통 함수
+// ==========================================
+function getInitialData() {
+  // 앱 실행 시 화면에 뿌려줄 초기 데이터 (학급목록, 강사목록 등) 반환
+  return {
+    classes: [],
+    instructors: []
+  };
 }
