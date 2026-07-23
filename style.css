@@ -437,8 +437,12 @@ span.flatpickr-weekday {
   padding: 0 !important;
 }
 
-.label-col {
+.label-col-header {
   background: #1e293b !important;
+}
+
+.label-col {
+  background: rgba(255, 255, 255, 0.05) !important;
 }
 /* Status Button Styles */
 .status-btn {

@@ -486,7 +486,7 @@ const app = {
 
   renderTimetablePivot: function() {
     const table = document.querySelector('#view-timetable .excel-table');
-    let headHtml = `<thead><tr><th class="label-col" style="width:130px;">일자</th><th class="label-col" style="width:120px;">시작시간</th><th class="label-col" style="width:150px;">종료시간</th>`;
+    let headHtml = `<thead><tr><th class="label-col-header" style="width:130px;">일자</th><th class="label-col-header" style="width:120px;">시작시간</th><th class="label-col-header" style="width:150px;">종료시간</th>`;
     this.dynamicCols.timetable.forEach(cls => {
       headHtml += `<th data-colname="${cls}">${cls}</th>`;
     });
