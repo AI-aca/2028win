@@ -54,8 +54,9 @@
     </nav>
 
     <main class="main-content">
-      <header class="top-header">
-        <h1 id="pageTitle">대시보드</h1>
+      <header class="top-header" style="display:flex; justify-content:space-between; align-items:center;">
+        <h1 id="pageTitle" style="margin:0;">대시보드</h1>
+        <div id="top-header-actions" class="header-actions" style="display:flex; gap:10px;"></div>
       </header>
 
       <div class="content-wrapper">
@@ -67,81 +68,45 @@
         </div>
 
         <div id="view-preschedule" class="view-section hidden data-view">
-          <div class="glass-panel">
-            <div class="panel-header">
-              <h2>사전 준비일정</h2>
-              <button class="btn btn-primary" onclick="app.addRow('preschedule')">+</button>
-            </div>
-            <div class="panel-content table-container">
-              <table class="excel-table">
-                <thead><tr><th>일자</th><th>내용</th><th>비고</th><th style="width: 60px;">삭제</th></tr></thead>
-                <tbody id="tbody-preschedule"></tbody>
-              </table>
-            </div>
+          <div class="table-container">
+            <table class="excel-table">
+              <thead><tr><th>일자</th><th>내용</th><th>비고</th><th style="width: 60px;">삭제</th></tr></thead>
+              <tbody id="tbody-preschedule"></tbody>
+            </table>
           </div>
         </div>
 
         <div id="view-curriculum" class="view-section hidden data-view">
-          <div class="glass-panel">
-            <div class="panel-header">
-              <h2>수업 진도계획</h2>
-              <div>
-                <button class="btn btn-primary" onclick="app.addRow('curriculum')">+ 주차(행) 추가</button>
-                <button class="btn btn-primary" style="background:#06b6d4;" onclick="app.addColumn('curriculum')">+ 과목(열) 추가</button>
-              </div>
-            </div>
-            <div class="panel-content table-container">
-              <table class="excel-table" id="table-curriculum">
-                <!-- pivot generated -->
-              </table>
-            </div>
+          <div class="table-container">
+            <table class="excel-table" id="table-curriculum">
+              <!-- pivot generated -->
+            </table>
           </div>
         </div>
 
         <div id="view-timetable" class="view-section hidden data-view">
-          <div class="glass-panel">
-            <div class="panel-header">
-              <h2>시간표 관리</h2>
-              <div>
-                <button class="btn btn-primary" onclick="app.addRow('timetable')">+ 시간(행) 추가</button>
-                <button class="btn btn-primary" style="background:#06b6d4;" onclick="app.addColumn('timetable')">+ 반이름(열) 추가</button>
-              </div>
-            </div>
-            <div class="panel-content table-container">
-              <table class="excel-table" id="table-timetable">
-                <!-- pivot generated -->
-              </table>
-            </div>
+          <div class="table-container">
+            <table class="excel-table" id="table-timetable">
+              <!-- pivot generated -->
+            </table>
           </div>
         </div>
 
         <div id="view-student" class="view-section hidden data-view">
-          <div class="glass-panel">
-            <div class="panel-header">
-              <h2>학생 정보</h2>
-              <button class="btn btn-primary" onclick="app.addRow('student')">+</button>
-            </div>
-            <div class="panel-content table-container">
-              <table class="excel-table">
-                <thead><tr><th>이름</th><th>학교</th><th>학년</th><th>학부모연락처</th><th>학생연락처</th><th>비고</th><th style="width: 60px;">삭제</th></tr></thead>
-                <tbody id="tbody-student"></tbody>
-              </table>
-            </div>
+          <div class="table-container">
+            <table class="excel-table">
+              <thead><tr><th>이름</th><th>학교</th><th>학년</th><th>학부모연락처</th><th>학생연락처</th><th>비고</th><th style="width: 60px;">삭제</th></tr></thead>
+              <tbody id="tbody-student"></tbody>
+            </table>
           </div>
         </div>
 
         <div id="view-instructor" class="view-section hidden data-view">
-          <div class="glass-panel">
-            <div class="panel-header">
-              <h2>강사 정보</h2>
-              <button class="btn btn-primary" onclick="app.addRow('instructor')">+</button>
-            </div>
-            <div class="panel-content table-container">
-              <table class="excel-table">
-                <thead><tr><th>강사명</th><th>과목</th><th>세부과목</th><th>연락처</th><th>지메일</th><th>비고</th><th style="width: 60px;">삭제</th></tr></thead>
-                <tbody id="tbody-instructor"></tbody>
-              </table>
-            </div>
+          <div class="table-container">
+            <table class="excel-table">
+              <thead><tr><th>강사명</th><th>과목</th><th>세부과목</th><th>연락처</th><th>지메일</th><th>비고</th><th style="width: 60px;">삭제</th></tr></thead>
+              <tbody id="tbody-instructor"></tbody>
+            </table>
           </div>
         </div>
       </div>

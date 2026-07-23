@@ -99,6 +99,23 @@ const app = {
     const newView = document.getElementById(viewId);
     if (newView) { newView.classList.remove('hidden'); newView.classList.add('active'); }
     this.currentView = viewId;
+    
+    const headerActions = document.getElementById('top-header-actions');
+    if (headerActions) {
+      if (viewId === 'view-preschedule') {
+        headerActions.innerHTML = `<button class="btn btn-primary" onclick="app.addRow('preschedule')">+ 일정 추가</button>`;
+      } else if (viewId === 'view-curriculum') {
+        headerActions.innerHTML = `<button class="btn btn-primary" onclick="app.addRow('curriculum')">+ 주차 추가</button> <button class="btn btn-primary" style="background:#06b6d4;" onclick="app.addColumn('curriculum')">+ 과목 추가</button>`;
+      } else if (viewId === 'view-timetable') {
+        headerActions.innerHTML = `<button class="btn btn-primary" onclick="app.addRow('timetable')">+ 시간 추가</button> <button class="btn btn-primary" style="background:#06b6d4;" onclick="app.addColumn('timetable')">+ 학급 추가</button>`;
+      } else if (viewId === 'view-student') {
+        headerActions.innerHTML = `<button class="btn btn-primary" onclick="app.addRow('student')">+ 학생 추가</button>`;
+      } else if (viewId === 'view-instructor') {
+        headerActions.innerHTML = `<button class="btn btn-primary" onclick="app.addRow('instructor')">+ 강사 추가</button>`;
+      } else {
+        headerActions.innerHTML = '';
+      }
+    }
   },
 
   renderAllViews: function() {
