@@ -270,7 +270,6 @@ const app = {
     if(thead && thead.querySelector('tr')) {
       let ths = '<th style="width:40px; text-align:center;">⇅</th>';
       cols.forEach((c, i) => ths += `<th>${this.renderSortableHeader(c, type, i)}</th>`);
-      ths += `<th style="width:60px;">삭제</th>`;
       thead.querySelector('tr').innerHTML = ths;
     }
 
@@ -282,7 +281,7 @@ const app = {
         const val = row[i+1] || '';
         html += `<td contenteditable="true" data-col-idx="${i+1}" onblur="app.onFlatCellBlur('${type}', this)" onkeydown="app.onKeyDown(event, this)">${val}</td>`;
       }
-      html += `<td style="text-align:center;"><button class="btn btn-danger" style="padding:4px 8px;font-size:12px;" onclick="app.deleteItem('${type}', '${id}', this)">삭제</button></td></tr>`;
+      html += `</tr>`;
     });
     tbody.innerHTML = html;
     tbody.querySelectorAll('tr').forEach(tr => this.bindRowEvents(tr, type));
@@ -314,8 +313,6 @@ const app = {
     this.apiPost(upsertAction, payload).then(res => {
       if(res.success && res.id) {
         rowObj[0] = res.id; rowEl.setAttribute('data-id', res.id);
-        const btn = rowEl.querySelector('button.btn-danger');
-        if(btn) btn.setAttribute('onclick', `app.deleteItem('${type}', '${res.id}', this)`);
       }
     });
   },
@@ -495,9 +492,8 @@ const app = {
 
   silentSave: function(action, payload) { this.apiPost(action, payload).then(res => { if(!res.success) console.error("Auto-save failed:", res.message); }); },
   
-  deleteItem: async function(type, id, btn) {
-    if(!id) {
-      const rowEl = btn.closest('tr');
+  deleteItem: async function(type, id, rowEl) {
+    if(!id || id === 'null') {
       const rowIndex = Array.from(rowEl.parentElement.children).indexOf(rowEl);
       if (type === 'preschedule') this.data.preschedules.splice(rowIndex, 1);
       if (type === 'student') this.data.students.splice(rowIndex, 1);
@@ -552,18 +548,22 @@ const app = {
   },
   ctxDeleteRow: function() {
     this.hideContextMenu(); if(!this.ctxTargetRow) return;
-    const btn = this.ctxTargetRow.querySelector('.btn-danger');
-    if(btn) btn.click();
-    else {
+    const type = this.ctxTargetType;
+    const id = this.ctxTargetRow.getAttribute('data-id');
+    
+    if (type === 'curriculum' || type === 'timetable') {
+      if(!confirm("이 줄에 입력된 모든 데이터가 삭제됩니다. 정말 삭제하시겠습니까?")) return;
       const idCells = this.ctxTargetRow.querySelectorAll('td[data-id]');
       idCells.forEach(c => {
-        const id = c.getAttribute('data-id');
-        if(id) {
-           let sheetName = this.ctxTargetType === 'curriculum' ? '수업진도계획' : '시간표';
-           this.silentSave('deleteData', { sheetName, id });
+        const itemID = c.getAttribute('data-id');
+        if(itemID) {
+           let sheetName = type === 'curriculum' ? '수업진도계획' : '시간표';
+           this.silentSave('deleteData', { sheetName, id: itemID });
         }
       });
-      setTimeout(() => this.fetchInitialData(), 500);
+      this.ctxTargetRow.remove();
+    } else {
+      this.deleteItem(type, id, this.ctxTargetRow);
     }
   },
   ctxDeleteCol: function() {
