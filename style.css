@@ -355,9 +355,28 @@ body {
   color: var(--text-main) !important;
   fill: var(--text-main) !important;
 }
+.flatpickr-month {
+  display: flex !important;
+  align-items: center !important;
+}
+.flatpickr-current-month {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 0 !important;
+  height: 100% !important;
+}
+.flatpickr-current-month .numInputWrapper {
+  width: 6ch !important;
+}
+.flatpickr-weekdays {
+  height: auto !important;
+}
 span.flatpickr-weekday {
   font-weight: 600 !important;
   color: var(--text-muted) !important;
+  font-size: 14px !important;
+  padding: 10px 0 !important;
 }
 .flatpickr-day {
   color: var(--text-main) !important;
