@@ -134,7 +134,7 @@ const app = {
     else if (viewName === 'timetable') this.renderTimetablePivot();
     
     if (window.flatpickr) {
-      flatpickr('.date-picker-input', { locale: "ko", dateFormat: "Y-m-d" });
+      flatpickr('.date-picker-input', { locale: "ko", dateFormat: "Y-m-d(D)" });
       flatpickr('.time-picker-input', { locale: "ko", enableTime: true, noCalendar: true, dateFormat: "H:i", time_24hr: true });
     }
   },
