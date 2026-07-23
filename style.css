@@ -438,10 +438,7 @@ span.flatpickr-weekday {
   font-size: 14px !important;
 }
 
-.date-picker-input {
-  word-break: break-all;
-  white-space: normal;
-}
+
 
 /* Status Button Styles */
 .status-btn {
