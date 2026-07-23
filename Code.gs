@@ -1,6 +1,7 @@
 // 2028 영재학교반 관리 시스템 백엔드 (GAS)
 // 사용자 지정 데이터 저장 전용 구글 드라이브 폴더 ID
 const ROOT_FOLDER_ID = '1w8Wyg4Yuurltlwnc8VNKdbz0DcvtxZvp';
+
 function doGet(e) {
   return HtmlService.createHtmlOutputFromFile('index')
       .setTitle('2028 영재학교반 관리')
@@ -8,23 +9,22 @@ function doGet(e) {
 }
 
 // ==========================================
-// 1. 학급 트리 관리 (대/중/소분류)
+// 1. 학급 트리 관리 (4단계 계층화)
 // ==========================================
-// 시트 구조: ID | 대분류 | 중분류 | 소분류 | 전체명(조합) | 사용여부
-function saveClassData(mainCat, midCat, subCat) {
+// 시트 구조: ID | 대분류 | 중분류 | 소분류 | 학급분류(반이름) | 사용여부
+function saveClassData(mainCat, midCat, subCat, className) {
   const lock = LockService.getScriptLock();
   if (lock.tryLock(10000)) {
     try {
-      // TODO: 스프레드시트에 저장하는 실제 로직 구현
-      const fullName = `[${mainCat}] ${midCat} - ${subCat}`;
-      return { success: true, message: '저장 완료', fullName: fullName };
+      // TODO: 지정된 ROOT_FOLDER_ID 내의 시트에 4단계 계층 학급 데이터 저장
+      return { success: true, message: '저장 완료' };
     } catch (error) {
       return { success: false, message: error.message };
     } finally {
       lock.releaseLock();
     }
   } else {
-    return { success: false, message: '동시 접속자가 많아 처리가 지연되었습니다. 다시 시도해 주세요.' };
+    return { success: false, message: '동시 접속 지연' };
   }
 }
 
@@ -33,52 +33,29 @@ function saveClassData(mainCat, midCat, subCat) {
 // ==========================================
 // 시트 구조: ID | 강사명 | 연락처 | 지메일 | 사용여부
 function saveInstructorData(name, phone, email) {
-  const lock = LockService.getScriptLock();
-  if (lock.tryLock(10000)) {
-    try {
-      // TODO: 스프레드시트에 강사 저장
-      return { success: true, message: '강사 정보 등록 완료' };
-    } catch (error) {
-      return { success: false, message: error.message };
-    } finally {
-      lock.releaseLock();
-    }
-  } else {
-    return { success: false, message: '동시 접속 지연. 다시 시도해 주세요.' };
-  }
+  // TODO: LockService 적용 및 DB 저장 로직
 }
 
 // ==========================================
 // 3. 사전 준비일정 관리
 // ==========================================
-// 시트 구조: ID | 대분류 | 일자 | 내용 | 비고 | 작성자
-function savePreSchedule(mainCat, date, content, note) {
+// 시트 구조: ID | 대분류 | 중분류 | 소분류 | 학급분류 | 일자 | 내용 | 비고 | 작성자
+function savePreSchedule(mainCat, classId, date, content, note) {
   // TODO: LockService 적용 및 DB 저장 로직
 }
 
 // ==========================================
 // 4. 수업 진도계획
 // ==========================================
-// 시트 구조: ID | 대분류 | 주차 | 소분류(과목) | 내용 | 작성자
-function saveCurriculum(mainCat, week, subject, content) {
+// 시트 구조: ID | 대분류 | 중분류 | 소분류 | 학급분류 | 주차 | 내용 | 작성자
+function saveCurriculum(mainCat, classId, week, content) {
   // TODO: LockService 적용 및 DB 저장 로직
 }
 
 // ==========================================
-// 5. 시간표 관리
+// 5. 시간표 관리 (시작/종료 시간 분리 반영)
 // ==========================================
-// 시트 구조: ID | 대분류 | 요일 | 시간대 | 강사 | 작성자
-function saveTimetable(mainCat, day, hours, instructor) {
+// 시트 구조: ID | 대분류 | 중분류 | 소분류 | 학급분류 | 요일 | 시작시간 | 종료시간 | 강사 | 작성자
+function saveTimetable(mainCat, classId, day, startTime, endTime, instructor) {
   // TODO: LockService 적용 및 DB 저장 로직
-}
-
-// ==========================================
-// 기타 공통 함수
-// ==========================================
-function getInitialData() {
-  // 앱 실행 시 화면에 뿌려줄 초기 데이터 (학급목록, 강사목록 등) 반환
-  return {
-    classes: [],
-    instructors: []
-  };
 }
