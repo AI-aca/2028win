@@ -170,7 +170,7 @@ const app = {
         } else {
           subWrapSelect.classList.remove('hidden');
           subWrapInput.classList.add('hidden');
-          subSelectEl.innerHTML = '<option value="">-- 중분류를 먼저 선택하세요 --</option>';
+          subSelectEl.innerHTML = '<option value="">-- 과목를 먼저 선택하세요 --</option>';
         }
       });
     }
@@ -220,10 +220,10 @@ const app = {
   saveClass: async function() {
     const mainCat = document.getElementById('class-main-cat').value;
     const midCat = document.getElementById('class-mid-cat').value;
-    if(!midCat) { alert("중분류를 선택하세요."); return; }
+    if(!midCat) { alert("과목를 선택하세요."); return; }
     let subCat = (midCat === '기타') ? document.getElementById('class-sub-cat-input').value.trim() : document.getElementById('class-sub-cat-select').value;
     const className = document.getElementById('class-name-input').value.trim();
-    if(!subCat || !className) { alert("소분류와 학급분류(반 이름)를 모두 입력하세요."); return; }
+    if(!subCat || !className) { alert("세부과목와 학급(명)를 모두 입력하세요."); return; }
     
     this.showLoading();
     const res = await this.apiPost('saveClassData', { mainCat, midCat, subCat, className });
@@ -257,7 +257,7 @@ const app = {
   },
 
   savePreSchedule: async function() {
-    if(!this.currentCategory) { alert("대분류 선택 에러"); return; }
+    if(!this.currentCategory) { alert("구분 선택 에러"); return; }
     const classVal = document.getElementById('pre-class-select').value;
     if(!classVal) { alert("대상 학급을 선택하세요."); return; }
     const cData = JSON.parse(classVal);
@@ -272,7 +272,7 @@ const app = {
   },
 
   saveCurriculum: async function() {
-    if(!this.currentCategory) { alert("대분류 선택 에러"); return; }
+    if(!this.currentCategory) { alert("구분 선택 에러"); return; }
     const classVal = document.getElementById('curr-class-select').value;
     if(!classVal) { alert("대상 학급을 선택하세요."); return; }
     const cData = JSON.parse(classVal);
@@ -286,7 +286,7 @@ const app = {
   },
 
   saveTimetable: async function() {
-    if(!this.currentCategory) { alert("대분류 선택 에러"); return; }
+    if(!this.currentCategory) { alert("구분 선택 에러"); return; }
     const classVal = document.getElementById('time-class-select').value;
     if(!classVal) { alert("대상 학급을 선택하세요."); return; }
     const cData = JSON.parse(classVal);
@@ -312,7 +312,7 @@ const app = {
     if (this.data.classes.length === 0) {
       classList.innerHTML = '<li class="empty-msg">등록된 학급이 없습니다.</li>';
     } else {
-      // 정렬 로직 (대분류 -> 중분류 -> 소분류 -> 반이름)
+      // 정렬 로직 (구분 -> 과목 -> 세부과목 -> 반이름)
       const sortedClasses = [...this.data.classes].sort((a, b) => {
         if (a[1] !== b[1]) return a[1].localeCompare(b[1]);
         if (a[2] !== b[2]) return a[2].localeCompare(b[2]);
