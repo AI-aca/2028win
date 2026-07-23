@@ -248,6 +248,8 @@ const app = {
         const resizer = document.createElement('div');
         resizer.className = 'resizer'; th.appendChild(resizer);
         let x = 0, w = 0;
+        let startTableWidth = 0;
+        let tableEl = null;
         const id = th.closest('.view-section').id + '-col-' + i;
         
         const mouseMoveHandler = (e) => { 
@@ -272,12 +274,20 @@ const app = {
             this.resizeTooltip.remove();
             this.resizeTooltip = null;
           }
-          // Save to backend instead of just localStorage
           this.silentSave('saveUISettings', { key: id, value: th.style.width });
           this.uiSettings[id] = th.style.width;
         };
         resizer.addEventListener('mousedown', (e) => {
-          x = e.clientX; w = th.getBoundingClientRect().width;
+          x = e.clientX; 
+          w = th.getBoundingClientRect().width;
+          tableEl = th.closest('.excel-table');
+          
+          Array.from(tableEl.querySelectorAll('th')).forEach(col => {
+            if (!col.classList.contains('spring-col')) col.style.width = col.getBoundingClientRect().width + 'px';
+            else col.style.width = '';
+          });
+          tableEl.style.width = '';
+          
           document.addEventListener('mousemove', mouseMoveHandler);
           document.addEventListener('mouseup', mouseUpHandler);
           resizer.classList.add('resizing');
@@ -330,6 +340,7 @@ const app = {
       cols.forEach((c, i) => {
         ths += `<th>${c}</th>`;
       });
+      ths += `<th class="spring-col" style="width:100%; border:none; background:transparent; pointer-events:none; padding:0;"></th>`;
       thead.querySelector('tr').innerHTML = ths;
     }
 
@@ -349,7 +360,7 @@ const app = {
           html += `<td contenteditable="true" data-col-idx="${i+1}" onblur="app.onFlatCellBlur('${type}', this)" onkeydown="app.onKeyDown(event, this)">${val}</td>`;
         }
       }
-      html += `</tr>`;
+      html += `<td class="spring-col" style="border:none; background:transparent; pointer-events:none; padding:0;"></td></tr>`;
     });
     tbody.innerHTML = html;
     tbody.querySelectorAll('tr').forEach(tr => this.bindRowEvents(tr, type));
@@ -473,7 +484,7 @@ const app = {
     this.dynamicCols.curriculum.forEach(sub => {
       headHtml += `<th data-colname="${sub}">${sub}</th>`;
     });
-    headHtml += `</tr></thead><tbody id="tbody-curriculum">`;
+    headHtml += `<th class="spring-col" style="width:100%; border:none; background:transparent; pointer-events:none; padding:0;"></th></tr></thead><tbody id="tbody-curriculum">`;
 
     const weeks = Array.from(new Set(this.data.curriculums.map(r => r[1]).filter(Boolean)));
     if (weeks.length === 0) weeks.push('1주차');
@@ -486,7 +497,7 @@ const app = {
         const content = row ? row[3] : '';
         headHtml += `<td contenteditable="true" data-id="${row?row[0]:''}" data-week="${week}" data-sub="${sub}" onblur="app.onCurriculumBlur(this)" onkeydown="app.onKeyDown(event, this)">${content}</td>`;
       });
-      headHtml += `</tr>`;
+      headHtml += `<td class="spring-col" style="border:none; background:transparent; pointer-events:none; padding:0;"></td></tr>`;
     });
     headHtml += `</tbody>`; table.innerHTML = headHtml;
     table.querySelectorAll('tbody tr').forEach(tr => this.bindRowEvents(tr, 'curriculum'));
@@ -513,7 +524,7 @@ const app = {
     this.dynamicCols.timetable.forEach(cls => {
       headHtml += `<th data-colname="${cls}">${cls}</th>`;
     });
-    headHtml += `</tr></thead><tbody id="tbody-timetable">`;
+    headHtml += `<th class="spring-col" style="width:100%; border:none; background:transparent; pointer-events:none; padding:0;"></th></tr></thead><tbody id="tbody-timetable">`;
 
     const rowGroups = Array.from(new Set(this.data.timetables.map(r => r[1] + '|' + r[2] + '|' + r[3] + '|' + r[4]).filter(t => t !== '|||')));
     if (rowGroups.length === 0) rowGroups.push('|수업|18:00|20:00');
@@ -542,7 +553,7 @@ const app = {
           headHtml += `<td class="timetable-cell" data-id="${row?row[0]:''}" data-start="${start}" data-end="${end}" data-cls="${cls}" data-date="${date}" onclick="app.openTimetableEditor(this)" style="cursor:pointer;">${displayStr}</td>`;
         });
       }
-      headHtml += `</tr>`;
+      headHtml += `<td class="spring-col" style="border:none; background:transparent; pointer-events:none; padding:0;"></td></tr>`;
     });
     headHtml += `</tbody>`; table.innerHTML = headHtml;
     table.querySelectorAll('tbody tr').forEach(tr => this.bindRowEvents(tr, 'timetable'));
@@ -619,7 +630,12 @@ const app = {
       document.body.appendChild(modal);
     }
 
-    const instructors = Array.from(new Set(this.data.instructors.map(r => r[1]).filter(Boolean)));
+    const instructors = Array.from(new Set(this.data.instructors.map(r => {
+      let val = r[1] ? String(r[1]) : '';
+      if(val.includes('" style=')) val = val.substring(0, val.indexOf('"')).trim();
+      const div = document.createElement('div'); div.innerHTML = val;
+      return div.innerText.trim();
+    }).filter(Boolean)));
     const subjects = Array.from(new Set([...this.data.curriculums.map(r => r[2]), ...this.data.instructors.map(r => r[2])].filter(Boolean)));
 
     const optStyle = 'background:#1e293b; color:#f8fafc;';
