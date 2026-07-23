@@ -128,7 +128,7 @@ const app = {
 
   renderView: function(viewName) {
     if (viewName === 'preschedule') this.renderFlatTable('preschedule', this.data.preschedules, ['일자', '내용', '상태', '비고']);
-    else if (viewName === 'student') this.renderFlatTable('student', this.data.students, ['이름', '센터', '학교', '학년', '학부모 연락처', '학생 연락처', '비고']);
+    else if (viewName === 'student') this.renderFlatTable('student', this.data.students, [{label:'센터', idx:2}, {label:'이름', idx:1}, {label:'학교', idx:3}, {label:'학년', idx:4}, {label:'학부모 연락처', idx:5}, {label:'학생 연락처', idx:6}, {label:'비고', idx:7}]);
     else if (viewName === 'instructor') this.renderFlatTable('instructor', this.data.instructors, ['강사명', '영역', '과목', '연락처', '지메일', '비고']);
     else if (viewName === 'curriculum') this.renderCurriculumPivot();
     else if (viewName === 'timetable') this.renderTimetablePivot();
@@ -315,7 +315,8 @@ const app = {
           }
         });
         const savedW = this.uiSettings[id];
-        if (savedW) th.style.width = savedW;
+        if (savedW && savedW.includes('%')) th.style.width = savedW;
+        else if (savedW) th.style.width = ''; // ignore legacy px widths to prevent scrollbar
       }
       // Add right-click for column deletion
       if (th.getAttribute('data-colname') && !th.hasAttribute('data-ctx-bound')) {
@@ -336,8 +337,9 @@ const app = {
     const thead = tbody.previousElementSibling;
     if(thead && thead.querySelector('tr')) {
       let ths = '';
-      cols.forEach((c, i) => {
-        ths += `<th>${c}</th>`;
+      cols.forEach((c) => {
+        const label = typeof c === 'object' ? c.label : c;
+        ths += `<th>${label}</th>`;
       });
       thead.querySelector('tr').innerHTML = ths;
     }
@@ -346,16 +348,19 @@ const app = {
     dataArray.forEach(row => {
       const id = row[0]; html += `<tr data-id="${id}">`;
       for(let i=0; i<cols.length; i++) {
-        const val = row[i+1] || '';
-        if (cols[i] === '일자') {
-          html += `<td data-col-idx="${i+1}" style="background: rgba(255,255,255,0.05); padding:0; text-align:center;"><input type="text" class="date-picker-input" value="${val}" onchange="app.onFlatCellBlur('${type}', this.parentElement)" placeholder="날짜 선택" style="width:100%; height:100%; min-height:40px; background:transparent; border:none; color:inherit; text-align:center; outline:none; font-family:inherit; font-size:inherit; cursor:pointer; padding:0; margin:0;"></td>`;
-        } else if (cols[i] === '상태') {
+        const c = cols[i];
+        const label = typeof c === 'object' ? c.label : c;
+        const colIdx = typeof c === 'object' ? c.idx : i + 1;
+        const val = row[colIdx] || '';
+        if (label === '일자') {
+          html += `<td data-col-idx="${colIdx}" style="background: rgba(255,255,255,0.05); padding:0; text-align:center;"><input type="text" class="date-picker-input" value="${val}" onchange="app.onFlatCellBlur('${type}', this.parentElement)" placeholder="날짜 선택" style="width:100%; height:100%; min-height:40px; background:transparent; border:none; color:inherit; text-align:center; outline:none; font-family:inherit; font-size:inherit; cursor:pointer; padding:0; margin:0;"></td>`;
+        } else if (label === '상태') {
           const isDone = val === '완료';
           const statusTxt = isDone ? '완료' : '진행 중';
           const btnClass = isDone ? 'status-done' : 'status-progress';
-          html += `<td data-col-idx="${i+1}" style="text-align:center;"><button class="status-btn ${btnClass}" onclick="app.toggleStatus(this, '${type}', ${i+1})">${statusTxt}</button></td>`;
+          html += `<td data-col-idx="${colIdx}" style="text-align:center;"><button class="status-btn ${btnClass}" onclick="app.toggleStatus(this, '${type}', ${colIdx})">${statusTxt}</button></td>`;
         } else {
-          html += `<td contenteditable="true" data-col-idx="${i+1}" onblur="app.onFlatCellBlur('${type}', this)" onkeydown="app.onKeyDown(event, this)">${val}</td>`;
+          html += `<td contenteditable="true" data-col-idx="${colIdx}" onblur="app.onFlatCellBlur('${type}', this)" onkeydown="app.onKeyDown(event, this)">${val}</td>`;
         }
       }
       html += `</tr>`;
