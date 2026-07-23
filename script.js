@@ -103,7 +103,20 @@ const app = {
   },
 
   processInitialData: function(res) {
-    const cleanDate = (arr) => arr.map(r => r.map(c => typeof c === 'string' ? c.replace(/^20(\d{2}-\d{2}-\d{2})/, '$1') : c));
+    const cleanDate = (arr) => arr.map(r => r.map(c => {
+      if (typeof c === 'string') {
+        if (c.match(/^\d{4}-\d{2}-\d{2}T/)) {
+          const d = new Date(c);
+          const days = ['일','월','화','수','목','금','토'];
+          const yy = String(d.getFullYear()).slice(-2);
+          const mm = String(d.getMonth() + 1).padStart(2, '0');
+          const dd = String(d.getDate()).padStart(2, '0');
+          return `${yy}-${mm}-${dd} (${days[d.getDay()]})`;
+        }
+        return c.replace(/^20(\d{2}-\d{2}-\d{2})/, '$1');
+      }
+      return c;
+    }));
     this.data.preschedules = cleanDate(res['사전준비일정'] || []);
     this.data.curriculums = cleanDate(res['수업진도계획'] || []);
     this.data.timetables = cleanDate(res['시간표'] || []);

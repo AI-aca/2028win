@@ -45,9 +45,6 @@ function doPost(e) {
 }
 
 function doGet(e) {
-  if (e.parameter.action === 'getInitialData') {
-    return ContentService.createTextOutput(JSON.stringify(getInitialData())).setMimeType(ContentService.MimeType.JSON);
-  }
   return HtmlService.createHtmlOutputFromFile('index')
       .setTitle('2028 영재학교반 관리')
       .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
