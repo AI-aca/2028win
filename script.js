@@ -499,10 +499,7 @@ const app = {
       const [date, type, start, end] = grp.split('|');
       const isHoliday = (type === '휴일');
       
-      headHtml += `<tr>
-        <td class="label-col" style="padding:0; text-align:center;">
-          <input type="text" class="date-picker-input" value="${date}" onchange="app.updatePivotRowDate('${grp}', this.value)" placeholder="날짜 선택" style="width:100%; height:100%; min-height:40px; background:transparent; border:none; color:inherit; text-align:center; outline:none; font-family:inherit; font-size:inherit; cursor:pointer; padding:0; margin:0;">
-        </td>`;
+      headHtml += `<tr><td class="label-col" style="padding:0; text-align:center;"><input type="text" class="date-picker-input" value="${date}" onchange="app.updatePivotRowDate('${grp}', this.value)" placeholder="날짜 선택" style="width:100%; height:100%; min-height:40px; background:transparent; border:none; color:inherit; text-align:center; outline:none; font-family:inherit; font-size:inherit; cursor:pointer; padding:0; margin:0;"></td>`;
 
       if (isHoliday) {
         const holidayRow = this.data.timetables.find(r => r[1] === date && r[2] === '휴일');
