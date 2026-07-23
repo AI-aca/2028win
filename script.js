@@ -208,14 +208,21 @@ const app = {
     
     this.showLoading();
     if(typeof google !== 'undefined' && google.script) {
-      google.script.run.withSuccessHandler((res) => {
+      google.script.run
+      .withSuccessHandler((res) => {
         if(res.success) {
           alert("학급 등록 완료");
           this.closeModal();
           this.fetchInitialData(); // 리로딩
         } else { alert("오류: " + res.message); this.hideLoading(); }
-      }).saveClassData(mainCat, midCat, subCat, className);
+      })
+      .withFailureHandler((err) => {
+        alert("백엔드 에러(권한 또는 오타): " + err);
+        this.hideLoading();
+      })
+      .saveClassData(mainCat, midCat, subCat, className);
     } else {
+      alert("[로컬 테스트] 학급 정보가 저장되는 척 합니다. 실제 구글 시트 저장은 배포된 웹앱에서만 작동합니다.");
       console.log("로컬 테스트: ", mainCat, midCat, subCat, className);
       this.closeModal();
       this.hideLoading();
@@ -230,15 +237,22 @@ const app = {
 
     this.showLoading();
     if(typeof google !== 'undefined' && google.script) {
-      google.script.run.withSuccessHandler((res) => {
+      google.script.run
+      .withSuccessHandler((res) => {
         if(res.success) {
           const inviteLink = "https://chat.google.com/room/XXXXX";
           alert(`강사 등록 완료!\n아래 구글 챗방 초대 링크를 복사하여 전달해주세요:\n${inviteLink}`);
           this.closeModal();
           this.fetchInitialData();
         } else { alert("오류: " + res.message); this.hideLoading(); }
-      }).saveInstructorData(name, phone, email);
+      })
+      .withFailureHandler((err) => {
+        alert("백엔드 에러: " + err);
+        this.hideLoading();
+      })
+      .saveInstructorData(name, phone, email);
     } else {
+      alert("[로컬 테스트] 강사 정보가 저장되는 척 합니다.");
       this.closeModal();
       this.hideLoading();
     }
@@ -255,9 +269,19 @@ const app = {
 
     this.showLoading();
     if(typeof google !== 'undefined' && google.script) {
-      google.script.run.withSuccessHandler((res)=>{
+      google.script.run
+      .withSuccessHandler((res)=>{
         this.closeModal(); this.fetchInitialData();
-      }).savePreSchedule(this.currentCategory, cData.mid, cData.sub, cData.name, date, content, note);
+      })
+      .withFailureHandler((err)=>{
+        alert("백엔드 에러: " + err);
+        this.hideLoading();
+      })
+      .savePreSchedule(this.currentCategory, cData.mid, cData.sub, cData.name, date, content, note);
+    } else {
+      alert("[로컬 테스트] 일정이 저장되는 척 합니다.");
+      this.closeModal();
+      this.hideLoading();
     }
   },
 
@@ -271,9 +295,19 @@ const app = {
 
     this.showLoading();
     if(typeof google !== 'undefined' && google.script) {
-      google.script.run.withSuccessHandler((res)=>{
+      google.script.run
+      .withSuccessHandler((res)=>{
         this.closeModal(); this.fetchInitialData();
-      }).saveCurriculum(this.currentCategory, cData.mid, cData.sub, cData.name, week, content);
+      })
+      .withFailureHandler((err)=>{
+        alert("백엔드 에러: " + err);
+        this.hideLoading();
+      })
+      .saveCurriculum(this.currentCategory, cData.mid, cData.sub, cData.name, week, content);
+    } else {
+      alert("[로컬 테스트] 진도계획이 저장되는 척 합니다.");
+      this.closeModal();
+      this.hideLoading();
     }
   },
 
@@ -292,9 +326,19 @@ const app = {
 
     this.showLoading();
     if(typeof google !== 'undefined' && google.script) {
-      google.script.run.withSuccessHandler((res)=>{
+      google.script.run
+      .withSuccessHandler((res)=>{
         this.closeModal(); this.fetchInitialData();
-      }).saveTimetable(this.currentCategory, cData.mid, cData.sub, cData.name, day, start, end, instructor);
+      })
+      .withFailureHandler((err)=>{
+        alert("백엔드 에러: " + err);
+        this.hideLoading();
+      })
+      .saveTimetable(this.currentCategory, cData.mid, cData.sub, cData.name, day, start, end, instructor);
+    } else {
+      alert("[로컬 테스트] 시간표가 저장되는 척 합니다.");
+      this.closeModal();
+      this.hideLoading();
     }
   },
 
