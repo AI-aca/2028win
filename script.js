@@ -305,11 +305,7 @@ const app = {
     if(thead && thead.querySelector('tr')) {
       let ths = '';
       cols.forEach((c, i) => {
-        if (type === 'student' || type === 'instructor') {
-          ths += `<th>${this.renderSortableHeader(c, type, i)}</th>`;
-        } else {
-          ths += `<th>${c}</th>`;
-        }
+        ths += `<th>${c}</th>`;
       });
       thead.querySelector('tr').innerHTML = ths;
     }
