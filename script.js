@@ -204,8 +204,9 @@ const app = {
     if (type === 'student') sheetName = '학생관리';
     if (type === 'instructor') sheetName = '강사관리';
     if (sheetName && orderedIds.length > 0) {
-      this.silentSave('reorderRows', { sheetName, orderedIds });
-      setTimeout(() => this.fetchInitialData(), 500);
+      this.silentSave('reorderRows', { sheetName, orderedIds }).then(() => {
+        setTimeout(() => this.fetchInitialData(), 200);
+      });
     }
   },
 
@@ -521,7 +522,17 @@ const app = {
   closeModal: function() { document.getElementById('modal-container').classList.add('hidden'); document.getElementById('generic-modal').classList.add('hidden'); },
   saveModalData: function() { if(typeof this.currentModalAction === 'function') this.currentModalAction(); },
 
-  silentSave: function(action, payload) { this.apiPost(action, payload).then(res => { if(!res.success) console.error("Auto-save failed:", res.message); }); },
+  silentSave: function(action, payload) {
+    return this.apiPost(action, payload).then(res => {
+      if(!res.success) {
+        console.error('Silent save failed:', res.message);
+        this.showToast('저장 실패: ' + res.message, true);
+      } else {
+        this.showToast('저장되었습니다.');
+      }
+      return res;
+    });
+  },
   
   deleteItem: async function(type, id, rowEl) {
     if(!id || id === 'null') {

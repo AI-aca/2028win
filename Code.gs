@@ -88,7 +88,7 @@ function getInitialData() {
     });
     
     try {
-      result.uiSettings = PropertiesService.getDocumentProperties().getProperties() || {};
+      result.uiSettings = PropertiesService.getScriptProperties().getProperties() || {};
     } catch(e) {
       result.uiSettings = {};
     }
@@ -209,7 +209,7 @@ function saveUISettings(payload) {
   const lock = LockService.getScriptLock();
   if (lock.tryLock(5000)) {
     try {
-      PropertiesService.getDocumentProperties().setProperty(payload.key, payload.value);
+      PropertiesService.getScriptProperties().setProperty(payload.key, payload.value);
       return { success: true };
     } catch (error) {
       return { success: false, message: error.message };
