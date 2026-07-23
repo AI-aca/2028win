@@ -282,12 +282,6 @@ const app = {
           w = th.getBoundingClientRect().width;
           tableEl = th.closest('.excel-table');
           
-          Array.from(tableEl.querySelectorAll('th')).forEach(col => {
-            if (!col.classList.contains('spring-col')) col.style.width = col.getBoundingClientRect().width + 'px';
-            else col.style.width = '';
-          });
-          tableEl.style.width = '';
-          
           document.addEventListener('mousemove', mouseMoveHandler);
           document.addEventListener('mouseup', mouseUpHandler);
           resizer.classList.add('resizing');
@@ -305,10 +299,13 @@ const app = {
               this.silentSave('saveUISettings', { key: dynId, value: currentWidth });
               this.uiSettings[dynId] = currentWidth;
             });
+            const viewId = th.closest('.view-section').id;
+            const targetName = viewId === 'view-curriculum' ? '과목' : '반';
+            
             const tooltip = document.createElement('div');
             tooltip.className = 'resize-tooltip';
             tooltip.style.cssText = 'position: fixed; background: rgba(16,185,129,0.9); color: white; padding: 6px 12px; border-radius: 4px; font-size: 13px; font-weight: bold; pointer-events: none; z-index: 9999; box-shadow: 0 4px 15px rgba(0,0,0,0.3);';
-            tooltip.innerText = '모든 반 너비 일괄 적용 완료!';
+            tooltip.innerText = `모든 ${targetName} 너비 일괄 적용 완료!`;
             tooltip.style.left = (e.clientX + 15) + 'px';
             tooltip.style.top = (e.clientY - 30) + 'px';
             document.body.appendChild(tooltip);
@@ -340,7 +337,6 @@ const app = {
       cols.forEach((c, i) => {
         ths += `<th>${c}</th>`;
       });
-      ths += `<th class="spring-col" style="border:none; background:transparent; pointer-events:none; padding:0;"></th>`;
       thead.querySelector('tr').innerHTML = ths;
     }
 
@@ -360,7 +356,7 @@ const app = {
           html += `<td contenteditable="true" data-col-idx="${i+1}" onblur="app.onFlatCellBlur('${type}', this)" onkeydown="app.onKeyDown(event, this)">${val}</td>`;
         }
       }
-      html += `<td class="spring-col" style="border:none; background:transparent; pointer-events:none; padding:0;"></td></tr>`;
+      html += `</tr>`;
     });
     tbody.innerHTML = html;
     tbody.querySelectorAll('tr').forEach(tr => this.bindRowEvents(tr, type));
@@ -484,7 +480,7 @@ const app = {
     this.dynamicCols.curriculum.forEach(sub => {
       headHtml += `<th data-colname="${sub}">${sub}</th>`;
     });
-    headHtml += `<th class="spring-col" style="border:none; background:transparent; pointer-events:none; padding:0;"></th></tr></thead><tbody id="tbody-curriculum">`;
+    headHtml += `</tr></thead><tbody id="tbody-curriculum">`;
 
     const weeks = Array.from(new Set(this.data.curriculums.map(r => r[1]).filter(Boolean)));
     if (weeks.length === 0) weeks.push('1주차');
@@ -497,7 +493,7 @@ const app = {
         const content = row ? row[3] : '';
         headHtml += `<td contenteditable="true" data-id="${row?row[0]:''}" data-week="${week}" data-sub="${sub}" onblur="app.onCurriculumBlur(this)" onkeydown="app.onKeyDown(event, this)">${content}</td>`;
       });
-      headHtml += `<td class="spring-col" style="border:none; background:transparent; pointer-events:none; padding:0;"></td></tr>`;
+      headHtml += `</tr>`;
     });
     headHtml += `</tbody>`; table.innerHTML = headHtml;
     table.querySelectorAll('tbody tr').forEach(tr => this.bindRowEvents(tr, 'curriculum'));
@@ -524,7 +520,7 @@ const app = {
     this.dynamicCols.timetable.forEach(cls => {
       headHtml += `<th data-colname="${cls}">${cls}</th>`;
     });
-    headHtml += `<th class="spring-col" style="border:none; background:transparent; pointer-events:none; padding:0;"></th></tr></thead><tbody id="tbody-timetable">`;
+    headHtml += `</tr></thead><tbody id="tbody-timetable">`;
 
     const rowGroups = Array.from(new Set(this.data.timetables.map(r => r[1] + '|' + r[2] + '|' + r[3] + '|' + r[4]).filter(t => t !== '|||')));
     if (rowGroups.length === 0) rowGroups.push('|수업|18:00|20:00');
@@ -553,7 +549,7 @@ const app = {
           headHtml += `<td class="timetable-cell" data-id="${row?row[0]:''}" data-start="${start}" data-end="${end}" data-cls="${cls}" data-date="${date}" onclick="app.openTimetableEditor(this)" style="cursor:pointer;">${displayStr}</td>`;
         });
       }
-      headHtml += `<td class="spring-col" style="border:none; background:transparent; pointer-events:none; padding:0;"></td></tr>`;
+      headHtml += `</tr>`;
     });
     headHtml += `</tbody>`; table.innerHTML = headHtml;
     table.querySelectorAll('tbody tr').forEach(tr => this.bindRowEvents(tr, 'timetable'));
