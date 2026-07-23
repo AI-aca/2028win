@@ -80,7 +80,10 @@
           <div class="glass-panel">
             <div class="panel-header">
               <h2>수업 진도계획</h2>
-              <button class="btn btn-primary" onclick="app.addRow('curriculum')">[+ 행 추가(주차)]</button>
+              <div>
+                <button class="btn btn-primary" onclick="app.addRow('curriculum')">[+ 주차 추가(행)]</button>
+                <button class="btn btn-primary" style="background:#06b6d4;" onclick="app.addColumn('curriculum')">[+ 과목 추가(열)]</button>
+              </div>
             </div>
             <div class="panel-content table-container">
               <table class="excel-table" id="table-curriculum">
@@ -94,7 +97,10 @@
           <div class="glass-panel">
             <div class="panel-header">
               <h2>시간표 관리</h2>
-              <button class="btn btn-primary" onclick="app.addRow('timetable')">[+ 행 추가(시간)]</button>
+              <div>
+                <button class="btn btn-primary" onclick="app.addRow('timetable')">[+ 시간 추가(행)]</button>
+                <button class="btn btn-primary" style="background:#06b6d4;" onclick="app.addColumn('timetable')">[+ 반 추가(열)]</button>
+              </div>
             </div>
             <div class="panel-content table-container">
               <table class="excel-table" id="table-timetable">
