@@ -110,7 +110,7 @@ const app = {
       } else if (viewId === 'view-curriculum') {
         headerActions.innerHTML = `<button class="btn btn-primary" onclick="app.addRow('curriculum')">+ 주차 추가</button> <button class="btn btn-primary" style="background:#06b6d4;" onclick="app.addColumn('curriculum')">+ 과목 추가</button>`;
       } else if (viewId === 'view-timetable') {
-        headerActions.innerHTML = `<button class="btn btn-primary" onclick="app.addRow('timetable')">+ 시간 추가</button> <button class="btn btn-primary" style="background:#06b6d4;" onclick="app.addColumn('timetable')">+ 학급 추가</button>`;
+        headerActions.innerHTML = `<button class="btn btn-primary" onclick="app.addRow('timetable')">+ 시간 추가</button> <button class="btn btn-primary" style="background:#f43f5e;" onclick="app.addRow('holiday')">+ 휴일 추가</button> <button class="btn btn-primary" style="background:#06b6d4;" onclick="app.addColumn('timetable')">+ 학급 추가</button>`;
       } else if (viewId === 'view-student') {
         headerActions.innerHTML = `<button class="btn btn-primary" onclick="app.addRow('student')">+ 학생 추가</button>`;
       } else if (viewId === 'view-instructor') {
@@ -428,14 +428,23 @@ const app = {
       this.renderView(type);
     } else if (type === 'timetable') {
       let nextStart = '18:00', nextEnd = '20:00';
+      const today = new Date().toISOString().split('T')[0];
       this.dynamicCols.timetable.forEach(cls => {
-        const rowObj = ['', '', '', nextStart, nextEnd, cls, '', '', '', ''];
+        const rowObj = ['', today, '수업', nextStart, nextEnd, cls, '', '', '', ''];
         this.data.timetables.push(rowObj);
-        this.apiPost('upsertTimetable', { id: '', date: '', type: '', startTime: nextStart, endTime: nextEnd, targetClass: cls, instructorName: '', room: '', note: '' }).then(res => {
+        this.apiPost('upsertTimetable', { id: '', date: today, day: '', start: nextStart, end: nextEnd, className: cls, subject: '', instructor: '', note: '' }).then(res => {
           if (res.success && res.id) rowObj[0] = res.id;
         });
       });
       this.renderView(type);
+    } else if (type === 'holiday') {
+      const today = new Date().toISOString().split('T')[0];
+      const rowObj = ['', today, '휴일', '00:00', '00:00', '전체', '휴일', '', '', ''];
+      this.data.timetables.push(rowObj);
+      this.apiPost('upsertTimetable', { id: '', date: today, day: '', start: '00:00', end: '00:00', className: '전체', subject: '휴일', instructor: '', note: '' }).then(res => {
+        if (res.success && res.id) rowObj[0] = res.id;
+      });
+      this.renderView('timetable');
     }
   },
 
@@ -481,26 +490,42 @@ const app = {
 
   renderTimetablePivot: function() {
     const table = document.querySelector('#view-timetable .excel-table');
-    let headHtml = `<thead><tr><th style="width:120px;">시작시간</th><th style="width:150px;">종료시간</th>`;
+    let headHtml = `<thead><tr><th style="width:130px;">일자</th><th style="width:120px;">시작시간</th><th style="width:150px;">종료시간</th>`;
     this.dynamicCols.timetable.forEach(cls => {
       headHtml += `<th data-colname="${cls}">${cls}</th>`;
     });
     headHtml += `</tr></thead><tbody id="tbody-timetable">`;
 
-    const timePairs = Array.from(new Set(this.data.timetables.map(r => r[3] + '|' + r[4]).filter(t => t !== '|')));
-    if (timePairs.length === 0) timePairs.push('18:00|20:00');
+    const rowGroups = Array.from(new Set(this.data.timetables.map(r => r[1] + '|' + r[2] + '|' + r[3] + '|' + r[4]).filter(t => t !== '|||')));
+    if (rowGroups.length === 0) rowGroups.push('|수업|18:00|20:00');
 
-    timePairs.forEach(pair => {
-      const [start, end] = pair.split('|');
+    rowGroups.forEach(grp => {
+      const [date, type, start, end] = grp.split('|');
+      const isHoliday = (type === '휴일');
+      
       headHtml += `<tr>
-        <td style="background: rgba(255,255,255,0.05); padding:0; text-align:center;"><input type="text" class="time-picker-input" value="${start}" onchange="app.updatePivotRowTime('${pair}', 'start', this.value)" placeholder="00:00" style="width:100%; height:100%; min-height:40px; background:transparent; color:white; border:none; outline:none; text-align:center; font-family:inherit; font-size:inherit; cursor:pointer;" required></td>
-        <td style="background: rgba(255,255,255,0.05); padding:0; text-align:center;"><input type="text" class="time-picker-input" value="${end}" onchange="app.updatePivotRowTime('${pair}', 'end', this.value)" placeholder="00:00" style="width:100%; height:100%; min-height:40px; background:transparent; color:white; border:none; outline:none; text-align:center; font-family:inherit; font-size:inherit; cursor:pointer;" required></td>`;
-      this.dynamicCols.timetable.forEach(cls => {
-        const row = this.data.timetables.find(r => r[3] === start && r[4] === end && r[5] === cls);
-        let displayStr = row && (row[6] || row[7]) ? `${row[6]||''}${row[7]?'('+row[7]+')':''}` : '';
-        displayStr = displayStr.trim();
-        headHtml += `<td contenteditable="true" data-id="${row?row[0]:''}" data-start="${start}" data-end="${end}" data-cls="${cls}" onblur="app.onTimetableBlur(this)" onkeydown="app.onKeyDown(event, this)">${displayStr}</td>`;
-      });
+        <td style="background: rgba(255,255,255,0.05); padding:0; text-align:center;">
+          <input type="text" class="date-picker-input" value="${date}" onchange="app.updatePivotRowDate('${grp}', this.value)" placeholder="날짜 선택" style="width:100%; height:100%; min-height:40px; background:transparent; border:none; color:inherit; text-align:center; outline:none; font-family:inherit; font-size:inherit; cursor:pointer; padding:0; margin:0;">
+        </td>`;
+
+      if (isHoliday) {
+        const holidayRow = this.data.timetables.find(r => r[1] === date && r[2] === '휴일');
+        const holidayNote = holidayRow ? holidayRow[8] : '';
+        const holidayId = holidayRow ? holidayRow[0] : '';
+        headHtml += `
+          <td colspan="2" style="background: rgba(255,255,255,0.05); font-weight:bold; text-align:center; color:#f43f5e; font-size:16px;">🎉 휴일</td>
+          <td colspan="${this.dynamicCols.timetable.length}" contenteditable="true" data-id="${holidayId}" data-date="${date}" onblur="app.onTimetableHolidayBlur(this)" onkeydown="app.onKeyDown(event, this)" placeholder="어떠한 휴일인가요? (비고 입력)" style="text-align:center; color:#94a3b8;">${holidayNote}</td>`;
+      } else {
+        headHtml += `
+          <td style="background: rgba(255,255,255,0.05); padding:0; text-align:center;"><input type="text" class="time-picker-input" value="${start}" onchange="app.updatePivotRowTime('${grp}', 'start', this.value)" placeholder="00:00" style="width:100%; height:100%; min-height:40px; background:transparent; color:white; border:none; outline:none; text-align:center; font-family:inherit; font-size:inherit; cursor:pointer;" required></td>
+          <td style="background: rgba(255,255,255,0.05); padding:0; text-align:center;"><input type="text" class="time-picker-input" value="${end}" onchange="app.updatePivotRowTime('${grp}', 'end', this.value)" placeholder="00:00" style="width:100%; height:100%; min-height:40px; background:transparent; color:white; border:none; outline:none; text-align:center; font-family:inherit; font-size:inherit; cursor:pointer;" required></td>`;
+        this.dynamicCols.timetable.forEach(cls => {
+          const row = this.data.timetables.find(r => r[1] === date && r[2] === type && r[3] === start && r[4] === end && r[5] === cls);
+          let displayStr = row && (row[6] || row[7]) ? `${row[6]||''}${row[7]?'('+row[7]+')':''}` : '';
+          displayStr = displayStr.trim();
+          headHtml += `<td contenteditable="true" data-id="${row?row[0]:''}" data-start="${start}" data-end="${end}" data-cls="${cls}" data-date="${date}" onblur="app.onTimetableBlur(this)" onkeydown="app.onKeyDown(event, this)">${displayStr}</td>`;
+        });
+      }
       headHtml += `</tr>`;
     });
     headHtml += `</tbody>`; table.innerHTML = headHtml;
@@ -508,14 +533,27 @@ const app = {
     this.initResizers();
   },
 
-  updatePivotRowTime: function(oldPair, type, newValue) {
+  updatePivotRowDate: function(oldGrp, newDate) {
+    if(!newDate) return;
+    const [oldDate, oldType, oldStart, oldEnd] = oldGrp.split('|');
+    if (oldDate === newDate) return;
+    this.data.timetables.forEach(r => {
+      if (r[1] === oldDate && r[2] === oldType && r[3] === oldStart && r[4] === oldEnd) {
+        r[1] = newDate;
+        this.silentSave('upsertTimetable', { id: r[0], date: r[1], day: r[2], start: r[3], end: r[4], className: r[5], subject: r[6], instructor: r[7], note: r[8] });
+      }
+    });
+    this.renderView('timetable');
+  },
+
+  updatePivotRowTime: function(oldGrp, type, newValue) {
     if(!newValue) return;
-    const [oldStart, oldEnd] = oldPair.split('|');
+    const [oldDate, oldType, oldStart, oldEnd] = oldGrp.split('|');
     const newStart = type === 'start' ? newValue : oldStart;
     const newEnd = type === 'end' ? newValue : oldEnd;
     if (oldStart === newStart && oldEnd === newEnd) return;
     this.data.timetables.forEach(r => {
-      if (r[3] === oldStart && r[4] === oldEnd) {
+      if (r[1] === oldDate && r[2] === oldType && r[3] === oldStart && r[4] === oldEnd) {
         r[3] = newStart; r[4] = newEnd;
         this.silentSave('upsertTimetable', { id: r[0], date: r[1], day: r[2], start: r[3], end: r[4], className: r[5], subject: r[6], instructor: r[7], note: r[8] });
       }
@@ -523,23 +561,118 @@ const app = {
     this.renderView('timetable');
   },
 
-  onTimetableBlur: function(cell) {
+  onTimetableHolidayBlur: function(cell) {
     let newValue = this.getCleanHTML(cell);
     newValue = newValue.replace(/<span class="drag-handle">.*?<\/span>/g, '').trim();
     if(newValue === '<br>') newValue = '';
-    const id = cell.getAttribute('data-id'), start = cell.getAttribute('data-start'), end = cell.getAttribute('data-end'), cls = cell.getAttribute('data-cls');
-    let subject = newValue, instructor = '';
-    const match = newValue.match(/(.*?)\((.*?)\)/);
-    if(match) { subject = match[1].trim(); instructor = match[2].trim(); }
-    else { subject = newValue.trim(); }
+    const id = cell.getAttribute('data-id'), date = cell.getAttribute('data-date');
+    let rowObj = this.data.timetables.find(r => (id && r[0] === id) || (r[1] === date && r[2] === '휴일'));
+    if (rowObj) {
+      if (rowObj[8] === newValue) return;
+      rowObj[8] = newValue;
+    } else {
+      rowObj = ['', date, '휴일', '00:00', '00:00', '전체', '휴일', '', newValue, ''];
+      this.data.timetables.push(rowObj);
+    }
     
-    let rowObj = this.data.timetables.find(r => (id && r[0] === id) || (r[3] === start && r[4] === end && r[5] === cls));
-    if (rowObj) { if (rowObj[6] === subject && rowObj[7] === instructor) return; rowObj[6] = subject; rowObj[7] = instructor; }
-    else { if (!newValue) return; rowObj = ['', '', '', start, end, cls, subject, instructor, '', '']; this.data.timetables.push(rowObj); }
-    
-    this.apiPost('upsertTimetable', { id: rowObj[0], date: '', day: '', start, end, className: cls, subject, instructor, note: '' }).then(res => {
+    this.apiPost('upsertTimetable', { id: rowObj[0], date: rowObj[1], day: '', start: rowObj[3], end: rowObj[4], className: rowObj[5], subject: rowObj[6], instructor: rowObj[7], note: rowObj[8] }).then(res => {
       if(res.success && res.id) { rowObj[0] = res.id; cell.setAttribute('data-id', res.id); }
     });
+  },
+
+  openTimetableEditor: function(cell) {
+    const id = cell.getAttribute('data-id');
+    const date = cell.getAttribute('data-date');
+    const start = cell.getAttribute('data-start');
+    const end = cell.getAttribute('data-end');
+    const cls = cell.getAttribute('data-cls');
+    
+    let subject = '', instructor = '';
+    const row = this.data.timetables.find(r => r[1] === date && r[2] === '수업' && r[3] === start && r[4] === end && r[5] === cls);
+    if (row) {
+      subject = row[6] || '';
+      instructor = row[7] || '';
+    }
+
+    let modal = document.getElementById('timetable-editor-modal');
+    if (!modal) {
+      modal = document.createElement('div');
+      modal.id = 'timetable-editor-modal';
+      modal.className = 'glass-panel';
+      modal.style.cssText = 'position:fixed; top:50%; left:50%; transform:translate(-50%, -50%); z-index:10000; padding:20px; border-radius:12px; width:320px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); display:flex; flex-direction:column; gap:15px; border: 1px solid var(--border-glass);';
+      document.body.appendChild(modal);
+    }
+
+    const instructors = Array.from(new Set(this.data.instructors.map(r => r[1]).filter(Boolean)));
+    const subjects = ['수학', '과학', '물리', '화학', '생명과학', '지구과학', '정보', '국어', '영어'];
+
+    let instructorOpts = `<option value="">-- 강사 선택 --</option>` + instructors.map(i => `<option value="${i}" ${instructor===i?'selected':''}>${i}</option>`).join('');
+    let subjectOpts = `<option value="">-- 과목 선택 --</option>` + subjects.map(s => `<option value="${s}" ${subject===s?'selected':''}>${s}</option>`).join('');
+
+    modal.innerHTML = `
+      <h3 style="margin:0; font-size:16px; color:var(--primary); text-align:center;">${cls} 수업 편집</h3>
+      <p style="margin:0; text-align:center; font-size:12px; color:var(--text-muted);">${date} | ${start} ~ ${end}</p>
+      <div>
+        <label style="font-size:12px; color:var(--text-muted); margin-bottom:5px; display:block;">과목</label>
+        <select id="tt-edit-subject" style="width:100%; padding:10px; border-radius:6px; background:var(--bg-card); color:var(--text); border:1px solid var(--border-glass); outline:none;">
+          ${subjectOpts}
+        </select>
+        <div style="margin-top:8px;">
+           <input type="text" id="tt-edit-subject-custom" placeholder="기타 과목 직접 입력" value="${subjects.includes(subject)?'':subject}" style="width:100%; padding:10px; border-radius:6px; background:rgba(0,0,0,0.2); color:var(--text); border:1px solid var(--border-glass); outline:none;">
+        </div>
+      </div>
+      <div>
+        <label style="font-size:12px; color:var(--text-muted); margin-bottom:5px; display:block;">담당자</label>
+        <select id="tt-edit-instructor" style="width:100%; padding:10px; border-radius:6px; background:var(--bg-card); color:var(--text); border:1px solid var(--border-glass); outline:none;">
+          ${instructorOpts}
+        </select>
+      </div>
+      <div style="display:flex; gap:10px; margin-top:15px;">
+        <button class="btn" style="flex:1; background:rgba(255,255,255,0.1);" onclick="document.getElementById('timetable-editor-overlay').remove(); document.getElementById('timetable-editor-modal').remove();">취소</button>
+        <button class="btn btn-primary" style="flex:1;" onclick="app.saveTimetableEditor('${id}', '${date}', '${start}', '${end}', '${cls}')">저장</button>
+      </div>
+    `;
+
+    let overlay = document.getElementById('timetable-editor-overlay');
+    if (!overlay) {
+      overlay = document.createElement('div');
+      overlay.id = 'timetable-editor-overlay';
+      overlay.style.cssText = 'position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.6); z-index:9999; backdrop-filter:blur(3px); cursor:pointer;';
+      overlay.onclick = () => { overlay.remove(); modal.remove(); };
+      document.body.appendChild(overlay);
+    }
+    
+    const subSel = modal.querySelector('#tt-edit-subject');
+    const subInp = modal.querySelector('#tt-edit-subject-custom');
+    subSel.onchange = () => { if(subSel.value) subInp.value = ''; };
+    subInp.oninput = () => { if(subInp.value) subSel.value = ''; };
+  },
+
+  saveTimetableEditor: function(id, date, start, end, cls) {
+    const modal = document.getElementById('timetable-editor-modal');
+    if(!modal) return;
+    const subSel = modal.querySelector('#tt-edit-subject').value;
+    const subInp = modal.querySelector('#tt-edit-subject-custom').value;
+    const subject = subInp || subSel;
+    const instructor = modal.querySelector('#tt-edit-instructor').value;
+
+    let rowObj = this.data.timetables.find(r => r[1] === date && r[2] === '수업' && r[3] === start && r[4] === end && r[5] === cls);
+    if (!rowObj) {
+      rowObj = [id || '', date, '수업', start, end, cls, subject, instructor, '', ''];
+      this.data.timetables.push(rowObj);
+    } else {
+      rowObj[6] = subject;
+      rowObj[7] = instructor;
+    }
+
+    this.apiPost('upsertTimetable', { id: rowObj[0], date: rowObj[1], day: '', start: rowObj[3], end: rowObj[4], className: rowObj[5], subject: rowObj[6], instructor: rowObj[7], note: '' }).then(res => {
+      if(res.success && res.id) { rowObj[0] = res.id; }
+    });
+
+    document.getElementById('timetable-editor-overlay').remove();
+    modal.remove();
+    
+    this.renderView('timetable');
   },
 
   updatePivotRowLabel: function(type, oldLabel, newLabel) {
