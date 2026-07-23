@@ -90,6 +90,12 @@ const app = {
     });
   },
 
+  goHome: function() {
+    document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+    document.getElementById('pageTitle').innerText = '대시보드';
+    this.switchView('view-dashboard');
+  },
+
   switchView: function(viewId) {
     const oldView = document.getElementById(this.currentView);
     if (oldView) { oldView.classList.remove('active'); oldView.classList.add('hidden'); }
