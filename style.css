@@ -72,6 +72,7 @@ body {
   cursor: pointer;
   color: var(--text-muted);
   transition: all 0.2s ease;
+  font-size: 14px;
 }
 .single-item:hover, .link-item:hover {
   background: rgba(255, 255, 255, 0.05);
@@ -134,7 +135,7 @@ body {
 
 .form-group { margin-bottom: 15px; }
 .form-group label { display: block; margin-bottom: 5px; font-size: 14px; color: var(--text-muted); }
-.form-control { width: 100%; padding: 10px; border-radius: 6px; border: 1px solid var(--border-glass); background: rgba(0,0,0,0.2); color: white; outline: none; font-family: inherit; }
+.form-control { width: 100%; padding: 10px; border-radius: 6px; border: 1px solid var(--border-glass); background: rgba(0,0,0,0.2); color: white; outline: none; font-family: inherit; font-size: 14px; }
 .form-control:focus { border-color: var(--primary); box-shadow: 0 0 5px rgba(16,185,129,0.5); }
 
 /* 유틸리티 */
@@ -233,6 +234,7 @@ body {
   background: transparent;
   color: inherit;
   width: 100%;
+  font-size: 14px;
 }
 .excel-table td[contenteditable="true"]:focus,
 .excel-table td[contenteditable="true"]:hover {
@@ -266,7 +268,7 @@ body {
   color: var(--text-muted);
   margin-right: 5px;
   user-select: none;
-  font-size: 12px;
+  font-size: 14px;
 }
 .drag-handle:active {
   cursor: grabbing;
@@ -296,6 +298,7 @@ body {
   padding: 5px 8px;
   border-radius: 4px;
   cursor: pointer;
+  font-size: 14px;
 }
 .toolbar-btn:hover {
   background: rgba(255,255,255,0.1);
@@ -335,12 +338,12 @@ body {
 .sort-icon {
   margin-left: 5px;
   cursor: pointer;
-  font-size: 10px;
+  font-size: 14px;
   color: var(--text-muted);
 }
 .sort-icon:hover { color: white; }
 .remove-col-btn {
-  background: none; border: none; color: var(--danger); cursor: pointer; font-size: 12px; margin-left: 5px;
+  background: none; border: none; color: var(--danger); cursor: pointer; font-size: 14px; margin-left: 5px;
 }
 .remove-col-btn:hover { color: #dc2626; }
 
@@ -431,7 +434,7 @@ span.flatpickr-weekday {
 .status-btn {
   padding: 6px 12px;
   border-radius: 12px;
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 600;
   cursor: pointer;
   border: none;
