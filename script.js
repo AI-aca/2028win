@@ -282,6 +282,29 @@ const app = {
           document.addEventListener('mouseup', mouseUpHandler);
           resizer.classList.add('resizing');
         });
+        resizer.addEventListener('dblclick', (e) => {
+          const colname = th.getAttribute('data-colname');
+          if (colname) {
+            const currentWidth = th.style.width || th.getBoundingClientRect().width + 'px';
+            const table = th.closest('.excel-table');
+            const allDynamicThs = table.querySelectorAll('th[data-colname]');
+            allDynamicThs.forEach(dynTh => {
+              dynTh.style.width = currentWidth;
+              const idx = Array.from(dynTh.parentNode.children).indexOf(dynTh);
+              const dynId = dynTh.closest('.view-section').id + '-col-' + idx;
+              this.silentSave('saveUISettings', { key: dynId, value: currentWidth });
+              this.uiSettings[dynId] = currentWidth;
+            });
+            const tooltip = document.createElement('div');
+            tooltip.className = 'resize-tooltip';
+            tooltip.style.cssText = 'position: fixed; background: rgba(16,185,129,0.9); color: white; padding: 6px 12px; border-radius: 4px; font-size: 13px; font-weight: bold; pointer-events: none; z-index: 9999; box-shadow: 0 4px 15px rgba(0,0,0,0.3);';
+            tooltip.innerText = '모든 반 너비 일괄 적용 완료!';
+            tooltip.style.left = (e.clientX + 15) + 'px';
+            tooltip.style.top = (e.clientY - 30) + 'px';
+            document.body.appendChild(tooltip);
+            setTimeout(() => tooltip.remove(), 1500);
+          }
+        });
         const savedW = this.uiSettings[id];
         if (savedW) th.style.width = savedW;
       }
