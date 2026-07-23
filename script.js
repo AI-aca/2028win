@@ -104,10 +104,6 @@ const app = {
   renderAllViews: function() {
     this.renderView('preschedule'); this.renderView('curriculum');
     this.renderView('timetable'); this.renderView('student'); this.renderView('instructor');
-    if (window.flatpickr) {
-      flatpickr('.date-picker-input', { locale: "ko", theme: "dark", dateFormat: "Y-m-d" });
-      flatpickr('.time-picker-input', { locale: "ko", theme: "dark", enableTime: true, noCalendar: true, dateFormat: "H:i", time_24hr: true });
-    }
   },
 
   renderView: function(viewName) {
@@ -116,6 +112,11 @@ const app = {
     else if (viewName === 'instructor') this.renderFlatTable('instructor', this.data.instructors, ['강사명', '과목', '세부과목', '연락처', '지메일', '비고']);
     else if (viewName === 'curriculum') this.renderCurriculumPivot();
     else if (viewName === 'timetable') this.renderTimetablePivot();
+    
+    if (window.flatpickr) {
+      flatpickr('.date-picker-input', { locale: "ko", dateFormat: "Y-m-d" });
+      flatpickr('.time-picker-input', { locale: "ko", enableTime: true, noCalendar: true, dateFormat: "H:i", time_24hr: true });
+    }
   },
 
   getCleanHTML: function(cell) {
