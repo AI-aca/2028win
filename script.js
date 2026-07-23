@@ -340,7 +340,7 @@ const app = {
       cols.forEach((c, i) => {
         ths += `<th>${c}</th>`;
       });
-      ths += `<th class="spring-col" style="width:100%; border:none; background:transparent; pointer-events:none; padding:0;"></th>`;
+      ths += `<th class="spring-col" style="border:none; background:transparent; pointer-events:none; padding:0;"></th>`;
       thead.querySelector('tr').innerHTML = ths;
     }
 
@@ -484,7 +484,7 @@ const app = {
     this.dynamicCols.curriculum.forEach(sub => {
       headHtml += `<th data-colname="${sub}">${sub}</th>`;
     });
-    headHtml += `<th class="spring-col" style="width:100%; border:none; background:transparent; pointer-events:none; padding:0;"></th></tr></thead><tbody id="tbody-curriculum">`;
+    headHtml += `<th class="spring-col" style="border:none; background:transparent; pointer-events:none; padding:0;"></th></tr></thead><tbody id="tbody-curriculum">`;
 
     const weeks = Array.from(new Set(this.data.curriculums.map(r => r[1]).filter(Boolean)));
     if (weeks.length === 0) weeks.push('1주차');
@@ -524,7 +524,7 @@ const app = {
     this.dynamicCols.timetable.forEach(cls => {
       headHtml += `<th data-colname="${cls}">${cls}</th>`;
     });
-    headHtml += `<th class="spring-col" style="width:100%; border:none; background:transparent; pointer-events:none; padding:0;"></th></tr></thead><tbody id="tbody-timetable">`;
+    headHtml += `<th class="spring-col" style="border:none; background:transparent; pointer-events:none; padding:0;"></th></tr></thead><tbody id="tbody-timetable">`;
 
     const rowGroups = Array.from(new Set(this.data.timetables.map(r => r[1] + '|' + r[2] + '|' + r[3] + '|' + r[4]).filter(t => t !== '|||')));
     if (rowGroups.length === 0) rowGroups.push('|수업|18:00|20:00');
