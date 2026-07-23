@@ -591,7 +591,7 @@ const app = {
         const holidayNote = holidayRow ? holidayRow[8] : '';
         const holidayId = holidayRow ? holidayRow[0] : '';
         headHtml += `
-          <td colspan="2" class="label-col" style="font-weight:bold; text-align:center; color:#f43f5e; font-size:16px;">🎉 휴일</td>
+          <td colspan="2" class="label-col" style="font-weight:bold; text-align:center; color:#f43f5e;">🎉 휴일</td>
           <td colspan="${this.dynamicCols.timetable.length}" contenteditable="true" data-id="${holidayId}" data-date="${date}" onblur="app.onTimetableHolidayBlur(this)" onkeydown="app.onKeyDown(event, this)" placeholder="어떠한 휴일인가요? (비고 입력)" style="text-align:center; color:#94a3b8;">${holidayNote}</td>`;
       } else {
         headHtml += `
