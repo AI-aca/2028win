@@ -103,9 +103,10 @@ const app = {
   },
 
   processInitialData: function(res) {
-    this.data.preschedules = res['사전준비일정'] || [];
-    this.data.curriculums = res['수업진도계획'] || [];
-    this.data.timetables = res['시간표'] || [];
+    const cleanDate = (arr) => arr.map(r => r.map(c => typeof c === 'string' ? c.replace(/^20(\d{2}-\d{2}-\d{2})/, '$1') : c));
+    this.data.preschedules = cleanDate(res['사전준비일정'] || []);
+    this.data.curriculums = cleanDate(res['수업진도계획'] || []);
+    this.data.timetables = cleanDate(res['시간표'] || []);
     this.data.students = res['학생관리'] || [];
     this.data.instructors = res['강사관리'] || [];
     
@@ -179,7 +180,7 @@ const app = {
     else if (viewName === 'timetable') this.renderTimetablePivot();
     
     if (window.flatpickr) {
-      flatpickr('.date-picker-input', { locale: "ko", dateFormat: "Y-m-d (D)" });
+      flatpickr('.date-picker-input', { locale: "ko", dateFormat: "y-m-d (D)" });
       flatpickr('.time-picker-input', { locale: "ko", enableTime: true, noCalendar: true, dateFormat: "H:i", time_24hr: true, minuteIncrement: 10 });
     }
   },
