@@ -3,23 +3,34 @@ const API_URL = "https://script.google.com/macros/s/AKfycbwpaok_qECmrmprAikJuFIB
 
 const app = {
   currentView: 'view-dashboard',
-  data: {
-    preschedules: [],
-    curriculums: [],
-    timetables: [],
-    students: [],
-    instructors: []
-  },
-  
-  // To store dynamic columns for pivot tables
-  dynamicCols: {
-    curriculum: [], // list of 과목
-    timetable: [] // list of 반이름
-  },
+  data: { preschedules: [], curriculums: [], timetables: [], students: [], instructors: [] },
+  dynamicCols: { curriculum: [], timetable: [] },
+  uiSettings: {},
+  ctxTargetRow: null, ctxTargetType: null, draggedRow: null, draggedType: null,
+  sortState: {},
 
   init: function() {
     this.bindEvents();
     this.fetchInitialData();
+    
+    document.addEventListener('mousedown', (e) => {
+      const tb = document.getElementById('rich-toolbar');
+      if (tb && !tb.contains(e.target) && !e.target.closest('td[contenteditable="true"]')) this.hideToolbar();
+      const ctx = document.getElementById('context-menu');
+      if (ctx && !ctx.contains(e.target)) this.hideContextMenu();
+    });
+
+    document.addEventListener('selectionchange', () => {
+      const sel = window.getSelection();
+      if (!sel.rangeCount || sel.isCollapsed) { this.hideToolbar(); return; }
+      const range = sel.getRangeAt(0);
+      const container = range.commonAncestorContainer;
+      const td = container.nodeType === 3 ? container.parentElement.closest('td[contenteditable="true"]') : container.closest('td[contenteditable="true"]');
+      if (td) {
+        const rect = range.getBoundingClientRect();
+        this.showToolbar(rect.left + rect.width / 2, rect.top);
+      } else { this.hideToolbar(); }
+    });
   },
 
   showLoading: function() { document.getElementById('loadingSpinner').classList.remove('hidden'); },
@@ -27,38 +38,32 @@ const app = {
 
   apiPost: async function(action, payloadData) {
     try {
-      const payload = { action, ...payloadData };
       const response = await fetch(API_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-        body: JSON.stringify(payload)
+        method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify({ action, ...payloadData })
       });
       return await response.json();
-    } catch (e) {
-      return { success: false, message: e.message };
-    }
+    } catch (e) { return { success: false, message: e.message }; }
   },
 
   apiGet: async function(action) {
     try {
       const response = await fetch(`${API_URL}?action=${action}`);
       return await response.json();
-    } catch (e) {
-      return { success: false, error: e.message };
-    }
+    } catch (e) { return { success: false, error: e.message }; }
   },
 
   fetchInitialData: async function() {
     this.showLoading();
     const res = await this.apiGet('getInitialData');
-    if (res.error || res.success === false) {
-      alert("데이터 로딩 에러: " + (res.error || res.message));
-    } else {
+    if (res.error || res.success === false) { alert("데이터 로딩 에러: " + (res.error || res.message)); }
+    else {
       this.data.preschedules = res['사전준비일정'] || [];
       this.data.curriculums = res['수업진도계획'] || [];
       this.data.timetables = res['시간표'] || [];
       this.data.students = res['학생관리'] || [];
       this.data.instructors = res['강사관리'] || [];
+      this.uiSettings = res.uiSettings || {};
       this.extractDynamicCols();
       this.renderAllViews();
     }
@@ -66,20 +71,17 @@ const app = {
   },
 
   extractDynamicCols: function() {
-    // Extract unique subjects for curriculum
     const currSubjects = new Set(this.data.curriculums.map(r => r[2]).filter(Boolean));
     this.dynamicCols.curriculum = Array.from(currSubjects);
-    if(this.dynamicCols.curriculum.length === 0) this.dynamicCols.curriculum = ['수학', '과학']; // default
+    if(this.dynamicCols.curriculum.length === 0) this.dynamicCols.curriculum = ['수학', '과학'];
 
-    // Extract unique class names for timetable
-    const timeClasses = new Set(this.data.timetables.map(r => r[4]).filter(Boolean));
+    const timeClasses = new Set(this.data.timetables.map(r => r[5]).filter(Boolean));
     this.dynamicCols.timetable = Array.from(timeClasses);
-    if(this.dynamicCols.timetable.length === 0) this.dynamicCols.timetable = ['노바반', '퀀텀반']; // default
+    if(this.dynamicCols.timetable.length === 0) this.dynamicCols.timetable = ['노바반', '퀀텀반'];
   },
 
   bindEvents: function() {
-    const singleItems = document.querySelectorAll('.single-item');
-    singleItems.forEach(item => {
+    document.querySelectorAll('.single-item').forEach(item => {
       item.addEventListener('click', (e) => {
         document.querySelectorAll('.single-item').forEach(el => el.classList.remove('active'));
         e.currentTarget.classList.add('active');
@@ -93,24 +95,15 @@ const app = {
 
   switchView: function(viewId) {
     const oldView = document.getElementById(this.currentView);
-    if (oldView) {
-      oldView.classList.remove('active');
-      oldView.classList.add('hidden');
-    }
+    if (oldView) { oldView.classList.remove('active'); oldView.classList.add('hidden'); }
     const newView = document.getElementById(viewId);
-    if (newView) {
-      newView.classList.remove('hidden');
-      newView.classList.add('active');
-    }
+    if (newView) { newView.classList.remove('hidden'); newView.classList.add('active'); }
     this.currentView = viewId;
   },
 
   renderAllViews: function() {
-    this.renderView('preschedule');
-    this.renderView('curriculum');
-    this.renderView('timetable');
-    this.renderView('student');
-    this.renderView('instructor');
+    this.renderView('preschedule'); this.renderView('curriculum');
+    this.renderView('timetable'); this.renderView('student'); this.renderView('instructor');
   },
 
   renderView: function(viewName) {
@@ -121,57 +114,196 @@ const app = {
     else if (viewName === 'timetable') this.renderTimetablePivot();
   },
 
-  // -------------------------
-  // Flat Tables (Auto-save)
-  // -------------------------
+  getCleanHTML: function(cell) {
+    let val = cell.innerHTML;
+    if (val === '<br>' || val === '<br/>') val = '';
+    return val.trim();
+  },
+
+  onKeyDown: function(e, cell) {
+    if (e.key === 'ArrowUp' || e.key === 'ArrowDown' || e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+      const tr = cell.closest('tr');
+      const tdIdx = Array.from(tr.children).indexOf(cell);
+      let target = null;
+      if (e.key === 'ArrowUp' && tr.previousElementSibling) target = tr.previousElementSibling.children[tdIdx];
+      else if (e.key === 'ArrowDown' && tr.nextElementSibling) target = tr.nextElementSibling.children[tdIdx];
+      else if (e.key === 'ArrowLeft' && cell.previousElementSibling && cell.previousElementSibling.hasAttribute('contenteditable')) target = cell.previousElementSibling;
+      else if (e.key === 'ArrowRight' && cell.nextElementSibling && cell.nextElementSibling.hasAttribute('contenteditable')) target = cell.nextElementSibling;
+      if (target) target.focus();
+    } else if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      cell.blur();
+      const tr = cell.closest('tr');
+      const tdIdx = Array.from(tr.children).indexOf(cell);
+      if (tr.nextElementSibling) {
+        const nextCell = tr.nextElementSibling.children[tdIdx];
+        if(nextCell && nextCell.hasAttribute('contenteditable')) nextCell.focus();
+      }
+    }
+  },
+
+  bindRowEvents: function(tr, type) {
+    tr.addEventListener('contextmenu', (e) => {
+      e.preventDefault(); this.ctxTargetRow = tr; this.ctxTargetType = type;
+      this.showContextMenu(e.pageX, e.pageY);
+    });
+    this.makeDraggable(tr, type);
+  },
+
+  makeDraggable: function(tr, type) {
+    const handle = tr.querySelector('.drag-handle');
+    if(!handle) return;
+    handle.addEventListener('mousedown', () => tr.setAttribute('draggable', 'true'));
+    handle.addEventListener('mouseup', () => tr.removeAttribute('draggable'));
+    tr.addEventListener('dragstart', (e) => {
+      this.draggedRow = tr; this.draggedType = type;
+      e.dataTransfer.effectAllowed = 'move';
+      setTimeout(() => tr.classList.add('dragging-row'), 0);
+    });
+    tr.addEventListener('dragend', () => {
+      tr.classList.remove('dragging-row'); tr.removeAttribute('draggable'); this.draggedRow = null;
+    });
+    tr.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      const rect = tr.getBoundingClientRect();
+      const offset = rect.y + (rect.height / 2);
+      if (e.clientY < offset) { tr.style.borderTop = "2px solid #10b981"; tr.style.borderBottom = ""; }
+      else { tr.style.borderBottom = "2px solid #10b981"; tr.style.borderTop = ""; }
+    });
+    tr.addEventListener('dragleave', () => { tr.style.borderTop = ""; tr.style.borderBottom = ""; });
+    tr.addEventListener('drop', (e) => {
+      e.preventDefault(); tr.style.borderTop = ""; tr.style.borderBottom = "";
+      if (this.draggedRow && this.draggedRow !== tr && this.draggedType === type) {
+        const tbody = tr.parentNode;
+        const rect = tr.getBoundingClientRect();
+        if (e.clientY < rect.y + (rect.height / 2)) tbody.insertBefore(this.draggedRow, tr);
+        else tbody.insertBefore(this.draggedRow, tr.nextSibling);
+        this.saveOrder(type, tbody);
+      }
+    });
+  },
+
+  saveOrder: function(type, tbody) {
+    const rows = Array.from(tbody.querySelectorAll('tr'));
+    const orderedIds = rows.map(r => r.getAttribute('data-id')).filter(id => id);
+    let sheetName = '';
+    if (type === 'preschedule') sheetName = '사전준비일정';
+    if (type === 'curriculum') sheetName = '수업진도계획';
+    if (type === 'timetable') sheetName = '시간표';
+    if (type === 'student') sheetName = '학생관리';
+    if (type === 'instructor') sheetName = '강사관리';
+    if (sheetName && orderedIds.length > 0) {
+      this.silentSave('reorderRows', { sheetName, orderedIds });
+      setTimeout(() => this.fetchInitialData(), 500);
+    }
+  },
+
+  renderSortableHeader: function(label, type, colIdx) {
+    return `${label} <span class="sort-icon" onclick="app.sortTable('${type}', ${colIdx}, this)">▼</span>`;
+  },
+
+  sortTable: function(type, colIdx, iconEl) {
+    const isAsc = this.sortState[type + colIdx] === 'asc';
+    this.sortState[type + colIdx] = isAsc ? 'desc' : 'asc';
+    iconEl.innerText = isAsc ? '▲' : '▼';
+    
+    let dataArray;
+    if (type === 'preschedule') dataArray = this.data.preschedules;
+    else if (type === 'student') dataArray = this.data.students;
+    else if (type === 'instructor') dataArray = this.data.instructors;
+    else return;
+
+    dataArray.sort((a, b) => {
+      let v1 = a[colIdx+1] || ''; let v2 = b[colIdx+1] || '';
+      if(typeof v1 === 'string') v1 = v1.toLowerCase();
+      if(typeof v2 === 'string') v2 = v2.toLowerCase();
+      if (v1 < v2) return isAsc ? 1 : -1;
+      if (v1 > v2) return isAsc ? -1 : 1;
+      return 0;
+    });
+    this.renderView(type);
+  },
+
+  initResizers: function() {
+    document.querySelectorAll('.excel-table th').forEach((th, i) => {
+      if (!th.querySelector('.resizer')) {
+        const resizer = document.createElement('div');
+        resizer.className = 'resizer'; th.appendChild(resizer);
+        let x = 0, w = 0;
+        const id = th.closest('.view-section').id + '-col-' + i;
+        
+        const mouseMoveHandler = (e) => { th.style.width = `${w + e.clientX - x}px`; };
+        const mouseUpHandler = () => {
+          document.removeEventListener('mousemove', mouseMoveHandler);
+          document.removeEventListener('mouseup', mouseUpHandler);
+          resizer.classList.remove('resizing');
+          // Save to backend instead of just localStorage
+          this.silentSave('saveUISettings', { key: id, value: th.style.width });
+          this.uiSettings[id] = th.style.width;
+        };
+        resizer.addEventListener('mousedown', (e) => {
+          x = e.clientX; w = th.getBoundingClientRect().width;
+          document.addEventListener('mousemove', mouseMoveHandler);
+          document.addEventListener('mouseup', mouseUpHandler);
+          resizer.classList.add('resizing');
+        });
+        const savedW = this.uiSettings[id];
+        if (savedW) th.style.width = savedW;
+      }
+    });
+  },
+
   renderFlatTable: function(type, dataArray, cols) {
     const tbody = document.getElementById(`tbody-${type}`);
     if (!tbody) return;
-    
+    const thead = tbody.previousElementSibling;
+    if(thead && thead.querySelector('tr')) {
+      let ths = '';
+      cols.forEach((c, i) => ths += `<th>${this.renderSortableHeader(c, type, i)}</th>`);
+      ths += `<th style="width:60px;">삭제</th>`;
+      thead.querySelector('tr').innerHTML = ths;
+    }
+
     let html = '';
     dataArray.forEach(row => {
-      const id = row[0];
-      html += `<tr data-id="${id}">`;
+      const id = row[0]; html += `<tr data-id="${id}">`;
       for(let i=0; i<cols.length; i++) {
         const val = row[i+1] || '';
-        html += `<td contenteditable="true" data-col-idx="${i+1}" onblur="app.onFlatCellBlur('${type}', this)">${val}</td>`;
+        const dragHtml = i === 0 ? `<span class="drag-handle">☰</span>` : '';
+        html += `<td contenteditable="true" data-col-idx="${i+1}" onblur="app.onFlatCellBlur('${type}', this)" onkeydown="app.onKeyDown(event, this)">${dragHtml}${val}</td>`;
       }
-      html += `<td style="text-align:center;"><button class="btn btn-danger" style="padding: 4px 8px; font-size:12px;" onclick="app.deleteItem('${type}', '${id}', this)">삭제</button></td>`;
-      html += `</tr>`;
+      html += `<td style="text-align:center;"><button class="btn btn-danger" style="padding:4px 8px;font-size:12px;" onclick="app.deleteItem('${type}', '${id}', this)">삭제</button></td></tr>`;
     });
     tbody.innerHTML = html;
+    tbody.querySelectorAll('tr').forEach(tr => this.bindRowEvents(tr, type));
+    this.initResizers();
   },
 
   onFlatCellBlur: function(type, cell) {
-    const newValue = cell.innerText.trim();
-    let dataArray, upsertAction;
-    let keys = [];
-    
+    const valHtml = this.getCleanHTML(cell);
+    let newValue = valHtml.replace(/<span class="drag-handle">.*?<\/span>/g, '').trim();
+    if(newValue === '<br>') newValue = '';
+
+    let dataArray, upsertAction, keys;
     if (type === 'preschedule') { dataArray = this.data.preschedules; upsertAction = 'upsertPreSchedule'; keys = ['date', 'content', 'note']; }
     else if (type === 'student') { dataArray = this.data.students; upsertAction = 'upsertStudent'; keys = ['name', 'school', 'grade', 'parentPhone', 'studentPhone', 'note']; }
     else if (type === 'instructor') { dataArray = this.data.instructors; upsertAction = 'upsertInstructor'; keys = ['instructorName', 'subject', 'subSubject', 'phone', 'email', 'note']; }
 
     const colIdx = parseInt(cell.getAttribute('data-col-idx'));
-    
     const rowEl = cell.closest('tr');
     let currentId = rowEl.getAttribute('data-id');
     const rowIndex = Array.from(rowEl.parentElement.children).indexOf(rowEl);
     
     const rowObj = dataArray[rowIndex];
-    if (!rowObj) return;
-
-    if (rowObj[colIdx] == newValue) return; // no change
+    if (!rowObj || rowObj[colIdx] === newValue) return;
     rowObj[colIdx] = newValue;
 
     const payload = { id: currentId };
-    for(let i=0; i<keys.length; i++) {
-      payload[keys[i]] = rowObj[i+1];
-    }
+    for(let i=0; i<keys.length; i++) payload[keys[i]] = rowObj[i+1];
     
     this.apiPost(upsertAction, payload).then(res => {
       if(res.success && res.id) {
-        rowObj[0] = res.id;
-        rowEl.setAttribute('data-id', res.id);
+        rowObj[0] = res.id; rowEl.setAttribute('data-id', res.id);
         const btn = rowEl.querySelector('button.btn-danger');
         if(btn) btn.setAttribute('onclick', `app.deleteItem('${type}', '${res.id}', this)`);
       }
@@ -179,125 +311,94 @@ const app = {
   },
 
   addRow: function(type) {
-    if (type === 'preschedule' || type === 'student' || type === 'instructor') {
-      let dataArray;
-      if (type === 'preschedule') dataArray = this.data.preschedules;
-      if (type === 'student') dataArray = this.data.students;
-      if (type === 'instructor') dataArray = this.data.instructors;
-      
-      const newRow = ['']; // ID is empty
+    if (['preschedule', 'student', 'instructor'].includes(type)) {
+      const arr = type === 'preschedule' ? this.data.preschedules : (type === 'student' ? this.data.students : this.data.instructors);
+      const newRow = [''];
       const tbody = document.getElementById(`tbody-${type}`);
       const colCount = tbody.parentElement.querySelectorAll('th').length - 1;
       for(let i=0; i<colCount; i++) newRow.push('');
-      dataArray.push(newRow);
+      arr.push(newRow); this.renderView(type);
+    } else if (type === 'curriculum') {
+      const weeks = new Set(this.data.curriculums.map(r => r[1]).filter(Boolean));
+      let nextWeek = `${weeks.size + 1}주차`;
+      this.dynamicCols.curriculum.forEach(sub => this.data.curriculums.push(['', nextWeek, sub, '', '']));
       this.renderView(type);
-    } else if (type === 'curriculum' || type === 'timetable') {
-      if (type === 'curriculum') {
-        const weeks = new Set(this.data.curriculums.map(r => r[1]).filter(Boolean));
-        let nextWeek = `${weeks.size + 1}주차`;
-        this.dynamicCols.curriculum.forEach(sub => {
-          this.data.curriculums.push(['', nextWeek, sub, '', '']);
-        });
-      } else {
-        const timePairs = new Set(this.data.timetables.map(r => r[3] + '|' + r[4]).filter(t => t !== '|'));
-        let nextStart = '18:00';
-        let nextEnd = '20:00';
-        this.dynamicCols.timetable.forEach(cls => {
-          this.data.timetables.push(['', '', '', nextStart, nextEnd, cls, '', '', '', '']); 
-        });
-      }
+    } else if (type === 'timetable') {
+      let nextStart = '18:00', nextEnd = '20:00';
+      this.dynamicCols.timetable.forEach(cls => this.data.timetables.push(['', '', '', nextStart, nextEnd, cls, '', '', '', '']));
       this.renderView(type);
     }
   },
 
-  // -------------------------
-  // Pivot Tables (Auto-save)
-  // -------------------------
   renderCurriculumPivot: function() {
     const table = document.querySelector('#view-curriculum .excel-table');
-    const subjects = this.dynamicCols.curriculum;
     let headHtml = `<thead><tr><th style="width:150px;">주차 <button class="btn" style="padding:2px 4px;font-size:10px;margin-left:5px;" onclick="app.addColumn('curriculum')">+</button></th>`;
-    subjects.forEach(sub => headHtml += `<th>${sub}</th>`);
-    headHtml += `</tr></thead>`;
+    this.dynamicCols.curriculum.forEach(sub => {
+      headHtml += `<th>${sub} <button class="remove-col-btn" onclick="app.removeColumn('curriculum', '${sub}')">[x]</button></th>`;
+    });
+    headHtml += `</tr></thead><tbody id="tbody-curriculum">`;
 
     const weeks = Array.from(new Set(this.data.curriculums.map(r => r[1]).filter(Boolean)));
     if (weeks.length === 0) weeks.push('1주차');
 
-    let bodyHtml = `<tbody id="tbody-curriculum">`;
     weeks.forEach(week => {
-      bodyHtml += `<tr><td style="background: rgba(255,255,255,0.05); font-weight:bold; text-align:center;" contenteditable="true" onblur="app.updatePivotRowLabel('curriculum', '${week}', this.innerText.trim())">${week}</td>`;
-      subjects.forEach(sub => {
+      headHtml += `<tr><td style="background: rgba(255,255,255,0.05); font-weight:bold; text-align:center;" contenteditable="true" onblur="app.updatePivotRowLabel('curriculum', '${week}', this.innerText.trim())"><span class="drag-handle">☰</span>${week}</td>`;
+      this.dynamicCols.curriculum.forEach(sub => {
         const row = this.data.curriculums.find(r => r[1] === week && r[2] === sub);
-        const id = row ? row[0] : '';
         const content = row ? row[3] : '';
-        bodyHtml += `<td contenteditable="true" data-id="${id}" data-week="${week}" data-sub="${sub}" onblur="app.onCurriculumBlur(this)">${content}</td>`;
+        headHtml += `<td contenteditable="true" data-id="${row?row[0]:''}" data-week="${week}" data-sub="${sub}" onblur="app.onCurriculumBlur(this)" onkeydown="app.onKeyDown(event, this)">${content}</td>`;
       });
-      bodyHtml += `</tr>`;
+      headHtml += `</tr>`;
     });
-    bodyHtml += `</tbody>`;
-    table.innerHTML = headHtml + bodyHtml;
+    headHtml += `</tbody>`; table.innerHTML = headHtml;
+    table.querySelectorAll('tbody tr').forEach(tr => this.bindRowEvents(tr, 'curriculum'));
+    this.initResizers();
   },
 
   onCurriculumBlur: function(cell) {
-    const newValue = cell.innerText.trim();
-    const id = cell.getAttribute('data-id');
-    const week = cell.getAttribute('data-week');
-    const sub = cell.getAttribute('data-sub');
-
+    let newValue = this.getCleanHTML(cell);
+    newValue = newValue.replace(/<span class="drag-handle">.*?<\/span>/g, '').trim();
+    if(newValue === '<br>') newValue = '';
+    const id = cell.getAttribute('data-id'), week = cell.getAttribute('data-week'), sub = cell.getAttribute('data-sub');
     let rowObj = this.data.curriculums.find(r => (id && r[0] === id) || (r[1] === week && r[2] === sub));
+    if (rowObj) { if (rowObj[3] === newValue) return; rowObj[3] = newValue; }
+    else { if (!newValue) return; rowObj = ['', week, sub, newValue, '']; this.data.curriculums.push(rowObj); }
     
-    if (rowObj) {
-      if (rowObj[3] == newValue) return; // no change
-      rowObj[3] = newValue;
-    } else {
-      if (!newValue) return;
-      rowObj = ['', week, sub, newValue, ''];
-      this.data.curriculums.push(rowObj);
-    }
-
-    const payload = { id: rowObj[0], week: week, subject: sub, content: newValue };
-    
-    this.apiPost('upsertCurriculum', payload).then(res => {
-      if(res.success && res.id) {
-        rowObj[0] = res.id;
-        cell.setAttribute('data-id', res.id);
-      }
+    this.apiPost('upsertCurriculum', { id: rowObj[0], week, subject: sub, content: newValue }).then(res => {
+      if(res.success && res.id) { rowObj[0] = res.id; cell.setAttribute('data-id', res.id); }
     });
   },
 
   renderTimetablePivot: function() {
     const table = document.querySelector('#view-timetable .excel-table');
-    const classes = this.dynamicCols.timetable;
     let headHtml = `<thead><tr><th style="width:120px;">시작시간</th><th style="width:150px;">종료시간 <button class="btn" style="padding:2px 4px;font-size:10px;margin-left:5px;" onclick="app.addColumn('timetable')">+</button></th>`;
-    classes.forEach(cls => headHtml += `<th>${cls}</th>`);
-    headHtml += `</tr></thead>`;
+    this.dynamicCols.timetable.forEach(cls => {
+      headHtml += `<th>${cls} <button class="remove-col-btn" onclick="app.removeColumn('timetable', '${cls}')">[x]</button></th>`;
+    });
+    headHtml += `</tr></thead><tbody id="tbody-timetable">`;
 
     const timePairs = Array.from(new Set(this.data.timetables.map(r => r[3] + '|' + r[4]).filter(t => t !== '|')));
     if (timePairs.length === 0) timePairs.push('18:00|20:00');
 
-    let bodyHtml = `<tbody id="tbody-timetable">`;
     timePairs.forEach(pair => {
       const [start, end] = pair.split('|');
-      bodyHtml += `<tr>
+      headHtml += `<tr>
         <td style="background: rgba(255,255,255,0.05); text-align:center;">
-          <input type="time" value="${start}" onblur="app.updatePivotRowTime('${pair}', 'start', this.value)" style="background:transparent; color:white; border:none; outline:none; text-align:center; cursor:pointer;" required>
+          <span class="drag-handle">☰</span><input type="time" value="${start}" onblur="app.updatePivotRowTime('${pair}', 'start', this.value)" style="background:transparent; color:white; border:none; outline:none; text-align:center; cursor:pointer;" required>
         </td>
         <td style="background: rgba(255,255,255,0.05); text-align:center;">
           <input type="time" value="${end}" onblur="app.updatePivotRowTime('${pair}', 'end', this.value)" style="background:transparent; color:white; border:none; outline:none; text-align:center; cursor:pointer;" required>
         </td>`;
-      classes.forEach(cls => {
+      this.dynamicCols.timetable.forEach(cls => {
         const row = this.data.timetables.find(r => r[3] === start && r[4] === end && r[5] === cls);
-        const id = row ? row[0] : '';
-        let displayStr = '';
-        if (row && (row[6] || row[7])) {
-          displayStr = `${row[6] || ''}${row[7] ? '('+row[7]+')' : ''}`;
-        }
-        bodyHtml += `<td contenteditable="true" data-id="${id}" data-start="${start}" data-end="${end}" data-cls="${cls}" onblur="app.onTimetableBlur(this)" placeholder="과목(담당자)">${displayStr}</td>`;
+        let displayStr = row && (row[6] || row[7]) ? `${row[6]||''}${row[7]?'('+row[7]+')':''}` : '';
+        headHtml += `<td contenteditable="true" data-id="${row?row[0]:''}" data-start="${start}" data-end="${end}" data-cls="${cls}" onblur="app.onTimetableBlur(this)" onkeydown="app.onKeyDown(event, this)">${displayStr}</td>`;
       });
-      bodyHtml += `</tr>`;
+      headHtml += `</tr>`;
     });
-    bodyHtml += `</tbody>`;
-    table.innerHTML = headHtml + bodyHtml;
+    headHtml += `</tbody>`; table.innerHTML = headHtml;
+    table.querySelectorAll('tbody tr').forEach(tr => this.bindRowEvents(tr, 'timetable'));
+    this.initResizers();
   },
 
   updatePivotRowTime: function(oldPair, type, newValue) {
@@ -306,85 +407,50 @@ const app = {
     const newStart = type === 'start' ? newValue : oldStart;
     const newEnd = type === 'end' ? newValue : oldEnd;
     if (oldStart === newStart && oldEnd === newEnd) return;
-    
     this.data.timetables.forEach(r => {
       if (r[3] === oldStart && r[4] === oldEnd) {
-        r[3] = newStart;
-        r[4] = newEnd;
-        this.silentSave('upsertTimetable', {
-          id: r[0], date: r[1], day: r[2], start: r[3], end: r[4], 
-          className: r[5], subject: r[6], instructor: r[7], note: r[8]
-        });
+        r[3] = newStart; r[4] = newEnd;
+        this.silentSave('upsertTimetable', { id: r[0], date: r[1], day: r[2], start: r[3], end: r[4], className: r[5], subject: r[6], instructor: r[7], note: r[8] });
       }
     });
     this.renderView('timetable');
   },
 
   onTimetableBlur: function(cell) {
-    const newValue = cell.innerText.trim();
-    const id = cell.getAttribute('data-id');
-    const start = cell.getAttribute('data-start');
-    const end = cell.getAttribute('data-end');
-    const cls = cell.getAttribute('data-cls');
-
-    let subject = newValue;
-    let instructor = '';
+    let newValue = this.getCleanHTML(cell);
+    newValue = newValue.replace(/<span class="drag-handle">.*?<\/span>/g, '').trim();
+    if(newValue === '<br>') newValue = '';
+    const id = cell.getAttribute('data-id'), start = cell.getAttribute('data-start'), end = cell.getAttribute('data-end'), cls = cell.getAttribute('data-cls');
+    let subject = newValue, instructor = '';
     const match = newValue.match(/(.*?)\((.*?)\)/);
-    if(match) {
-      subject = match[1].trim();
-      instructor = match[2].trim();
-    }
-
+    if(match) { subject = match[1].trim(); instructor = match[2].trim(); }
+    else { subject = newValue.trim(); }
+    
     let rowObj = this.data.timetables.find(r => (id && r[0] === id) || (r[3] === start && r[4] === end && r[5] === cls));
+    if (rowObj) { if (rowObj[6] === subject && rowObj[7] === instructor) return; rowObj[6] = subject; rowObj[7] = instructor; }
+    else { if (!newValue) return; rowObj = ['', '', '', start, end, cls, subject, instructor, '', '']; this.data.timetables.push(rowObj); }
     
-    if (rowObj) {
-      if (rowObj[6] == subject && rowObj[7] == instructor) return; // no change
-      rowObj[6] = subject;
-      rowObj[7] = instructor;
-    } else {
-      if (!newValue) return;
-      rowObj = ['', '', '', start, end, cls, subject, instructor, '', ''];
-      this.data.timetables.push(rowObj);
-    }
-
-    const payload = { id: rowObj[0], date: '', day: '', start: start, end: end, className: cls, subject: subject, instructor: instructor, note: '' };
-    
-    this.apiPost('upsertTimetable', payload).then(res => {
-      if(res.success && res.id) {
-        rowObj[0] = res.id;
-        cell.setAttribute('data-id', res.id);
-      }
+    this.apiPost('upsertTimetable', { id: rowObj[0], date: '', day: '', start, end, className: cls, subject, instructor, note: '' }).then(res => {
+      if(res.success && res.id) { rowObj[0] = res.id; cell.setAttribute('data-id', res.id); }
     });
   },
 
   updatePivotRowLabel: function(type, oldLabel, newLabel) {
+    newLabel = newLabel.replace(/<span class="drag-handle">.*?<\/span>/g, '').trim();
     if(!newLabel || oldLabel === newLabel) return;
     if(type === 'curriculum') {
-      this.data.curriculums.forEach(r => { 
-        if(r[1] === oldLabel) { 
-          r[1] = newLabel; 
-          this.silentSave('upsertCurriculum', {id: r[0], week: newLabel, subject: r[2], content: r[3]}); 
-        } 
+      this.data.curriculums.forEach(r => {
+        if(r[1] === oldLabel) { r[1] = newLabel; this.silentSave('upsertCurriculum', {id: r[0], week: newLabel, subject: r[2], content: r[3]}); }
       });
     }
     this.renderView(type);
   },
 
-  // -------------------------
-  // Column additions (Modal)
-  // -------------------------
   addColumn: function(type) {
     const title = type === 'curriculum' ? '새 과목(열) 추가' : '새 반이름(열) 추가';
     document.getElementById('generic-modal-title').innerText = title;
-    document.getElementById('generic-modal-body').innerHTML = `
-      <div class="form-group">
-        <label>${type === 'curriculum' ? '과목명' : '반이름'}</label>
-        <input type="text" id="new-col-input" class="form-control">
-      </div>
-    `;
-    document.getElementById('modal-container').classList.remove('hidden');
-    document.getElementById('generic-modal').classList.remove('hidden');
-    
+    document.getElementById('generic-modal-body').innerHTML = `<div class="form-group"><label>${type === 'curriculum' ? '과목명' : '반이름'}</label><input type="text" id="new-col-input" class="form-control"></div>`;
+    document.getElementById('modal-container').classList.remove('hidden'); document.getElementById('generic-modal').classList.remove('hidden');
     this.currentModalAction = () => {
       const val = document.getElementById('new-col-input').value.trim();
       if(val) {
@@ -396,24 +462,27 @@ const app = {
     };
   },
 
-  closeModal: function() {
-    document.getElementById('modal-container').classList.add('hidden');
-    document.getElementById('generic-modal').classList.add('hidden');
+  removeColumn: function(type, colName) {
+    if(!confirm(`'${colName}' 열을 삭제하시겠습니까? (저장된 데이터도 삭제됩니다)`)) return;
+    if(type === 'curriculum') {
+      this.dynamicCols.curriculum = this.dynamicCols.curriculum.filter(c => c !== colName);
+      this.data.curriculums = this.data.curriculums.filter(r => {
+        if(r[2] === colName) { if(r[0]) this.silentSave('deleteData', { sheetName: '수업진도계획', id: r[0] }); return false; } return true;
+      });
+    } else if(type === 'timetable') {
+      this.dynamicCols.timetable = this.dynamicCols.timetable.filter(c => c !== colName);
+      this.data.timetables = this.data.timetables.filter(r => {
+        if(r[5] === colName) { if(r[0]) this.silentSave('deleteData', { sheetName: '시간표', id: r[0] }); return false; } return true;
+      });
+    }
+    this.renderView(type);
   },
 
-  saveModalData: function() {
-    if(typeof this.currentModalAction === 'function') this.currentModalAction();
-  },
+  closeModal: function() { document.getElementById('modal-container').classList.add('hidden'); document.getElementById('generic-modal').classList.add('hidden'); },
+  saveModalData: function() { if(typeof this.currentModalAction === 'function') this.currentModalAction(); },
 
-  // -------------------------
-  // Shared
-  // -------------------------
-  silentSave: function(action, payload) {
-    this.apiPost(action, payload).then(res => {
-      if(!res.success) console.error("Auto-save failed:", res.message);
-    });
-  },
-
+  silentSave: function(action, payload) { this.apiPost(action, payload).then(res => { if(!res.success) console.error("Auto-save failed:", res.message); }); },
+  
   deleteItem: async function(type, id, btn) {
     if(!id) {
       const rowEl = btn.closest('tr');
@@ -421,30 +490,70 @@ const app = {
       if (type === 'preschedule') this.data.preschedules.splice(rowIndex, 1);
       if (type === 'student') this.data.students.splice(rowIndex, 1);
       if (type === 'instructor') this.data.instructors.splice(rowIndex, 1);
-      this.renderView(type);
-      return;
+      this.renderView(type); return;
     }
-
     if(!confirm("정말 삭제하시겠습니까?")) return;
-    
-    let sheetName;
-    if (type === 'preschedule') sheetName = '사전준비일정';
-    if (type === 'curriculum') sheetName = '수업진도계획';
-    if (type === 'timetable') sheetName = '시간표';
-    if (type === 'student') sheetName = '학생관리';
-    if (type === 'instructor') sheetName = '강사관리';
-
+    let sheetName = type === 'preschedule' ? '사전준비일정' : (type === 'curriculum' ? '수업진도계획' : (type === 'timetable' ? '시간표' : (type === 'student' ? '학생관리' : '강사관리')));
     this.showLoading();
     const res = await this.apiPost('deleteData', { sheetName, id });
-    if(res.success) {
-      this.fetchInitialData();
-    } else {
-      alert("삭제 실패: " + res.message);
-      this.hideLoading();
+    if(res.success) this.fetchInitialData(); else { alert("삭제 실패: " + res.message); this.hideLoading(); }
+  },
+
+  // Rich Text Toolbar
+  showToolbar: function(x, y) {
+    const tb = document.getElementById('rich-toolbar');
+    if(!tb) return;
+    tb.style.left = `${x}px`; tb.style.top = `${y - 40}px`;
+    tb.classList.remove('hidden');
+  },
+  hideToolbar: function() { const tb = document.getElementById('rich-toolbar'); if(tb) tb.classList.add('hidden'); },
+  execCmd: function(cmd, e, val = null) {
+    e.preventDefault(); // Prevent losing focus
+    document.execCommand(cmd, false, val);
+  },
+
+  // Context Menu
+  showContextMenu: function(x, y) {
+    const ctx = document.getElementById('context-menu');
+    if(!ctx) return;
+    ctx.style.left = `${x}px`; ctx.style.top = `${y}px`;
+    ctx.classList.remove('hidden');
+  },
+  hideContextMenu: function() { const ctx = document.getElementById('context-menu'); if(ctx) ctx.classList.add('hidden'); },
+  ctxInsertRowAbove: function() {
+    this.hideContextMenu(); if(!this.ctxTargetRow) return;
+    this.addRowToUI(this.ctxTargetType, this.ctxTargetRow, 'above');
+  },
+  ctxInsertRowBelow: function() {
+    this.hideContextMenu(); if(!this.ctxTargetRow) return;
+    this.addRowToUI(this.ctxTargetType, this.ctxTargetRow, 'below');
+  },
+  ctxDeleteRow: function() {
+    this.hideContextMenu(); if(!this.ctxTargetRow) return;
+    const btn = this.ctxTargetRow.querySelector('.btn-danger');
+    if(btn) btn.click();
+    else {
+      const idCells = this.ctxTargetRow.querySelectorAll('td[data-id]');
+      idCells.forEach(c => {
+        const id = c.getAttribute('data-id');
+        if(id) {
+           let sheetName = this.ctxTargetType === 'curriculum' ? '수업진도계획' : '시간표';
+           this.silentSave('deleteData', { sheetName, id });
+        }
+      });
+      setTimeout(() => this.fetchInitialData(), 500);
+    }
+  },
+  addRowToUI: function(type, targetRow, pos) {
+    this.addRow(type);
+    const tbody = document.getElementById(`tbody-${type}`);
+    if(tbody) {
+       const newRow = tbody.lastElementChild;
+       if(pos === 'above') tbody.insertBefore(newRow, targetRow);
+       else tbody.insertBefore(newRow, targetRow.nextSibling);
+       this.saveOrder(type, tbody);
     }
   }
 };
 
-document.addEventListener('DOMContentLoaded', () => {
-  app.init();
-});
+document.addEventListener('DOMContentLoaded', () => app.init());
