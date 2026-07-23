@@ -32,18 +32,18 @@
           <span class="icon">⏰</span>
           <span class="text">시간표 관리</span>
         </li>
-        <li class="nav-item" style="border-top: 1px solid rgba(255, 255, 255, 0.1); margin: 15px 0;"></li>
+        <li class="nav-separator" style="border-top: 1px solid rgba(255, 255, 255, 0.1); margin: 15px 0;"></li>
         <li class="nav-item single-item" data-target="view-student">
           <span class="icon">🎓</span>
-          <span class="text">학생 관리</span>
+          <span class="text">학생 정보</span>
         </li>
         <li class="nav-item single-item" data-target="view-instructor">
           <span class="icon">👨‍🏫</span>
-          <span class="text">강사 관리</span>
+          <span class="text">강사 정보</span>
         </li>
-        <li class="nav-item" onclick="window.open('https://chat.google.com/u/0/app/chat/AAQAx1Tqj3c', '_blank')" style="margin-top: 30px; cursor: pointer; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 15px;">
+        <li class="nav-item link-item" onclick="window.open('https://chat.google.com/u/0/app/chat/AAQAx1Tqj3c', '_blank')">
           <span class="icon">💬</span>
-          <span class="text">구글 챗방</span>
+          <span class="text">구글 채팅</span>
         </li>
       </ul>
     </nav>
@@ -107,7 +107,7 @@
         <div id="view-student" class="view-section hidden data-view">
           <div class="glass-panel">
             <div class="panel-header">
-              <h2>학생 관리</h2>
+              <h2>학생 정보</h2>
               <button class="btn btn-primary" onclick="app.addRow('student')">[+ 행 추가]</button>
             </div>
             <div class="panel-content table-container">
@@ -122,7 +122,7 @@
         <div id="view-instructor" class="view-section hidden data-view">
           <div class="glass-panel">
             <div class="panel-header">
-              <h2>강사 관리</h2>
+              <h2>강사 정보</h2>
               <button class="btn btn-primary" onclick="app.addRow('instructor')">[+ 행 추가]</button>
             </div>
             <div class="panel-content table-container">

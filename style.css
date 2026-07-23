@@ -63,7 +63,7 @@ body {
 .nav-item {
   margin-bottom: 5px;
 }
-.single-item {
+.single-item, .link-item {
   display: flex;
   align-items: center;
   gap: 12px;
@@ -73,7 +73,7 @@ body {
   color: var(--text-muted);
   transition: all 0.2s ease;
 }
-.single-item:hover {
+.single-item:hover, .link-item:hover {
   background: rgba(255, 255, 255, 0.05);
 }
 .single-item.active {
