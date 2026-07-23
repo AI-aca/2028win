@@ -135,15 +135,6 @@ const app = {
       else if (e.key === 'ArrowLeft' && cell.previousElementSibling && cell.previousElementSibling.hasAttribute('contenteditable')) target = cell.previousElementSibling;
       else if (e.key === 'ArrowRight' && cell.nextElementSibling && cell.nextElementSibling.hasAttribute('contenteditable')) target = cell.nextElementSibling;
       if (target) target.focus();
-    } else if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      cell.blur();
-      const tr = cell.closest('tr');
-      const tdIdx = Array.from(tr.children).indexOf(cell);
-      if (tr.nextElementSibling) {
-        const nextCell = tr.nextElementSibling.children[tdIdx];
-        if(nextCell && nextCell.hasAttribute('contenteditable')) nextCell.focus();
-      }
     }
   },
 
