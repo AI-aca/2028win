@@ -506,26 +506,21 @@ const app = {
       });
       this.renderView(type);
     } else if (type === 'timetable') {
-      let nextStart = '18:00', nextEnd = '20:00';
-      const today = new Date().toISOString().split('T')[0];
+      let nextStart = '', nextEnd = '';
+      const tmpDate = 'tmp-' + Date.now() + Math.random().toString(36).substr(2, 5);
       this.dynamicCols.timetable.forEach(cls => {
-        const rowObj = ['', today, '수업', nextStart, nextEnd, cls, '', '', '', ''];
+        const rowObj = ['', tmpDate, '수업', nextStart, nextEnd, cls, '', '', '', ''];
         this.data.timetables.push(rowObj);
-        this.apiPost('upsertTimetable', { id: '', date: today, type: '수업', start: nextStart, end: nextEnd, className: cls, subject: '', instructor: '', note: '' }).then(res => {
+        this.apiPost('upsertTimetable', { id: '', date: tmpDate, type: '수업', start: nextStart, end: nextEnd, className: cls, subject: '', instructor: '', note: '' }).then(res => {
           if (res.success && res.id) rowObj[0] = res.id;
         });
       });
       this.renderView(type);
     } else if (type === 'holiday') {
-      let nextDate = new Date();
-      let dateStr = nextDate.toISOString().split('T')[0];
-      while(this.data.timetables.some(r => r[1] === dateStr && r[2] === '휴일')) {
-        nextDate.setDate(nextDate.getDate() + 1);
-        dateStr = nextDate.toISOString().split('T')[0];
-      }
-      const rowObj = ['', dateStr, '휴일', '00:00', '00:00', '전체', '휴일', '', '', ''];
+      const tmpDate = 'tmp-' + Date.now() + Math.random().toString(36).substr(2, 5);
+      const rowObj = ['', tmpDate, '휴일', '00:00', '00:00', '전체', '휴일', '', '', ''];
       this.data.timetables.push(rowObj);
-      this.apiPost('upsertTimetable', { id: '', date: dateStr, type: '휴일', start: '00:00', end: '00:00', className: '전체', subject: '휴일', instructor: '', note: '' }).then(res => {
+      this.apiPost('upsertTimetable', { id: '', date: tmpDate, type: '휴일', start: '00:00', end: '00:00', className: '전체', subject: '휴일', instructor: '', note: '' }).then(res => {
         if (res.success && res.id) rowObj[0] = res.id;
       });
       this.renderView('timetable');
@@ -586,8 +581,10 @@ const app = {
     rowGroups.forEach(grp => {
       const [date, type, start, end] = grp.split('|');
       const isHoliday = (type === '휴일');
+      const isTmpDate = date.startsWith('tmp-');
+      const displayDate = isTmpDate ? '' : date;
       
-      headHtml += `<tr><td class="label-col" style="padding:0; text-align:center;"><input type="text" class="date-picker-input" value="${date}" onchange="app.updatePivotRowDate('${grp}', this.value)" placeholder="날짜 선택" style="width:100%; height:100%; min-height:40px; background:transparent; border:none; color:inherit; text-align:center; outline:none; font-family:inherit; font-size:inherit; cursor:pointer; padding:0; margin:0;"></td>`;
+      headHtml += `<tr><td class="label-col" style="padding:0; text-align:center;"><input type="text" class="date-picker-input" value="${displayDate}" onchange="app.updatePivotRowDate('${grp}', this.value)" placeholder="날짜 선택" style="width:100%; height:100%; min-height:40px; background:transparent; border:none; color:inherit; text-align:center; outline:none; font-family:inherit; font-size:inherit; cursor:pointer; padding:0; margin:0;"></td>`;
 
       if (isHoliday) {
         const holidayRow = this.data.timetables.find(r => r[1] === date && r[2] === '휴일');
