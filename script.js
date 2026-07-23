@@ -416,12 +416,8 @@ const app = {
       const [start, end] = pair.split('|');
       headHtml += `<tr>
         <td style="text-align:center; color: var(--text-muted); cursor: grab;"><span class="drag-handle" title="이 아이콘을 상하로 드래그하여 행 순서를 변경할 수 있습니다">☰</span></td>
-        <td style="background: rgba(255,255,255,0.05); padding:0; text-align:center;">
-          <input type="text" class="time-picker-input" value="${start}" onchange="app.updatePivotRowTime('${pair}', 'start', this.value)" placeholder="00:00" style="height:100%; min-height:40px; background:transparent; color:white; border:none; outline:none; text-align:center; font-family:inherit; font-size:inherit; cursor:pointer;" required>
-        </td>
-        <td style="background: rgba(255,255,255,0.05); padding:0; text-align:center;">
-          <input type="text" class="time-picker-input" value="${end}" onchange="app.updatePivotRowTime('${pair}', 'end', this.value)" placeholder="00:00" style="height:100%; min-height:40px; background:transparent; color:white; border:none; outline:none; text-align:center; font-family:inherit; font-size:inherit; cursor:pointer;" required>
-        </td>`;
+        <td style="background: rgba(255,255,255,0.05); padding:0; text-align:center;"><input type="text" class="time-picker-input" value="${start}" onchange="app.updatePivotRowTime('${pair}', 'start', this.value)" placeholder="00:00" style="width:100%; height:100%; min-height:40px; background:transparent; color:white; border:none; outline:none; text-align:center; font-family:inherit; font-size:inherit; cursor:pointer;" required></td>
+        <td style="background: rgba(255,255,255,0.05); padding:0; text-align:center;"><input type="text" class="time-picker-input" value="${end}" onchange="app.updatePivotRowTime('${pair}', 'end', this.value)" placeholder="00:00" style="width:100%; height:100%; min-height:40px; background:transparent; color:white; border:none; outline:none; text-align:center; font-family:inherit; font-size:inherit; cursor:pointer;" required></td>`;
       this.dynamicCols.timetable.forEach(cls => {
         const row = this.data.timetables.find(r => r[3] === start && r[4] === end && r[5] === cls);
         let displayStr = row && (row[6] || row[7]) ? `${row[6]||''}${row[7]?'('+row[7]+')':''}` : '';
