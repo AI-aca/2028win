@@ -331,10 +331,15 @@ const app = {
         });
         resizer.addEventListener('dblclick', (e) => {
           const table = th.closest('.excel-table');
-          const tableWidth = table.getBoundingClientRect().width;
-          const currentWidthPx = th.getBoundingClientRect().width;
-          const targetPct = (currentWidthPx / tableWidth) * 100;
+          const allFixedThs = table.querySelectorAll('th.fixed-col');
           const allDynamicThs = table.querySelectorAll('th:not(.fixed-col)');
+          
+          let fixedTotalPct = 0;
+          allFixedThs.forEach(() => fixedTotalPct += 10);
+          
+          const remainingPct = 100 - fixedTotalPct;
+          const targetPct = remainingPct / (allDynamicThs.length || 1);
+          
           allDynamicThs.forEach(dynTh => {
             dynTh.style.width = `${targetPct}%`;
             const dynIdx = Array.from(dynTh.parentNode.children).indexOf(dynTh);
