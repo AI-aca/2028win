@@ -1,5 +1,5 @@
 // 원장님이 설정하신 GAS 웹앱 배포 주소 (여기로 데이터를 쏘고 받습니다)
-const API_URL = "https://script.google.com/macros/s/AKfycbwpaok_qECmrmprAikJuFIBOe-xOzu-3X3d9qNgrxBpFBmDAKG9TbU5D6rGPdLYvPuW/exec";
+const API_URL = "https://script.google.com/macros/s/AKfycby8JE1MRUAIyIyHMi2H7xvW0xKTX8GgFL51SzKBdZvjjJwPCPIq3JxQUMR87cKrCXOM6g/exec";
 
 const app = {
   currentView: 'view-dashboard',
