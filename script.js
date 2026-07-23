@@ -432,7 +432,7 @@ const app = {
       this.dynamicCols.timetable.forEach(cls => {
         const rowObj = ['', today, '수업', nextStart, nextEnd, cls, '', '', '', ''];
         this.data.timetables.push(rowObj);
-        this.apiPost('upsertTimetable', { id: '', date: today, day: '', start: nextStart, end: nextEnd, className: cls, subject: '', instructor: '', note: '' }).then(res => {
+        this.apiPost('upsertTimetable', { id: '', date: today, type: '수업', start: nextStart, end: nextEnd, className: cls, subject: '', instructor: '', note: '' }).then(res => {
           if (res.success && res.id) rowObj[0] = res.id;
         });
       });
@@ -441,7 +441,7 @@ const app = {
       const today = new Date().toISOString().split('T')[0];
       const rowObj = ['', today, '휴일', '00:00', '00:00', '전체', '휴일', '', '', ''];
       this.data.timetables.push(rowObj);
-      this.apiPost('upsertTimetable', { id: '', date: today, day: '', start: '00:00', end: '00:00', className: '전체', subject: '휴일', instructor: '', note: '' }).then(res => {
+      this.apiPost('upsertTimetable', { id: '', date: today, type: '휴일', start: '00:00', end: '00:00', className: '전체', subject: '휴일', instructor: '', note: '' }).then(res => {
         if (res.success && res.id) rowObj[0] = res.id;
       });
       this.renderView('timetable');
@@ -540,7 +540,7 @@ const app = {
     this.data.timetables.forEach(r => {
       if (r[1] === oldDate && r[2] === oldType && r[3] === oldStart && r[4] === oldEnd) {
         r[1] = newDate;
-        this.silentSave('upsertTimetable', { id: r[0], date: r[1], day: r[2], start: r[3], end: r[4], className: r[5], subject: r[6], instructor: r[7], note: r[8] });
+        this.silentSave('upsertTimetable', { id: r[0], date: r[1], type: r[2], start: r[3], end: r[4], className: r[5], subject: r[6], instructor: r[7], note: r[8] });
       }
     });
     this.renderView('timetable');
@@ -555,7 +555,7 @@ const app = {
     this.data.timetables.forEach(r => {
       if (r[1] === oldDate && r[2] === oldType && r[3] === oldStart && r[4] === oldEnd) {
         r[3] = newStart; r[4] = newEnd;
-        this.silentSave('upsertTimetable', { id: r[0], date: r[1], day: r[2], start: r[3], end: r[4], className: r[5], subject: r[6], instructor: r[7], note: r[8] });
+        this.silentSave('upsertTimetable', { id: r[0], date: r[1], type: r[2], start: r[3], end: r[4], className: r[5], subject: r[6], instructor: r[7], note: r[8] });
       }
     });
     this.renderView('timetable');
@@ -575,7 +575,7 @@ const app = {
       this.data.timetables.push(rowObj);
     }
     
-    this.apiPost('upsertTimetable', { id: rowObj[0], date: rowObj[1], day: '', start: rowObj[3], end: rowObj[4], className: rowObj[5], subject: rowObj[6], instructor: rowObj[7], note: rowObj[8] }).then(res => {
+    this.apiPost('upsertTimetable', { id: rowObj[0], date: rowObj[1], type: rowObj[2], start: rowObj[3], end: rowObj[4], className: rowObj[5], subject: rowObj[6], instructor: rowObj[7], note: rowObj[8] }).then(res => {
       if(res.success && res.id) { rowObj[0] = res.id; cell.setAttribute('data-id', res.id); }
     });
   },
@@ -665,7 +665,7 @@ const app = {
       rowObj[7] = instructor;
     }
 
-    this.apiPost('upsertTimetable', { id: rowObj[0], date: rowObj[1], day: '', start: rowObj[3], end: rowObj[4], className: rowObj[5], subject: rowObj[6], instructor: rowObj[7], note: '' }).then(res => {
+    this.apiPost('upsertTimetable', { id: rowObj[0], date: rowObj[1], type: rowObj[2], start: rowObj[3], end: rowObj[4], className: rowObj[5], subject: rowObj[6], instructor: rowObj[7], note: rowObj[8] }).then(res => {
       if(res.success && res.id) { rowObj[0] = res.id; }
     });
 
@@ -703,11 +703,11 @@ const app = {
         }
         if(type === 'timetable' && !this.dynamicCols.timetable.includes(val)) {
             this.dynamicCols.timetable.push(val);
-            const start = this.data.timetables.length > 0 ? this.data.timetables[0][3] : '09:00';
-            const end = this.data.timetables.length > 0 ? this.data.timetables[0][4] : '12:00';
-            const rowObj = ['', '', '', start, end, val, '', '', '', ''];
+            this.data.timetables.forEach(r => {
+            const rowObj = ['', r[1], r[2], r[3], r[4], val, '', '', '', ''];
             this.data.timetables.push(rowObj);
-            this.apiPost('upsertTimetable', { id: '', date: '', day: '', start, end, className: val, subject: '', instructor: '', note: '' }).then(res => { if(res.success) rowObj[0] = res.id; });
+            this.apiPost('upsertTimetable', { id: '', date: r[1], type: r[2], start: r[3], end: r[4], className: val, subject: '', instructor: '', note: '' }).then(res => { if(res.success) rowObj[0] = res.id; });
+          });
         }
         this.renderView(type);
       }
