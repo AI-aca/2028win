@@ -913,10 +913,26 @@ const app = {
         console.error('Silent save failed:', res.message);
         this.showToast('저장 실패: ' + res.message, true);
       } else {
-        this.showToast('저장되었습니다.');
+        // this.showToast('저장되었습니다.'); // Optional: uncomment if you want success toasts
       }
       return res;
     });
+  },
+
+  showToast: function(msg, isError = false) {
+    let toast = document.getElementById('toast-msg');
+    if (!toast) {
+      toast = document.createElement('div');
+      toast.id = 'toast-msg';
+      toast.style.cssText = 'position:fixed; bottom:20px; right:20px; padding:10px 20px; border-radius:5px; color:white; z-index:9999; font-weight:bold; transition: opacity 0.3s;';
+      document.body.appendChild(toast);
+    }
+    toast.style.background = isError ? '#ef4444' : '#10b981';
+    toast.innerText = msg;
+    toast.style.opacity = '1';
+    toast.style.display = 'block';
+    clearTimeout(this.toastTimer);
+    this.toastTimer = setTimeout(() => { toast.style.opacity = '0'; setTimeout(()=>toast.style.display='none', 300); }, 3000);
   },
   
   deleteItem: async function(type, id, rowEl) {
