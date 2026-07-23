@@ -1,22 +1,18 @@
 // 2028 영재학교반 관리 시스템 백엔드 (GAS)
-// 사용자 지정 데이터 저장 전용 구글 드라이브 폴더 ID
 const ROOT_FOLDER_ID = '1w8Wyg4Yuurltlwnc8VNKdbz0DcvtxZvp';
 const DB_FILE_NAME = '[2028 영재학교반 통합 DB]';
 
-// ==========================================
-// 통신 규격 (CORS 완벽 대응을 위한 doPost/doGet)
-// ==========================================
 function doPost(e) {
   try {
     const payload = JSON.parse(e.postData.contents);
     const action = payload.action;
     let result = { success: false, message: '알 수 없는 액션' };
     
-    if (action === 'saveClassData') result = saveClassData(payload.mainCat, payload.midCat, payload.subCat, payload.className);
-    else if (action === 'saveInstructorData') result = saveInstructorData(payload.name, payload.phone, payload.email);
-    else if (action === 'savePreSchedule') result = savePreSchedule(payload.mainCat, payload.midCat, payload.subCat, payload.className, payload.date, payload.content, payload.note);
-    else if (action === 'saveCurriculum') result = saveCurriculum(payload.mainCat, payload.midCat, payload.subCat, payload.className, payload.week, payload.content);
-    else if (action === 'saveTimetable') result = saveTimetable(payload.mainCat, payload.midCat, payload.subCat, payload.className, payload.day, payload.start, payload.end, payload.instructor);
+    if (action === 'upsertPreSchedule') result = upsertPreSchedule(payload);
+    else if (action === 'upsertCurriculum') result = upsertCurriculum(payload);
+    else if (action === 'upsertTimetable') result = upsertTimetable(payload);
+    else if (action === 'upsertStudent') result = upsertStudent(payload);
+    else if (action === 'upsertInstructor') result = upsertInstructor(payload);
     else if (action === 'deleteData') result = deleteData(payload.sheetName, payload.id);
     
     return ContentService.createTextOutput(JSON.stringify(result)).setMimeType(ContentService.MimeType.JSON);
@@ -34,9 +30,6 @@ function doGet(e) {
       .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
 }
 
-// ==========================================
-// DB 스프레드시트 확보 및 초기화 로직
-// ==========================================
 function getDbSpreadsheet() {
   const folder = DriveApp.getFolderById(ROOT_FOLDER_ID);
   const files = folder.getFilesByName(DB_FILE_NAME);
@@ -47,14 +40,14 @@ function getDbSpreadsheet() {
     const newSs = SpreadsheetApp.create(DB_FILE_NAME);
     const file = DriveApp.getFileById(newSs.getId());
     folder.addFile(file);
-    DriveApp.getRootFolder().removeFile(file); // 루트에서 제거
+    DriveApp.getRootFolder().removeFile(file);
     
     const sheets = [
-      { name: '설정_학급명', headers: ['ID', '구분', '과목', '세부과목', '학급(명)', '등록일시'] },
-      { name: '설정_강사정보', headers: ['ID', '강사명', '연락처', '지메일', '등록일시'] },
-      { name: '사전준비일정', headers: ['ID', '구분', '과목', '세부과목', '학급(명)', '일자', '내용', '비고', '등록일시'] },
-      { name: '수업진도계획', headers: ['ID', '구분', '과목', '세부과목', '학급(명)', '주차', '내용', '등록일시'] },
-      { name: '시간표', headers: ['ID', '구분', '과목', '세부과목', '학급(명)', '요일', '시작시간', '종료시간', '강사', '등록일시'] }
+      { name: '사전준비일정', headers: ['ID', '일자', '내용', '비고', '등록일시'] },
+      { name: '수업진도계획', headers: ['ID', '주차', '과목', '진도내용', '등록일시'] },
+      { name: '시간표', headers: ['ID', '일자', '요일', '시작시간', '종료시간', '반이름', '과목', '담당자', '비고', '등록일시'] },
+      { name: '학생관리', headers: ['ID', '이름', '학교', '학년', '학부모연락처', '학생연락처', '비고', '등록일시'] },
+      { name: '강사관리', headers: ['ID', '강사명', '과목', '세부과목', '연락처', '지메일', '비고', '등록일시'] }
     ];
     
     sheets.forEach((sData, idx) => {
@@ -75,24 +68,17 @@ function getDbSpreadsheet() {
   }
 }
 
-// ==========================================
-// 0. 초기 데이터 로드
-// ==========================================
 function getInitialData() {
   try {
     const ss = getDbSpreadsheet();
     const result = { success: true };
+    const sheetNames = ['사전준비일정', '수업진도계획', '시간표', '학생관리', '강사관리'];
     
-    const sheetNames = ['설정_학급명', '설정_강사정보', '사전준비일정', '수업진도계획', '시간표'];
     sheetNames.forEach(name => {
       const sheet = ss.getSheetByName(name);
       if (sheet) {
         const data = sheet.getDataRange().getValues();
-        if (data.length > 1) {
-          result[name] = data.slice(1);
-        } else {
-          result[name] = [];
-        }
+        result[name] = data.length > 1 ? data.slice(1) : [];
       } else {
         result[name] = [];
       }
@@ -106,72 +92,45 @@ function getInitialData() {
 function generateId() { return Utilities.getUuid(); }
 function getCurrentTime() { return new Date().toLocaleString('ko-KR', { timeZone: 'Asia/Seoul' }); }
 
-// ==========================================
-// 저장 로직 모음
-// ==========================================
-function saveClassData(mainCat, midCat, subCat, className) {
+function upsertRow(sheetName, id, rowDataArray) {
   const lock = LockService.getScriptLock();
   if (lock.tryLock(10000)) {
     try {
       const ss = getDbSpreadsheet();
-      const sheet = ss.getSheetByName('설정_학급명');
-      sheet.appendRow([generateId(), mainCat, midCat, subCat, className, getCurrentTime()]);
-      return { success: true, message: '학급 저장 완료' };
-    } catch (error) { return { success: false, message: error.message }; } finally { lock.releaseLock(); }
-  } else { return { success: false, message: '동시 접속 지연' }; }
+      const sheet = ss.getSheetByName(sheetName);
+      if (!sheet) return { success: false, message: '시트를 찾을 수 없습니다.' };
+
+      if (id) {
+        const data = sheet.getDataRange().getValues();
+        for (let i = 1; i < data.length; i++) {
+          if (data[i][0] === id) {
+            sheet.getRange(i + 1, 1, 1, rowDataArray.length).setValues([rowDataArray]);
+            return { success: true, message: '업데이트 완료', id: id };
+          }
+        }
+      }
+      
+      const newId = id || generateId();
+      rowDataArray[0] = newId;
+      rowDataArray[rowDataArray.length - 1] = getCurrentTime();
+      sheet.appendRow(rowDataArray);
+      return { success: true, message: '생성 완료', id: newId };
+    } catch (error) {
+      return { success: false, message: error.message };
+    } finally {
+      lock.releaseLock();
+    }
+  } else {
+    return { success: false, message: '동시 접속 지연' };
+  }
 }
 
-function saveInstructorData(name, phone, email) {
-  const lock = LockService.getScriptLock();
-  if (lock.tryLock(10000)) {
-    try {
-      const ss = getDbSpreadsheet();
-      const sheet = ss.getSheetByName('설정_강사정보');
-      sheet.appendRow([generateId(), name, phone, email, getCurrentTime()]);
-      return { success: true };
-    } catch (error) { return { success: false, message: error.message }; } finally { lock.releaseLock(); }
-  } else { return { success: false, message: '동시 접속 지연' }; }
-}
+function upsertPreSchedule(p) { return upsertRow('사전준비일정', p.id, [p.id, p.date, p.content, p.note, '']); }
+function upsertCurriculum(p) { return upsertRow('수업진도계획', p.id, [p.id, p.week, p.subject, p.content, '']); }
+function upsertTimetable(p) { return upsertRow('시간표', p.id, [p.id, p.date, p.day, p.start, p.end, p.className, p.subject, p.instructor, p.note, '']); }
+function upsertStudent(p) { return upsertRow('학생관리', p.id, [p.id, p.name, p.school, p.grade, p.parentPhone, p.studentPhone, p.note, '']); }
+function upsertInstructor(p) { return upsertRow('강사관리', p.id, [p.id, p.instructorName, p.subject, p.subSubject, p.phone, p.email, p.note, '']); }
 
-function savePreSchedule(mainCat, midCat, subCat, className, date, content, note) {
-  const lock = LockService.getScriptLock();
-  if (lock.tryLock(10000)) {
-    try {
-      const ss = getDbSpreadsheet();
-      const sheet = ss.getSheetByName('사전준비일정');
-      sheet.appendRow([generateId(), mainCat, midCat, subCat, className, date, content, note, getCurrentTime()]);
-      return { success: true };
-    } catch (error) { return { success: false, message: error.message }; } finally { lock.releaseLock(); }
-  } else { return { success: false, message: '동시 접속 지연' }; }
-}
-
-function saveCurriculum(mainCat, midCat, subCat, className, week, content) {
-  const lock = LockService.getScriptLock();
-  if (lock.tryLock(10000)) {
-    try {
-      const ss = getDbSpreadsheet();
-      const sheet = ss.getSheetByName('수업진도계획');
-      sheet.appendRow([generateId(), mainCat, midCat, subCat, className, week, content, getCurrentTime()]);
-      return { success: true };
-    } catch (error) { return { success: false, message: error.message }; } finally { lock.releaseLock(); }
-  } else { return { success: false, message: '동시 접속 지연' }; }
-}
-
-function saveTimetable(mainCat, midCat, subCat, className, day, startTime, endTime, instructor) {
-  const lock = LockService.getScriptLock();
-  if (lock.tryLock(10000)) {
-    try {
-      const ss = getDbSpreadsheet();
-      const sheet = ss.getSheetByName('시간표');
-      sheet.appendRow([generateId(), mainCat, midCat, subCat, className, day, startTime, endTime, instructor, getCurrentTime()]);
-      return { success: true };
-    } catch (error) { return { success: false, message: error.message }; } finally { lock.releaseLock(); }
-  } else { return { success: false, message: '동시 접속 지연' }; }
-}
-
-// ==========================================
-// 삭제 로직
-// ==========================================
 function deleteData(sheetName, id) {
   const lock = LockService.getScriptLock();
   if (lock.tryLock(10000)) {
@@ -183,7 +142,7 @@ function deleteData(sheetName, id) {
       const data = sheet.getDataRange().getValues();
       for (let i = 1; i < data.length; i++) {
         if (data[i][0] === id) {
-          sheet.deleteRow(i + 1); // sheet 1-indexed (data[0] is header)
+          sheet.deleteRow(i + 1);
           return { success: true };
         }
       }

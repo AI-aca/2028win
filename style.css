@@ -44,13 +44,14 @@ body {
 }
 
 .sidebar-header {
-  height: 70px;
+  height: 80px;
   display: flex;
   align-items: center;
   padding: 0 20px;
   border-bottom: 1px solid var(--border-glass);
 }
-.logo { font-size: 18px; font-weight: 700; color: var(--text-main); display: flex; gap: 10px; align-items: center; }
+.logo { font-size: 15px; font-weight: 700; color: var(--text-main); display: flex; gap: 12px; align-items: center; line-height: 1.3; }
+.site-logo { width: 40px; height: 40px; border-radius: 50%; object-fit: cover; flex-shrink: 0; }
 
 .accordion-menu {
   list-style: none;
@@ -59,57 +60,9 @@ body {
   overflow-y: auto;
 }
 
-.nav-group {
+.nav-item {
   margin-bottom: 5px;
 }
-.nav-group-header {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 12px 15px;
-  border-radius: 8px;
-  cursor: pointer;
-  color: var(--text-main);
-  font-weight: 600;
-  transition: all 0.2s ease;
-}
-.nav-group-header:hover {
-  background: rgba(255, 255, 255, 0.05);
-}
-.nav-group-header .arrow {
-  margin-left: auto;
-  font-size: 12px;
-  transition: transform 0.3s ease;
-}
-.nav-group.open .nav-group-header .arrow {
-  transform: rotate(180deg);
-}
-.sub-menu {
-  list-style: none;
-  max-height: 0;
-  overflow: hidden;
-  transition: max-height 0.3s ease-out;
-  padding-left: 35px;
-}
-.nav-group.open .sub-menu {
-  max-height: 200px; /* 충분한 높이 */
-}
-.sub-item {
-  padding: 10px;
-  color: var(--text-muted);
-  cursor: pointer;
-  border-radius: 6px;
-  margin-top: 2px;
-  margin-bottom: 2px;
-  font-size: 14px;
-}
-.sub-item:hover { color: var(--text-main); background: rgba(255,255,255,0.05); }
-.sub-item.active {
-  color: var(--primary);
-  font-weight: bold;
-}
-
-.sidebar-footer { padding: 10px; border-top: 1px solid var(--border-glass); }
 .single-item {
   display: flex;
   align-items: center;
@@ -118,6 +71,10 @@ body {
   border-radius: 8px;
   cursor: pointer;
   color: var(--text-muted);
+  transition: all 0.2s ease;
+}
+.single-item:hover {
+  background: rgba(255, 255, 255, 0.05);
 }
 .single-item.active {
   background: rgba(16, 185, 129, 0.15);
@@ -179,35 +136,11 @@ body {
 .form-group label { display: block; margin-bottom: 5px; font-size: 14px; color: var(--text-muted); }
 .form-control { width: 100%; padding: 10px; border-radius: 6px; border: 1px solid var(--border-glass); background: rgba(0,0,0,0.2); color: white; outline: none; font-family: inherit; }
 .form-control:focus { border-color: var(--primary); box-shadow: 0 0 5px rgba(16,185,129,0.5); }
-select.form-control option { background: var(--bg-dark); }
 
 /* 유틸리티 */
 .hidden { display: none !important; }
 .empty-msg { color: var(--text-muted); text-align: center; padding: 40px 0; font-size: 14px; }
 .text-center { text-align: center; }
-.mt-10 { margin-top: 10px; }
-.mb-5 { margin-bottom: 5px; }
-.info-box { padding: 10px; border-radius: 6px; background: rgba(6, 182, 212, 0.1); border: 1px solid rgba(6, 182, 212, 0.3); font-size: 13px; color: var(--text-main); }
-.class-list { list-style: none; }
-
-/* 3단계 고도화: 필터 바 및 시간 인풋 */
-.filter-bar {
-  display: flex;
-  gap: 10px;
-  margin-top: 15px;
-  margin-bottom: 5px;
-}
-.filter-bar .form-control {
-  flex: 1;
-  background: rgba(15, 23, 42, 0.6);
-}
-.time-inputs {
-  display: flex;
-  gap: 10px;
-}
-.flex-1 {
-  flex: 1;
-}
 
 /* 모달 시스템 */
 .modal-overlay {
@@ -245,4 +178,48 @@ select.form-control option { background: var(--bg-dark); }
   display: flex;
   justify-content: flex-end;
   gap: 10px;
+}
+
+/* 엑셀형 테이블 스타일 추가 */
+.table-container {
+  overflow-x: auto;
+  margin-top: 15px;
+  background: rgba(15, 23, 42, 0.4);
+  border-radius: 8px;
+  border: 1px solid var(--border-glass);
+}
+.excel-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+.excel-table th, .excel-table td {
+  border: 1px solid rgba(255,255,255,0.15);
+  padding: 12px 10px;
+  text-align: left;
+  vertical-align: middle;
+}
+.excel-table th {
+  background: rgba(255,255,255,0.05);
+  color: var(--secondary);
+  font-weight: 600;
+  text-align: center;
+  position: sticky;
+  top: 0;
+  white-space: nowrap;
+}
+.excel-table td[contenteditable="true"], .excel-table td input {
+  outline: none;
+  transition: all 0.2s;
+  cursor: text;
+  background: transparent;
+  color: inherit;
+  border: none;
+  width: 100%;
+}
+.excel-table td[contenteditable="true"]:focus,
+.excel-table td[contenteditable="true"]:hover {
+  background: rgba(255,255,255,0.05);
+  box-shadow: inset 0 0 0 2px var(--primary);
+  border-radius: 4px;
 }

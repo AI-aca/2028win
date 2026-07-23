@@ -3,39 +3,33 @@ const API_URL = "https://script.google.com/macros/s/AKfycbwpaok_qECmrmprAikJuFIB
 
 const app = {
   currentView: 'view-dashboard',
-  currentCategory: null,
-
-  classStructure: {
-    '수학': ['기하', '조합', '대수', '정수', '중등 교과수학', '고등 교과수학', '사고력 수학', '수학경시 및 대회', '기타(수학)'],
-    '과학': ['물리학', '화학', '생명과학', '지구과학', '중등 교과과학', '고등 교과과학', '사고력 과학', '과학경시 및 대회', '기타(과학)']
-  },
-
   data: {
-    classes: [],
-    instructors: [],
     preschedules: [],
     curriculums: [],
-    timetables: []
+    timetables: [],
+    students: [],
+    instructors: []
+  },
+  
+  // To store dynamic columns for pivot tables
+  dynamicCols: {
+    curriculum: [], // list of 과목
+    timetable: [] // list of 반이름
   },
 
   init: function() {
     this.bindEvents();
-    this.bindModalEvents();
     this.fetchInitialData();
   },
 
   showLoading: function() { document.getElementById('loadingSpinner').classList.remove('hidden'); },
   hideLoading: function() { document.getElementById('loadingSpinner').classList.add('hidden'); },
 
-  // ==========================================
-  // 통신 코어 함수 (fetch)
-  // ==========================================
   apiPost: async function(action, payloadData) {
     try {
       const payload = { action, ...payloadData };
       const response = await fetch(API_URL, {
         method: 'POST',
-        // CORS 충돌 방지를 위해 text/plain 사용
         headers: { 'Content-Type': 'text/plain;charset=utf-8' },
         body: JSON.stringify(payload)
       });
@@ -54,85 +48,46 @@ const app = {
     }
   },
 
-  deleteItem: async function(sheetName, id) {
-    if(!confirm("정말 삭제하시겠습니까?")) return;
-    this.showLoading();
-    const res = await this.apiPost('deleteData', { sheetName, id });
-    if(res.success) {
-      this.fetchInitialData();
-    } else {
-      alert("백엔드 에러: " + res.message);
-      this.hideLoading();
-    }
-  },
-
   fetchInitialData: async function() {
     this.showLoading();
     const res = await this.apiGet('getInitialData');
     if (res.error || res.success === false) {
-      alert("데이터 로딩 에러(권한 설정 확인 요망): " + (res.error || res.message));
+      alert("데이터 로딩 에러: " + (res.error || res.message));
     } else {
-      this.data.classes = res['설정_학급명'] || [];
-      this.data.instructors = res['설정_강사정보'] || [];
       this.data.preschedules = res['사전준비일정'] || [];
       this.data.curriculums = res['수업진도계획'] || [];
       this.data.timetables = res['시간표'] || [];
-      this.renderSettings();
-      this.updateClassSelects();
+      this.data.students = res['학생관리'] || [];
+      this.data.instructors = res['강사관리'] || [];
+      this.extractDynamicCols();
+      this.renderAllViews();
     }
     this.hideLoading();
   },
 
+  extractDynamicCols: function() {
+    // Extract unique subjects for curriculum
+    const currSubjects = new Set(this.data.curriculums.map(r => r[2]).filter(Boolean));
+    this.dynamicCols.curriculum = Array.from(currSubjects);
+    if(this.dynamicCols.curriculum.length === 0) this.dynamicCols.curriculum = ['수학', '과학']; // default
+
+    // Extract unique class names for timetable
+    const timeClasses = new Set(this.data.timetables.map(r => r[4]).filter(Boolean));
+    this.dynamicCols.timetable = Array.from(timeClasses);
+    if(this.dynamicCols.timetable.length === 0) this.dynamicCols.timetable = ['노바반', '퀀텀반']; // default
+  },
+
   bindEvents: function() {
-    const groupHeaders = document.querySelectorAll('.nav-group-header');
-    groupHeaders.forEach(header => {
-      header.addEventListener('click', (e) => {
-        const group = e.currentTarget.parentElement;
-        group.classList.toggle('open');
-      });
-    });
-
-    const subItems = document.querySelectorAll('.sub-item');
-    subItems.forEach(item => {
-      item.addEventListener('click', (e) => {
-        document.querySelectorAll('.sub-item, .single-item').forEach(el => el.classList.remove('active'));
-        e.currentTarget.classList.add('active');
-
-        const targetViewId = e.currentTarget.getAttribute('data-target');
-        const category = e.currentTarget.getAttribute('data-category');
-        
-        this.currentCategory = category;
-        const viewEl = document.getElementById(targetViewId);
-        if (viewEl) {
-          const label = viewEl.querySelector('.current-category-label');
-          if (label) label.innerText = `[${category}]`;
-        }
-
-        const titleText = e.currentTarget.parentElement.previousElementSibling.querySelector('.text').innerText;
-        document.getElementById('pageTitle').innerText = `${category} - ${titleText}`;
-
-        this.switchView(targetViewId);
-        this.renderDataViews();
-      });
-    });
-
     const singleItems = document.querySelectorAll('.single-item');
     singleItems.forEach(item => {
       item.addEventListener('click', (e) => {
-        document.querySelectorAll('.sub-item, .single-item').forEach(el => el.classList.remove('active'));
+        document.querySelectorAll('.single-item').forEach(el => el.classList.remove('active'));
         e.currentTarget.classList.add('active');
         const targetViewId = e.currentTarget.getAttribute('data-target');
         document.getElementById('pageTitle').innerText = e.currentTarget.querySelector('.text').innerText;
-        this.currentCategory = null;
         this.switchView(targetViewId);
+        this.renderView(targetViewId.replace('view-', ''));
       });
-    });
-
-    document.querySelectorAll('.filter-mid, .filter-sub').forEach(el => {
-      el.addEventListener('change', () => this.renderDataViews());
-    });
-    document.querySelectorAll('.filter-class').forEach(el => {
-      el.addEventListener('input', () => this.renderDataViews());
     });
   },
 
@@ -150,235 +105,343 @@ const app = {
     this.currentView = viewId;
   },
 
-  bindModalEvents: function() {
-    const midSelect = document.getElementById('class-mid-cat');
-    const subWrapSelect = document.getElementById('wrap-sub-select');
-    const subWrapInput = document.getElementById('wrap-sub-input');
-    const subSelectEl = document.getElementById('class-sub-cat-select');
+  renderAllViews: function() {
+    this.renderView('preschedule');
+    this.renderView('curriculum');
+    this.renderView('timetable');
+    this.renderView('student');
+    this.renderView('instructor');
+  },
 
-    if (midSelect) {
-      midSelect.addEventListener('change', (e) => {
-        const val = e.target.value;
-        if (val === '수학' || val === '과학') {
-          subWrapSelect.classList.remove('hidden');
-          subWrapInput.classList.add('hidden');
-          const options = this.classStructure[val];
-          subSelectEl.innerHTML = options.map(o => `<option value="${o}">${o}</option>`).join('');
-        } else if (val === '기타') {
-          subWrapSelect.classList.add('hidden');
-          subWrapInput.classList.remove('hidden');
-        } else {
-          subWrapSelect.classList.remove('hidden');
-          subWrapInput.classList.add('hidden');
-          subSelectEl.innerHTML = '<option value="">-- 과목를 먼저 선택하세요 --</option>';
-        }
-      });
+  renderView: function(viewName) {
+    if (viewName === 'preschedule') this.renderFlatTable('preschedule', this.data.preschedules, ['일자', '내용', '비고']);
+    else if (viewName === 'student') this.renderFlatTable('student', this.data.students, ['이름', '학교', '학년', '학부모연락처', '학생연락처', '비고']);
+    else if (viewName === 'instructor') this.renderFlatTable('instructor', this.data.instructors, ['강사명', '과목', '세부과목', '연락처', '지메일', '비고']);
+    else if (viewName === 'curriculum') this.renderCurriculumPivot();
+    else if (viewName === 'timetable') this.renderTimetablePivot();
+  },
+
+  // -------------------------
+  // Flat Tables (Auto-save)
+  // -------------------------
+  renderFlatTable: function(type, dataArray, cols) {
+    const tbody = document.getElementById(`tbody-${type}`);
+    if (!tbody) return;
+    
+    let html = '';
+    dataArray.forEach(row => {
+      const id = row[0];
+      html += `<tr data-id="${id}">`;
+      for(let i=0; i<cols.length; i++) {
+        const val = row[i+1] || '';
+        html += `<td contenteditable="true" data-col-idx="${i+1}" onblur="app.onFlatCellBlur('${type}', this)">${val}</td>`;
+      }
+      html += `<td style="text-align:center;"><button class="btn btn-danger" style="padding: 4px 8px; font-size:12px;" onclick="app.deleteItem('${type}', '${id}', this)">삭제</button></td>`;
+      html += `</tr>`;
+    });
+    tbody.innerHTML = html;
+  },
+
+  onFlatCellBlur: function(type, cell) {
+    const newValue = cell.innerText.trim();
+    let dataArray, upsertAction;
+    let keys = [];
+    
+    if (type === 'preschedule') { dataArray = this.data.preschedules; upsertAction = 'upsertPreSchedule'; keys = ['date', 'content', 'note']; }
+    else if (type === 'student') { dataArray = this.data.students; upsertAction = 'upsertStudent'; keys = ['name', 'school', 'grade', 'parentPhone', 'studentPhone', 'note']; }
+    else if (type === 'instructor') { dataArray = this.data.instructors; upsertAction = 'upsertInstructor'; keys = ['instructorName', 'subject', 'subSubject', 'phone', 'email', 'note']; }
+
+    const colIdx = parseInt(cell.getAttribute('data-col-idx'));
+    
+    const rowEl = cell.closest('tr');
+    let currentId = rowEl.getAttribute('data-id');
+    const rowIndex = Array.from(rowEl.parentElement.children).indexOf(rowEl);
+    
+    const rowObj = dataArray[rowIndex];
+    if (!rowObj) return;
+
+    if (rowObj[colIdx] == newValue) return; // no change
+    rowObj[colIdx] = newValue;
+
+    const payload = { id: currentId };
+    for(let i=0; i<keys.length; i++) {
+      payload[keys[i]] = rowObj[i+1];
+    }
+    
+    this.apiPost(upsertAction, payload).then(res => {
+      if(res.success && res.id) {
+        rowObj[0] = res.id;
+        rowEl.setAttribute('data-id', res.id);
+        const btn = rowEl.querySelector('button.btn-danger');
+        if(btn) btn.setAttribute('onclick', `app.deleteItem('${type}', '${res.id}', this)`);
+      }
+    });
+  },
+
+  addRow: function(type) {
+    if (type === 'preschedule' || type === 'student' || type === 'instructor') {
+      let dataArray;
+      if (type === 'preschedule') dataArray = this.data.preschedules;
+      if (type === 'student') dataArray = this.data.students;
+      if (type === 'instructor') dataArray = this.data.instructors;
+      
+      const newRow = ['']; // ID is empty
+      const tbody = document.getElementById(`tbody-${type}`);
+      const colCount = tbody.parentElement.querySelectorAll('th').length - 1;
+      for(let i=0; i<colCount; i++) newRow.push('');
+      dataArray.push(newRow);
+      this.renderView(type);
+    } else if (type === 'curriculum' || type === 'timetable') {
+      if (type === 'curriculum') {
+        const weeks = new Set(this.data.curriculums.map(r => r[1]).filter(Boolean));
+        let nextWeek = `${weeks.size + 1}주차`;
+        this.dynamicCols.curriculum.forEach(sub => {
+          this.data.curriculums.push(['', nextWeek, sub, '', '']);
+        });
+      } else {
+        const timePairs = new Set(this.data.timetables.map(r => r[3] + '|' + r[4]).filter(t => t !== '|'));
+        let nextStart = '18:00';
+        let nextEnd = '20:00';
+        this.dynamicCols.timetable.forEach(cls => {
+          this.data.timetables.push(['', '', '', nextStart, nextEnd, cls, '', '', '', '']); 
+        });
+      }
+      this.renderView(type);
     }
   },
 
-  openModal: function(modalId) {
-    document.getElementById('modal-container').classList.remove('hidden');
-    document.querySelectorAll('.modal-content').forEach(m => m.classList.add('hidden'));
-    document.getElementById(modalId).classList.remove('hidden');
+  // -------------------------
+  // Pivot Tables (Auto-save)
+  // -------------------------
+  renderCurriculumPivot: function() {
+    const table = document.querySelector('#view-curriculum .excel-table');
+    const subjects = this.dynamicCols.curriculum;
+    let headHtml = `<thead><tr><th>주차 <button class="btn" style="padding:2px 4px;font-size:10px;margin-left:5px;" onclick="app.addColumn('curriculum')">+</button></th>`;
+    subjects.forEach(sub => headHtml += `<th>${sub}</th>`);
+    headHtml += `</tr></thead>`;
+
+    const weeks = Array.from(new Set(this.data.curriculums.map(r => r[1]).filter(Boolean)));
+    if (weeks.length === 0) weeks.push('1주차');
+
+    let bodyHtml = `<tbody id="tbody-curriculum">`;
+    weeks.forEach(week => {
+      bodyHtml += `<tr><td style="background: rgba(255,255,255,0.05); font-weight:bold; text-align:center;" contenteditable="true" onblur="app.updatePivotRowLabel('curriculum', '${week}', this.innerText.trim())">${week}</td>`;
+      subjects.forEach(sub => {
+        const row = this.data.curriculums.find(r => r[1] === week && r[2] === sub);
+        const id = row ? row[0] : '';
+        const content = row ? row[3] : '';
+        bodyHtml += `<td contenteditable="true" data-id="${id}" data-week="${week}" data-sub="${sub}" onblur="app.onCurriculumBlur(this)">${content}</td>`;
+      });
+      bodyHtml += `</tr>`;
+    });
+    bodyHtml += `</tbody>`;
+    table.innerHTML = headHtml + bodyHtml;
+  },
+
+  onCurriculumBlur: function(cell) {
+    const newValue = cell.innerText.trim();
+    const id = cell.getAttribute('data-id');
+    const week = cell.getAttribute('data-week');
+    const sub = cell.getAttribute('data-sub');
+
+    let rowObj = this.data.curriculums.find(r => (id && r[0] === id) || (r[1] === week && r[2] === sub));
     
-    if(modalId === 'preschedule-modal' || modalId === 'curriculum-modal' || modalId === 'timetable-modal') {
-      this.updateClassSelects();
+    if (rowObj) {
+      if (rowObj[3] == newValue) return; // no change
+      rowObj[3] = newValue;
+    } else {
+      if (!newValue) return;
+      rowObj = ['', week, sub, newValue, ''];
+      this.data.curriculums.push(rowObj);
     }
+
+    const payload = { id: rowObj[0], week: week, subject: sub, content: newValue };
+    
+    this.apiPost('upsertCurriculum', payload).then(res => {
+      if(res.success && res.id) {
+        rowObj[0] = res.id;
+        cell.setAttribute('data-id', res.id);
+      }
+    });
+  },
+
+  renderTimetablePivot: function() {
+    const table = document.querySelector('#view-timetable .excel-table');
+    const classes = this.dynamicCols.timetable;
+    let headHtml = `<thead><tr><th>시작시간</th><th>종료시간 <button class="btn" style="padding:2px 4px;font-size:10px;margin-left:5px;" onclick="app.addColumn('timetable')">+</button></th>`;
+    classes.forEach(cls => headHtml += `<th>${cls}</th>`);
+    headHtml += `</tr></thead>`;
+
+    const timePairs = Array.from(new Set(this.data.timetables.map(r => r[3] + '|' + r[4]).filter(t => t !== '|')));
+    if (timePairs.length === 0) timePairs.push('18:00|20:00');
+
+    let bodyHtml = `<tbody id="tbody-timetable">`;
+    timePairs.forEach(pair => {
+      const [start, end] = pair.split('|');
+      bodyHtml += `<tr>
+        <td style="background: rgba(255,255,255,0.05); text-align:center;">
+          <input type="time" value="${start}" onblur="app.updatePivotRowTime('${pair}', 'start', this.value)" style="background:transparent; color:white; border:none; outline:none; text-align:center; cursor:pointer;" required>
+        </td>
+        <td style="background: rgba(255,255,255,0.05); text-align:center;">
+          <input type="time" value="${end}" onblur="app.updatePivotRowTime('${pair}', 'end', this.value)" style="background:transparent; color:white; border:none; outline:none; text-align:center; cursor:pointer;" required>
+        </td>`;
+      classes.forEach(cls => {
+        const row = this.data.timetables.find(r => r[3] === start && r[4] === end && r[5] === cls);
+        const id = row ? row[0] : '';
+        let displayStr = '';
+        if (row && (row[6] || row[7])) {
+          displayStr = `${row[6] || ''}${row[7] ? '('+row[7]+')' : ''}`;
+        }
+        bodyHtml += `<td contenteditable="true" data-id="${id}" data-start="${start}" data-end="${end}" data-cls="${cls}" onblur="app.onTimetableBlur(this)" placeholder="과목(담당자)">${displayStr}</td>`;
+      });
+      bodyHtml += `</tr>`;
+    });
+    bodyHtml += `</tbody>`;
+    table.innerHTML = headHtml + bodyHtml;
+  },
+
+  updatePivotRowTime: function(oldPair, type, newValue) {
+    if(!newValue) return;
+    const [oldStart, oldEnd] = oldPair.split('|');
+    const newStart = type === 'start' ? newValue : oldStart;
+    const newEnd = type === 'end' ? newValue : oldEnd;
+    if (oldStart === newStart && oldEnd === newEnd) return;
+    
+    this.data.timetables.forEach(r => {
+      if (r[3] === oldStart && r[4] === oldEnd) {
+        r[3] = newStart;
+        r[4] = newEnd;
+        this.silentSave('upsertTimetable', {
+          id: r[0], date: r[1], day: r[2], start: r[3], end: r[4], 
+          className: r[5], subject: r[6], instructor: r[7], note: r[8]
+        });
+      }
+    });
+    this.renderView('timetable');
+  },
+
+  onTimetableBlur: function(cell) {
+    const newValue = cell.innerText.trim();
+    const id = cell.getAttribute('data-id');
+    const start = cell.getAttribute('data-start');
+    const end = cell.getAttribute('data-end');
+    const cls = cell.getAttribute('data-cls');
+
+    let subject = newValue;
+    let instructor = '';
+    const match = newValue.match(/(.*?)\((.*?)\)/);
+    if(match) {
+      subject = match[1].trim();
+      instructor = match[2].trim();
+    }
+
+    let rowObj = this.data.timetables.find(r => (id && r[0] === id) || (r[3] === start && r[4] === end && r[5] === cls));
+    
+    if (rowObj) {
+      if (rowObj[6] == subject && rowObj[7] == instructor) return; // no change
+      rowObj[6] = subject;
+      rowObj[7] = instructor;
+    } else {
+      if (!newValue) return;
+      rowObj = ['', '', '', start, end, cls, subject, instructor, '', ''];
+      this.data.timetables.push(rowObj);
+    }
+
+    const payload = { id: rowObj[0], date: '', day: '', start: start, end: end, className: cls, subject: subject, instructor: instructor, note: '' };
+    
+    this.apiPost('upsertTimetable', payload).then(res => {
+      if(res.success && res.id) {
+        rowObj[0] = res.id;
+        cell.setAttribute('data-id', res.id);
+      }
+    });
+  },
+
+  updatePivotRowLabel: function(type, oldLabel, newLabel) {
+    if(!newLabel || oldLabel === newLabel) return;
+    if(type === 'curriculum') {
+      this.data.curriculums.forEach(r => { 
+        if(r[1] === oldLabel) { 
+          r[1] = newLabel; 
+          this.silentSave('upsertCurriculum', {id: r[0], week: newLabel, subject: r[2], content: r[3]}); 
+        } 
+      });
+    }
+    this.renderView(type);
+  },
+
+  // -------------------------
+  // Column additions (Modal)
+  // -------------------------
+  addColumn: function(type) {
+    const title = type === 'curriculum' ? '새 과목(열) 추가' : '새 반이름(열) 추가';
+    document.getElementById('generic-modal-title').innerText = title;
+    document.getElementById('generic-modal-body').innerHTML = `
+      <div class="form-group">
+        <label>${type === 'curriculum' ? '과목명' : '반이름'}</label>
+        <input type="text" id="new-col-input" class="form-control">
+      </div>
+    `;
+    document.getElementById('modal-container').classList.remove('hidden');
+    document.getElementById('generic-modal').classList.remove('hidden');
+    
+    this.currentModalAction = () => {
+      const val = document.getElementById('new-col-input').value.trim();
+      if(val) {
+        if(type === 'curriculum' && !this.dynamicCols.curriculum.includes(val)) this.dynamicCols.curriculum.push(val);
+        if(type === 'timetable' && !this.dynamicCols.timetable.includes(val)) this.dynamicCols.timetable.push(val);
+        this.renderView(type);
+      }
+      this.closeModal();
+    };
   },
 
   closeModal: function() {
     document.getElementById('modal-container').classList.add('hidden');
-    document.querySelectorAll('.modal-content').forEach(m => m.classList.add('hidden'));
+    document.getElementById('generic-modal').classList.add('hidden');
   },
 
-  updateClassSelects: function() {
-    const instSelect = document.getElementById('time-instructor');
-    if (instSelect) {
-      let instHtml = '<option value="">-- 강사 선택 --</option>';
-      this.data.instructors.forEach(row => { instHtml += `<option value="${row[1]}">${row[1]}</option>`; });
-      instSelect.innerHTML = instHtml;
-    }
-
-    let classHtml = '<option value="">-- 학급 선택 --</option>';
-    if (this.currentCategory) {
-      const filtered = this.data.classes.filter(row => row[1] === this.currentCategory);
-      filtered.forEach(row => {
-        const displayName = `[${row[2]}>${row[3]}] ${row[4]}`;
-        const val = JSON.stringify({ mid: row[2], sub: row[3], name: row[4] });
-        classHtml += `<option value='${val}'>${displayName}</option>`;
-      });
-    }
-
-    document.getElementById('pre-class-select').innerHTML = classHtml;
-    document.getElementById('curr-class-select').innerHTML = classHtml;
-    document.getElementById('time-class-select').innerHTML = classHtml;
+  saveModalData: function() {
+    if(typeof this.currentModalAction === 'function') this.currentModalAction();
   },
 
-  // ==========================================
-  // 저장 로직 (fetch API 연동)
-  // ==========================================
-  saveClass: async function() {
-    const mainCat = document.getElementById('class-main-cat').value;
-    const midCat = document.getElementById('class-mid-cat').value;
-    if(!midCat) { alert("과목를 선택하세요."); return; }
-    let subCat = (midCat === '기타') ? document.getElementById('class-sub-cat-input').value.trim() : document.getElementById('class-sub-cat-select').value;
-    const className = document.getElementById('class-name-input').value.trim();
-    if(!subCat || !className) { alert("세부과목와 학급(명)를 모두 입력하세요."); return; }
+  // -------------------------
+  // Shared
+  // -------------------------
+  silentSave: function(action, payload) {
+    this.apiPost(action, payload).then(res => {
+      if(!res.success) console.error("Auto-save failed:", res.message);
+    });
+  },
+
+  deleteItem: async function(type, id, btn) {
+    if(!id) {
+      const rowEl = btn.closest('tr');
+      const rowIndex = Array.from(rowEl.parentElement.children).indexOf(rowEl);
+      if (type === 'preschedule') this.data.preschedules.splice(rowIndex, 1);
+      if (type === 'student') this.data.students.splice(rowIndex, 1);
+      if (type === 'instructor') this.data.instructors.splice(rowIndex, 1);
+      this.renderView(type);
+      return;
+    }
+
+    if(!confirm("정말 삭제하시겠습니까?")) return;
     
+    let sheetName;
+    if (type === 'preschedule') sheetName = '사전준비일정';
+    if (type === 'curriculum') sheetName = '수업진도계획';
+    if (type === 'timetable') sheetName = '시간표';
+    if (type === 'student') sheetName = '학생관리';
+    if (type === 'instructor') sheetName = '강사관리';
+
     this.showLoading();
-    const res = await this.apiPost('saveClassData', { mainCat, midCat, subCat, className });
+    const res = await this.apiPost('deleteData', { sheetName, id });
     if(res.success) {
-      alert("학급 등록 완료");
-      this.closeModal();
       this.fetchInitialData();
     } else {
-      alert("백엔드 에러: " + res.message);
+      alert("삭제 실패: " + res.message);
       this.hideLoading();
     }
-  },
-
-  saveInstructor: async function() {
-    const name = document.getElementById('inst-name').value;
-    const phone = document.getElementById('inst-phone').value;
-    const email = document.getElementById('inst-email').value;
-    if(!name || !email) { alert("이름과 지메일을 입력하세요."); return; }
-
-    this.showLoading();
-    const res = await this.apiPost('saveInstructorData', { name, phone, email });
-    if(res.success) {
-      const inviteLink = "https://chat.google.com/room/XXXXX";
-      alert(`강사 등록 완료!\n아래 구글 챗방 초대 링크를 복사하여 전달해주세요:\n${inviteLink}`);
-      this.closeModal();
-      this.fetchInitialData();
-    } else {
-      alert("백엔드 에러: " + res.message);
-      this.hideLoading();
-    }
-  },
-
-  savePreSchedule: async function() {
-    if(!this.currentCategory) { alert("구분 선택 에러"); return; }
-    const classVal = document.getElementById('pre-class-select').value;
-    if(!classVal) { alert("대상 학급을 선택하세요."); return; }
-    const cData = JSON.parse(classVal);
-    const date = document.getElementById('pre-date').value;
-    const content = document.getElementById('pre-content').value;
-    const note = document.getElementById('pre-note').value;
-
-    this.showLoading();
-    const res = await this.apiPost('savePreSchedule', { mainCat: this.currentCategory, midCat: cData.mid, subCat: cData.sub, className: cData.name, date, content, note });
-    if(res.success) { this.closeModal(); this.fetchInitialData(); }
-    else { alert("백엔드 에러: " + res.message); this.hideLoading(); }
-  },
-
-  saveCurriculum: async function() {
-    if(!this.currentCategory) { alert("구분 선택 에러"); return; }
-    const classVal = document.getElementById('curr-class-select').value;
-    if(!classVal) { alert("대상 학급을 선택하세요."); return; }
-    const cData = JSON.parse(classVal);
-    const week = document.getElementById('curr-week').value;
-    const content = document.getElementById('curr-content').value;
-
-    this.showLoading();
-    const res = await this.apiPost('saveCurriculum', { mainCat: this.currentCategory, midCat: cData.mid, subCat: cData.sub, className: cData.name, week, content });
-    if(res.success) { this.closeModal(); this.fetchInitialData(); }
-    else { alert("백엔드 에러: " + res.message); this.hideLoading(); }
-  },
-
-  saveTimetable: async function() {
-    if(!this.currentCategory) { alert("구분 선택 에러"); return; }
-    const classVal = document.getElementById('time-class-select').value;
-    if(!classVal) { alert("대상 학급을 선택하세요."); return; }
-    const cData = JSON.parse(classVal);
-    
-    const day = document.getElementById('time-day').value;
-    const start = document.getElementById('time-start').value;
-    const end = document.getElementById('time-end').value;
-    const instructor = document.getElementById('time-instructor').value;
-
-    if(!start || !end || !instructor) { alert("모든 항목을 입력하세요."); return; }
-
-    this.showLoading();
-    const res = await this.apiPost('saveTimetable', { mainCat: this.currentCategory, midCat: cData.mid, subCat: cData.sub, className: cData.name, day, start, end, instructor });
-    if(res.success) { this.closeModal(); this.fetchInitialData(); }
-    else { alert("백엔드 에러: " + res.message); this.hideLoading(); }
-  },
-
-  // ------------------------------------
-  // 데이터 렌더링
-  // ------------------------------------
-  renderSettings: function() {
-    const classList = document.getElementById('class-list');
-    if (this.data.classes.length === 0) {
-      classList.innerHTML = '<li class="empty-msg">등록된 학급이 없습니다.</li>';
-    } else {
-      // 정렬 로직 (구분 -> 과목 -> 세부과목 -> 반이름)
-      const sortedClasses = [...this.data.classes].sort((a, b) => {
-        if (a[1] !== b[1]) return a[1].localeCompare(b[1]);
-        if (a[2] !== b[2]) return a[2].localeCompare(b[2]);
-        if (a[3] !== b[3]) return a[3].localeCompare(b[3]);
-        return a[4].localeCompare(b[4]);
-      });
-
-      classList.innerHTML = sortedClasses.map(r => `
-        <li style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 5px; padding-bottom: 5px; border-bottom: 1px dashed rgba(255,255,255,0.1);">
-          <span>[${r[1]}] ${r[2]} &gt; ${r[3]} &gt; <strong>${r[4]}</strong></span>
-          <button class="btn btn-danger" style="padding: 2px 8px; font-size:11px;" onclick="app.deleteItem('설정_학급명', '${r[0]}')">삭제</button>
-        </li>`).join('');
-    }
-
-    const instList = document.getElementById('instructor-list');
-    if (this.data.instructors.length === 0) {
-      instList.innerHTML = '<p class="empty-msg">등록된 강사 정보가 없습니다.</p>';
-    } else {
-      instList.innerHTML = this.data.instructors.map(r => `
-        <div style="padding:10px; border-bottom:1px solid rgba(255,255,255,0.1); display:flex; justify-content:space-between; align-items:center;">
-          <span>${r[1]} (${r[3]}) - ${r[2]}</span>
-          <button class="btn btn-danger" style="padding: 2px 8px; font-size:11px;" onclick="app.deleteItem('설정_강사정보', '${r[0]}')">삭제</button>
-        </div>`).join('');
-    }
-  },
-
-  renderDataViews: function() {
-    if(!this.currentCategory) return;
-    
-    const getFilterValues = (viewId) => {
-      const view = document.getElementById(viewId);
-      const mid = view.querySelector('.filter-mid').value;
-      const sub = view.querySelector('.filter-sub').value;
-      const cName = view.querySelector('.filter-class').value.toLowerCase();
-      return { mid, sub, cName };
-    };
-
-    const fTime = getFilterValues('view-timetable');
-    const timeData = this.data.timetables.filter(r => r[1] === this.currentCategory && (!fTime.mid || r[2] === fTime.mid) && (!fTime.cName || r[4].toLowerCase().includes(fTime.cName)));
-    const timeEl = document.getElementById('timetable-list');
-    if(timeData.length === 0) timeEl.innerHTML = '<p class="empty-msg">데이터가 없습니다.</p>';
-    else timeEl.innerHTML = timeData.map(r => `
-      <div class="info-box mb-5" style="display:flex; justify-content:space-between; align-items:center;">
-        <span><strong>[${r[5]}] ${r[6]}~${r[7]}</strong> | ${r[4]} (${r[8]} 강사님)</span>
-        <button class="btn btn-danger" style="padding: 2px 8px; font-size:11px;" onclick="app.deleteItem('시간표', '${r[0]}')">삭제</button>
-      </div>`).join('');
-
-    const fCurr = getFilterValues('view-curriculum');
-    const currData = this.data.curriculums.filter(r => r[1] === this.currentCategory && (!fCurr.mid || r[2] === fCurr.mid) && (!fCurr.cName || r[4].toLowerCase().includes(fCurr.cName)));
-    const currEl = document.getElementById('curriculum-list');
-    if(currData.length === 0) currEl.innerHTML = '<p class="empty-msg">데이터가 없습니다.</p>';
-    else currEl.innerHTML = currData.map(r => `
-      <div class="info-box mb-5" style="display:flex; justify-content:space-between; align-items:center;">
-        <span><strong>${r[5]}</strong> | ${r[4]} - ${r[6]}</span>
-        <button class="btn btn-danger" style="padding: 2px 8px; font-size:11px;" onclick="app.deleteItem('수업진도계획', '${r[0]}')">삭제</button>
-      </div>`).join('');
-
-    const fPre = getFilterValues('view-preschedule');
-    const preData = this.data.preschedules.filter(r => r[1] === this.currentCategory && (!fPre.mid || r[2] === fPre.mid) && (!fPre.cName || r[4].toLowerCase().includes(fPre.cName)));
-    const preEl = document.getElementById('preschedule-list');
-    if(preData.length === 0) preEl.innerHTML = '<p class="empty-msg">데이터가 없습니다.</p>';
-    else preEl.innerHTML = preData.map(r => `
-      <div class="info-box mb-5" style="display:flex; justify-content:space-between; align-items:center;">
-        <span><strong>${r[5]}</strong> | ${r[4]} - ${r[6]} (${r[7]})</span>
-        <button class="btn btn-danger" style="padding: 2px 8px; font-size:11px;" onclick="app.deleteItem('사전준비일정', '${r[0]}')">삭제</button>
-      </div>`).join('');
   }
 };
 

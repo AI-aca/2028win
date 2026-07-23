@@ -14,154 +14,122 @@
     <nav class="sidebar">
       <div class="sidebar-header">
         <div class="logo">
-          <span class="logo-icon">✨</span>
-          <span class="logo-text">2028 영재학교</span>
+          <img src="logo.png" alt="Weizmann Logo" class="site-logo">
+          <span class="logo-text">2028 영재학교<br>주말특강 관리</span>
         </div>
       </div>
       
       <ul class="nav-menu accordion-menu">
-        <li class="nav-group">
-          <div class="nav-group-header">
-            <span class="icon">📅</span>
-            <span class="text">사전 준비일정</span>
-            <span class="arrow">▼</span>
-          </div>
-          <ul class="sub-menu">
-            <li class="sub-item" data-target="view-preschedule" data-category="주중 수업">주중 수업</li>
-            <li class="sub-item" data-target="view-preschedule" data-category="주말 수업">주말 수업</li>
-            <li class="sub-item" data-target="view-preschedule" data-category="방학 특강 수업">방학 특강 수업</li>
-            <li class="sub-item" data-target="view-preschedule" data-category="기타 수업">기타 수업</li>
-          </ul>
+        <li class="nav-item single-item" data-target="view-preschedule">
+          <span class="icon">📅</span>
+          <span class="text">사전 준비일정</span>
         </li>
-        <li class="nav-group">
-          <div class="nav-group-header">
-            <span class="icon">📚</span>
-            <span class="text">수업 진도계획</span>
-            <span class="arrow">▼</span>
-          </div>
-          <ul class="sub-menu">
-            <li class="sub-item" data-target="view-curriculum" data-category="주중 수업">주중 수업</li>
-            <li class="sub-item" data-target="view-curriculum" data-category="주말 수업">주말 수업</li>
-            <li class="sub-item" data-target="view-curriculum" data-category="방학 특강 수업">방학 특강 수업</li>
-            <li class="sub-item" data-target="view-curriculum" data-category="기타 수업">기타 수업</li>
-          </ul>
+        <li class="nav-item single-item" data-target="view-curriculum">
+          <span class="icon">📚</span>
+          <span class="text">수업 진도계획</span>
         </li>
-        <li class="nav-group">
-          <div class="nav-group-header">
-            <span class="icon">⏰</span>
-            <span class="text">시간표 관리</span>
-            <span class="arrow">▼</span>
-          </div>
-          <ul class="sub-menu">
-            <li class="sub-item" data-target="view-timetable" data-category="주중 수업">주중 수업</li>
-            <li class="sub-item" data-target="view-timetable" data-category="주말 수업">주말 수업</li>
-            <li class="sub-item" data-target="view-timetable" data-category="방학 특강 수업">방학 특강 수업</li>
-            <li class="sub-item" data-target="view-timetable" data-category="기타 수업">기타 수업</li>
-          </ul>
+        <li class="nav-item single-item" data-target="view-timetable">
+          <span class="icon">⏰</span>
+          <span class="text">시간표 관리</span>
+        </li>
+        <li class="nav-item" style="border-top: 1px solid rgba(255, 255, 255, 0.1); margin: 15px 0;"></li>
+        <li class="nav-item single-item" data-target="view-student">
+          <span class="icon">🎓</span>
+          <span class="text">학생 관리</span>
+        </li>
+        <li class="nav-item single-item" data-target="view-instructor">
+          <span class="icon">👨‍🏫</span>
+          <span class="text">강사 관리</span>
+        </li>
+        <li class="nav-item" onclick="window.open('https://chat.google.com/u/0/app/chat/AAQAx1Tqj3c', '_blank')" style="margin-top: 30px; cursor: pointer; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 15px;">
+          <span class="icon">💬</span>
+          <span class="text">구글 챗방</span>
         </li>
       </ul>
-
-      <div class="sidebar-footer">
-        <ul class="nav-menu">
-          <li class="nav-item single-item" data-target="view-settings">
-            <span class="icon">⚙️</span>
-            <span class="text">기초 설정</span>
-          </li>
-        </ul>
-      </div>
     </nav>
 
     <main class="main-content">
       <header class="top-header">
         <h1 id="pageTitle">대시보드</h1>
-        <div class="user-info">
-          <span class="user-name">관리자</span>
-        </div>
       </header>
 
       <div class="content-wrapper">
-        <!-- 뷰 0: 대시보드 -->
-        <div id="view-dashboard" class="view-section active">
+        <div id="view-dashboard" class="view-section active data-view">
           <div class="glass-panel text-center" style="margin-top: 100px;">
             <h2>환영합니다!</h2>
-            <p class="empty-msg">좌측 메뉴에서 항목(주중 수업, 주말 수업 등)을 선택해 주세요.</p>
+            <p class="empty-msg">좌측 메뉴에서 항목을 선택해 주세요.</p>
           </div>
         </div>
 
-        <!-- 뷰 1: 사전 준비일정 -->
-        <div id="view-preschedule" class="view-section hidden">
+        <div id="view-preschedule" class="view-section hidden data-view">
           <div class="glass-panel">
             <div class="panel-header">
-              <h2><span class="current-category-label"></span> 사전 준비일정</h2>
-              <button class="btn btn-primary" onclick="app.openModal('preschedule-modal')">일정 추가</button>
+              <h2>사전 준비일정</h2>
+              <button class="btn btn-primary" onclick="app.addRow('preschedule')">[+ 행 추가]</button>
             </div>
-            <!-- 다중 필터 영역 -->
-            <div class="filter-bar">
-              <select class="form-control filter-mid"><option value="">과목 전체</option><option value="수학">수학</option><option value="과학">과학</option><option value="기타">기타</option></select>
-              <select class="form-control filter-sub"><option value="">세부과목 전체</option></select>
-              <input type="text" class="form-control filter-class" placeholder="학급명 검색">
-            </div>
-            <div class="panel-content mt-10">
-              <div id="preschedule-list" class="data-list"><p class="empty-msg">등록된 일정이 없습니다.</p></div>
+            <div class="panel-content table-container">
+              <table class="excel-table">
+                <thead><tr><th>일자</th><th>내용</th><th>비고</th><th style="width: 60px;">삭제</th></tr></thead>
+                <tbody id="tbody-preschedule"></tbody>
+              </table>
             </div>
           </div>
         </div>
 
-        <!-- 뷰 2: 수업 진도계획 -->
-        <div id="view-curriculum" class="view-section hidden">
+        <div id="view-curriculum" class="view-section hidden data-view">
           <div class="glass-panel">
             <div class="panel-header">
-              <h2><span class="current-category-label"></span> 수업 진도계획</h2>
-              <button class="btn btn-primary" onclick="app.openModal('curriculum-modal')">계획 추가</button>
+              <h2>수업 진도계획</h2>
+              <button class="btn btn-primary" onclick="app.addRow('curriculum')">[+ 행 추가(주차)]</button>
             </div>
-            <div class="filter-bar">
-              <select class="form-control filter-mid"><option value="">과목 전체</option><option value="수학">수학</option><option value="과학">과학</option><option value="기타">기타</option></select>
-              <select class="form-control filter-sub"><option value="">세부과목 전체</option></select>
-              <input type="text" class="form-control filter-class" placeholder="학급명 검색">
-            </div>
-            <div class="panel-content mt-10">
-              <div id="curriculum-list" class="data-list"><p class="empty-msg">등록된 진도계획이 없습니다.</p></div>
+            <div class="panel-content table-container">
+              <table class="excel-table" id="table-curriculum">
+                <!-- pivot generated -->
+              </table>
             </div>
           </div>
         </div>
 
-        <!-- 뷰 3: 시간표 관리 -->
-        <div id="view-timetable" class="view-section hidden">
+        <div id="view-timetable" class="view-section hidden data-view">
           <div class="glass-panel">
             <div class="panel-header">
-              <h2><span class="current-category-label"></span> 주간 시간표 관리</h2>
-              <button class="btn btn-primary" onclick="app.openModal('timetable-modal')">시간표 등록</button>
+              <h2>시간표 관리</h2>
+              <button class="btn btn-primary" onclick="app.addRow('timetable')">[+ 행 추가(시간)]</button>
             </div>
-            <div class="filter-bar">
-              <select class="form-control filter-mid"><option value="">과목 전체</option><option value="수학">수학</option><option value="과학">과학</option><option value="기타">기타</option></select>
-              <select class="form-control filter-sub"><option value="">세부과목 전체</option></select>
-              <input type="text" class="form-control filter-class" placeholder="학급명 검색">
-            </div>
-            <div class="panel-content mt-10">
-              <div id="timetable-list" class="data-list"><p class="empty-msg">등록된 시간표가 없습니다.</p></div>
+            <div class="panel-content table-container">
+              <table class="excel-table" id="table-timetable">
+                <!-- pivot generated -->
+              </table>
             </div>
           </div>
         </div>
 
-        <!-- 뷰 4: 기초 설정 -->
-        <div id="view-settings" class="view-section hidden">
-          <div class="glass-panel" style="margin-bottom: 30px;">
-            <div class="panel-header">
-              <h2>학급 트리 관리</h2>
-              <button class="btn btn-primary" onclick="app.openModal('class-modal')">학급 추가</button>
-            </div>
-            <div class="panel-content">
-              <ul id="class-list" class="class-list"><li class="empty-msg">등록된 학급이 없습니다.</li></ul>
-            </div>
-          </div>
-
+        <div id="view-student" class="view-section hidden data-view">
           <div class="glass-panel">
             <div class="panel-header">
-              <h2>강사 정보 관리</h2>
-              <button class="btn btn-primary" onclick="app.openModal('instructor-modal')">강사 추가</button>
+              <h2>학생 관리</h2>
+              <button class="btn btn-primary" onclick="app.addRow('student')">[+ 행 추가]</button>
             </div>
-            <div class="panel-content">
-              <div id="instructor-list" class="data-list"><p class="empty-msg">등록된 강사 정보가 없습니다.</p></div>
+            <div class="panel-content table-container">
+              <table class="excel-table">
+                <thead><tr><th>이름</th><th>학교</th><th>학년</th><th>학부모연락처</th><th>학생연락처</th><th>비고</th><th style="width: 60px;">삭제</th></tr></thead>
+                <tbody id="tbody-student"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <div id="view-instructor" class="view-section hidden data-view">
+          <div class="glass-panel">
+            <div class="panel-header">
+              <h2>강사 관리</h2>
+              <button class="btn btn-primary" onclick="app.addRow('instructor')">[+ 행 추가]</button>
+            </div>
+            <div class="panel-content table-container">
+              <table class="excel-table">
+                <thead><tr><th>강사명</th><th>과목</th><th>세부과목</th><th>연락처</th><th>지메일</th><th>비고</th><th style="width: 60px;">삭제</th></tr></thead>
+                <tbody id="tbody-instructor"></tbody>
+              </table>
             </div>
           </div>
         </div>
@@ -169,127 +137,18 @@
     </main>
   </div>
 
-  <!-- 모달 컨테이너 -->
   <div id="modal-container" class="modal-overlay hidden">
-    
-    <!-- 학급 추가 모달 (4단계 계층화 캐스케이딩 폼) -->
-    <div id="class-modal" class="modal-content hidden">
+    <div id="generic-modal" class="modal-content hidden">
       <div class="modal-header">
-        <h3>학급 추가 (4단계)</h3>
+        <h3 id="generic-modal-title">새 항목 추가</h3>
         <button class="close-btn" onclick="app.closeModal()">✕</button>
       </div>
-      <div class="modal-body">
-        <div class="form-group">
-          <label>구분</label>
-          <select id="class-main-cat" class="form-control">
-            <option value="주중 수업">주중 수업</option>
-            <option value="주말 수업">주말 수업</option>
-            <option value="방학 특강 수업">방학 특강 수업</option>
-            <option value="기타 수업">기타 수업</option>
-          </select>
-        </div>
-        <div class="form-group">
-          <label>과목</label>
-          <select id="class-mid-cat" class="form-control">
-            <option value="">-- 선택 --</option>
-            <option value="수학">수학</option>
-            <option value="과학">과학</option>
-            <option value="기타">기타(수기입력)</option>
-          </select>
-        </div>
-        <div class="form-group" id="wrap-sub-select">
-          <label>세부과목</label>
-          <select id="class-sub-cat-select" class="form-control">
-            <option value="">-- 과목를 먼저 선택하세요 --</option>
-          </select>
-        </div>
-        <div class="form-group hidden" id="wrap-sub-input">
-          <label>세부과목 (수기입력)</label>
-          <input type="text" id="class-sub-cat-input" class="form-control" placeholder="세부과목 직접 입력">
-        </div>
-        <div class="form-group">
-          <label>학급(명)</label>
-          <input type="text" id="class-name-input" class="form-control" placeholder="예: 노바반, 퀀텀반">
-        </div>
+      <div class="modal-body" id="generic-modal-body">
       </div>
       <div class="modal-footer">
         <button class="btn" onclick="app.closeModal()">취소</button>
-        <button class="btn btn-primary" onclick="app.saveClass()">저장</button>
+        <button class="btn btn-primary" onclick="app.saveModalData()">저장</button>
       </div>
-    </div>
-
-    <!-- 강사 추가 모달 -->
-    <div id="instructor-modal" class="modal-content hidden">
-      <div class="modal-header">
-        <h3>강사 정보 추가</h3>
-        <button class="close-btn" onclick="app.closeModal()">✕</button>
-      </div>
-      <div class="modal-body">
-        <div class="form-group"><label>강사명</label><input type="text" id="inst-name" class="form-control"></div>
-        <div class="form-group"><label>연락처</label><input type="text" id="inst-phone" class="form-control"></div>
-        <div class="form-group"><label>지메일</label><input type="email" id="inst-email" class="form-control"></div>
-        <div class="info-box mt-10"><p>등록 후 구글 챗방 초대 링크를 제공합니다.</p></div>
-      </div>
-      <div class="modal-footer">
-        <button class="btn" onclick="app.closeModal()">취소</button>
-        <button class="btn btn-primary" onclick="app.saveInstructor()">저장 및 초대링크 보기</button>
-      </div>
-    </div>
-
-    <!-- 사전 준비일정 추가 모달 -->
-    <div id="preschedule-modal" class="modal-content hidden">
-      <div class="modal-header">
-        <h3>사전 준비일정 추가</h3>
-        <button class="close-btn" onclick="app.closeModal()">✕</button>
-      </div>
-      <div class="modal-body">
-        <div class="form-group"><label>대상 학급 (등록된 학급 중 선택)</label><select id="pre-class-select" class="form-control"><option value="">-- 학급 선택 --</option></select></div>
-        <div class="form-group"><label>일자</label><input type="date" id="pre-date" class="form-control"></div>
-        <div class="form-group"><label>내용</label><input type="text" id="pre-content" class="form-control"></div>
-        <div class="form-group"><label>비고</label><input type="text" id="pre-note" class="form-control"></div>
-      </div>
-      <div class="modal-footer"><button class="btn" onclick="app.closeModal()">취소</button><button class="btn btn-primary" onclick="app.savePreSchedule()">저장</button></div>
-    </div>
-
-    <!-- 수업 진도계획 추가 모달 -->
-    <div id="curriculum-modal" class="modal-content hidden">
-      <div class="modal-header">
-        <h3>수업 진도계획 추가</h3>
-        <button class="close-btn" onclick="app.closeModal()">✕</button>
-      </div>
-      <div class="modal-body">
-        <div class="form-group"><label>대상 학급</label><select id="curr-class-select" class="form-control"><option value="">-- 학급 선택 --</option></select></div>
-        <div class="form-group"><label>주차</label><input type="text" id="curr-week" class="form-control" placeholder="예: 1주차"></div>
-        <div class="form-group"><label>진도 내용</label><textarea id="curr-content" class="form-control" rows="3"></textarea></div>
-      </div>
-      <div class="modal-footer"><button class="btn" onclick="app.closeModal()">취소</button><button class="btn btn-primary" onclick="app.saveCurriculum()">저장</button></div>
-    </div>
-
-    <!-- 시간표 등록 모달 -->
-    <div id="timetable-modal" class="modal-content hidden">
-      <div class="modal-header">
-        <h3>시간표 등록</h3>
-        <button class="close-btn" onclick="app.closeModal()">✕</button>
-      </div>
-      <div class="modal-body">
-        <div class="form-group"><label>대상 학급</label><select id="time-class-select" class="form-control"><option value="">-- 학급 선택 --</option></select></div>
-        <div class="form-group"><label>요일</label><select id="time-day" class="form-control"><option value="월">월</option><option value="화">화</option><option value="수">수</option><option value="목">목</option><option value="금">금</option><option value="토">토</option><option value="일">일</option></select></div>
-        
-        <!-- 시작시간 / 종료시간 분리 -->
-        <div class="time-inputs">
-          <div class="form-group flex-1">
-            <label>시작 시간</label>
-            <input type="time" id="time-start" class="form-control">
-          </div>
-          <div class="form-group flex-1">
-            <label>종료 시간</label>
-            <input type="time" id="time-end" class="form-control">
-          </div>
-        </div>
-
-        <div class="form-group"><label>담당 강사</label><select id="time-instructor" class="form-control"><option value="">-- 강사 선택 --</option></select></div>
-      </div>
-      <div class="modal-footer"><button class="btn" onclick="app.closeModal()">취소</button><button class="btn btn-primary" onclick="app.saveTimetable()">저장</button></div>
     </div>
   </div>
 
