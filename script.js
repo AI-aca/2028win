@@ -251,7 +251,7 @@ const app = {
         const id = th.closest('.view-section').id + '-col-' + i;
         
         const mouseMoveHandler = (e) => { 
-          const newWidth = Math.max(30, w + e.clientX - x);
+          const newWidth = Math.round(Math.max(30, w + e.clientX - x));
           th.style.width = `${newWidth}px`; 
           
           if (!this.resizeTooltip) {
