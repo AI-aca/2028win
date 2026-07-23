@@ -186,7 +186,17 @@ const app = {
 
   saveOrder: function(type, tbody) {
     const rows = Array.from(tbody.querySelectorAll('tr'));
-    const orderedIds = rows.map(r => r.getAttribute('data-id')).filter(id => id);
+    let orderedIds = [];
+    if (type === 'timetable') {
+      rows.forEach(tr => {
+        tr.querySelectorAll('td[data-id]').forEach(td => {
+          const id = td.getAttribute('data-id');
+          if (id) orderedIds.push(id);
+        });
+      });
+    } else {
+      orderedIds = rows.map(r => r.getAttribute('data-id')).filter(id => id);
+    }
     let sheetName = '';
     if (type === 'preschedule') sheetName = '사전준비일정';
     if (type === 'curriculum') sheetName = '수업진도계획';
