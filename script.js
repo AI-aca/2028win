@@ -523,7 +523,7 @@ const app = {
           const row = this.data.timetables.find(r => r[1] === date && r[2] === type && r[3] === start && r[4] === end && r[5] === cls);
           let displayStr = row && (row[6] || row[7]) ? `${row[6]||''}${row[7]?'('+row[7]+')':''}` : '';
           displayStr = displayStr.trim();
-          headHtml += `<td contenteditable="true" data-id="${row?row[0]:''}" data-start="${start}" data-end="${end}" data-cls="${cls}" data-date="${date}" onblur="app.onTimetableBlur(this)" onkeydown="app.onKeyDown(event, this)">${displayStr}</td>`;
+          headHtml += `<td class="timetable-cell" data-id="${row?row[0]:''}" data-start="${start}" data-end="${end}" data-cls="${cls}" data-date="${date}" onclick="app.openTimetableEditor(this)" style="cursor:pointer;">${displayStr}</td>`;
         });
       }
       headHtml += `</tr>`;
