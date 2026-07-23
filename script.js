@@ -250,11 +250,28 @@ const app = {
         let x = 0, w = 0;
         const id = th.closest('.view-section').id + '-col-' + i;
         
-        const mouseMoveHandler = (e) => { th.style.width = `${w + e.clientX - x}px`; };
+        const mouseMoveHandler = (e) => { 
+          const newWidth = Math.max(30, w + e.clientX - x);
+          th.style.width = `${newWidth}px`; 
+          
+          if (!this.resizeTooltip) {
+            this.resizeTooltip = document.createElement('div');
+            this.resizeTooltip.className = 'resize-tooltip';
+            this.resizeTooltip.style.cssText = 'position: fixed; background: rgba(0,0,0,0.8); color: #06b6d4; padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: 600; pointer-events: none; z-index: 9999; box-shadow: 0 2px 10px rgba(0,0,0,0.5); border: 1px solid rgba(6,182,212,0.3); transition: none;';
+            document.body.appendChild(this.resizeTooltip);
+          }
+          this.resizeTooltip.style.left = (e.clientX + 15) + 'px';
+          this.resizeTooltip.style.top = (e.clientY - 30) + 'px';
+          this.resizeTooltip.innerText = newWidth + 'px';
+        };
         const mouseUpHandler = () => {
           document.removeEventListener('mousemove', mouseMoveHandler);
           document.removeEventListener('mouseup', mouseUpHandler);
           resizer.classList.remove('resizing');
+          if (this.resizeTooltip) {
+            this.resizeTooltip.remove();
+            this.resizeTooltip = null;
+          }
           // Save to backend instead of just localStorage
           this.silentSave('saveUISettings', { key: id, value: th.style.width });
           this.uiSettings[id] = th.style.width;
