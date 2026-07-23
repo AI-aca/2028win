@@ -23,7 +23,7 @@ body {
   --primary: #10b981;
   --primary-hover: #059669;
   --secondary: #06b6d4;
-  --danger: #ef4444;
+  --danger: #ff6b6b;
   --glow: 0 0 15px rgba(16, 185, 129, 0.5);
 }
 
@@ -129,8 +129,8 @@ body {
 }
 .btn-primary { background: linear-gradient(135deg, var(--primary), var(--secondary)); box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3); }
 .btn-primary:hover { filter: brightness(1.1); box-shadow: var(--glow); }
-.btn-danger { background: #ef4444; color: white; }
-.btn-danger:hover { background: #dc2626; }
+.btn-danger { background: #ff6b6b; color: white; }
+.btn-danger:hover { background: #ff4757; }
 
 .form-group { margin-bottom: 15px; }
 .form-group label { display: block; margin-bottom: 5px; font-size: 14px; color: var(--text-muted); }
