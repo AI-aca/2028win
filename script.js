@@ -74,7 +74,7 @@ const app = {
   extractDynamicCols: function() {
     this.dynamicCols.curriculum = Array.from(new Set(this.data.curriculums.map(r => r[2]).filter(x => x)));
     
-    this.dynamicCols.timetable = Array.from(new Set(this.data.timetables.map(r => r[5]).filter(x => x)));
+    this.dynamicCols.timetable = Array.from(new Set(this.data.timetables.map(r => r[5]).filter(x => x && x !== '전체')));
   },
 
   bindEvents: function() {
