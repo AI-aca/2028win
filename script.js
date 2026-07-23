@@ -486,7 +486,7 @@ const app = {
 
   renderTimetablePivot: function() {
     const table = document.querySelector('#view-timetable .excel-table');
-    let headHtml = `<thead><tr><th style="width:130px;">일자</th><th style="width:120px;">시작시간</th><th style="width:150px;">종료시간</th>`;
+    let headHtml = `<thead><tr><th class="label-col" style="width:130px;">일자</th><th class="label-col" style="width:120px;">시작시간</th><th class="label-col" style="width:150px;">종료시간</th>`;
     this.dynamicCols.timetable.forEach(cls => {
       headHtml += `<th data-colname="${cls}">${cls}</th>`;
     });
@@ -506,7 +506,7 @@ const app = {
         const holidayNote = holidayRow ? holidayRow[8] : '';
         const holidayId = holidayRow ? holidayRow[0] : '';
         headHtml += `
-          <td colspan="2" style="background: rgba(255,255,255,0.05); font-weight:bold; text-align:center; color:#f43f5e; font-size:16px;">🎉 휴일</td>
+          <td colspan="2" class="label-col" style="font-weight:bold; text-align:center; color:#f43f5e; font-size:16px;">🎉 휴일</td>
           <td colspan="${this.dynamicCols.timetable.length}" contenteditable="true" data-id="${holidayId}" data-date="${date}" onblur="app.onTimetableHolidayBlur(this)" onkeydown="app.onKeyDown(event, this)" placeholder="어떠한 휴일인가요? (비고 입력)" style="text-align:center; color:#94a3b8;">${holidayNote}</td>`;
       } else {
         headHtml += `
