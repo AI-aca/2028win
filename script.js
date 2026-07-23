@@ -790,20 +790,25 @@ const app = {
     };
   },
 
-  removeColumn: function(type, colName) {
+  removeColumn: async function(type, colName) {
     if(!confirm(`'${colName}' 열을 삭제하시겠습니까? (저장된 데이터도 삭제됩니다)`)) return;
+    this.showLoading();
     if(type === 'curriculum') {
       this.dynamicCols.curriculum = this.dynamicCols.curriculum.filter(c => c !== colName);
-      this.data.curriculums = this.data.curriculums.filter(r => {
-        if(r[2] === colName) { if(r[0]) this.silentSave('deleteData', { sheetName: '수업진도계획', id: r[0] }); return false; } return true;
-      });
+      const toDelete = this.data.curriculums.filter(r => r[2] === colName);
+      this.data.curriculums = this.data.curriculums.filter(r => r[2] !== colName);
+      for (const r of toDelete) {
+        if(r[0]) await this.silentSave('deleteData', { sheetName: '수업진도계획', id: r[0] });
+      }
     } else if(type === 'timetable') {
       this.dynamicCols.timetable = this.dynamicCols.timetable.filter(c => c !== colName);
-      this.data.timetables = this.data.timetables.filter(r => {
-        if(r[5] === colName) { if(r[0]) this.silentSave('deleteData', { sheetName: '시간표', id: r[0] }); return false; } return true;
-      });
+      const toDelete = this.data.timetables.filter(r => r[5] === colName);
+      this.data.timetables = this.data.timetables.filter(r => r[5] !== colName);
+      for (const r of toDelete) {
+        if(r[0]) await this.silentSave('deleteData', { sheetName: '시간표', id: r[0] });
+      }
     }
-    this.renderView(type);
+    this.fetchInitialData();
   },
 
   closeModal: function() { document.getElementById('modal-container').classList.add('hidden'); document.getElementById('generic-modal').classList.add('hidden'); },
@@ -875,7 +880,7 @@ const app = {
     this.hideContextMenu(); if(!this.ctxTargetRow) return;
     this.addRowToUI(this.ctxTargetType, this.ctxTargetRow, 'below');
   },
-  ctxDeleteRow: function() {
+  ctxDeleteRow: async function() {
     this.hideContextMenu(); if(!this.ctxTargetRow) return;
     const type = this.ctxTargetType;
     const id = this.ctxTargetRow.getAttribute('data-id');
@@ -883,14 +888,16 @@ const app = {
     if (type === 'curriculum' || type === 'timetable') {
       if(!confirm("이 줄에 입력된 모든 데이터가 삭제됩니다. 정말 삭제하시겠습니까?")) return;
       const idCells = this.ctxTargetRow.querySelectorAll('td[data-id]');
-      idCells.forEach(c => {
+      this.showLoading();
+      for(const c of Array.from(idCells)) {
         const itemID = c.getAttribute('data-id');
         if(itemID) {
            let sheetName = type === 'curriculum' ? '수업진도계획' : '시간표';
-           this.silentSave('deleteData', { sheetName, id: itemID });
+           await this.silentSave('deleteData', { sheetName, id: itemID });
         }
-      });
+      }
       this.ctxTargetRow.remove();
+      this.fetchInitialData();
     } else {
       this.deleteItem(type, id, this.ctxTargetRow);
     }
