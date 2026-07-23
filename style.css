@@ -420,3 +420,9 @@ span.flatpickr-weekday {
 .numInputWrapper span.arrowDown:after { border-top-color: var(--text-muted) !important; }
 .numInputWrapper:hover span.arrowUp:after { border-bottom-color: var(--primary) !important; }
 .numInputWrapper:hover span.arrowDown:after { border-top-color: var(--primary) !important; }
+
+.time-picker-input {
+  margin: 0 !important;
+  padding: 0 !important;
+  font-size: 14px !important;
+}

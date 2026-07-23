@@ -4,8 +4,9 @@ const DB_FILE_NAME = '[2028 영재학교반 통합 DB]';
 
 function doPost(e) {
   try {
-    const payload = JSON.parse(e.postData.contents);
-    const action = payload.action;
+    const payloadStr = e.parameter.payload || (e.postData ? e.postData.contents : '{}');
+    const payload = JSON.parse(payloadStr);
+    const action = e.parameter.action || payload.action;
     let result = { success: false, message: '알 수 없는 액션' };
     
     if (action === 'upsertPreSchedule') result = upsertPreSchedule(payload);

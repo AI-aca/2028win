@@ -2,6 +2,7 @@
 const API_URL = "https://script.google.com/macros/s/AKfycby8JE1MRUAIyIyHMi2H7xvW0xKTX8GgFL51SzKBdZvjjJwPCPIq3JxQUMR87cKrCXOM6g/exec";
 
 const app = {
+  localMode: false,
   currentView: 'view-dashboard',
   data: { preschedules: [], curriculums: [], timetables: [], students: [], instructors: [] },
   dynamicCols: { curriculum: [], timetable: [] },
