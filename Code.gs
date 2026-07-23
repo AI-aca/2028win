@@ -50,7 +50,7 @@ function getDbSpreadsheet() {
       { name: '수업진도계획', headers: ['ID', '주차', '과목', '진도내용', '등록일시'] },
       { name: '시간표', headers: ['ID', '일자', '구분', '시작시간', '종료시간', '반이름', '과목', '담당자', '비고', '등록일시'] },
       { name: '학생관리', headers: ['ID', '센터', '이름', '학교', '학년', '학부모연락처', '학생연락처', '비고', '등록일시'] },
-      { name: '강사관리', headers: ['ID', '강사명', '과목', '세부과목', '연락처', '지메일', '비고', '등록일시'] }
+      { name: '강사관리', headers: ['ID', '강사명', '영역', '과목', '연락처', '지메일', '비고', '등록일시'] }
     ];
     
     sheets.forEach((sData, idx) => {
@@ -80,7 +80,7 @@ function getInitialData() {
     sheetNames.forEach(name => {
       const sheet = ss.getSheetByName(name);
       if (sheet) {
-        const data = sheet.getDataRange().getValues();
+        const data = sheet.getDataRange().getDisplayValues();
         result[name] = data.length > 1 ? data.slice(1) : [];
       } else {
         result[name] = [];
