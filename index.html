@@ -4,6 +4,8 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>2028 영재학교반 관리</title>
+  <link href="https://fonts.googleapis.com/css2?family=Pretendard:wght@400;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Great+Vibes&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -46,6 +48,7 @@
           <span class="text">구글 채팅</span>
         </li>
       </ul>
+      <div class="weizmann-signature">Weizmann</div>
     </nav>
 
     <main class="main-content">
@@ -156,6 +159,26 @@
         <button class="btn btn-primary" onclick="app.saveModalData()">저장</button>
       </div>
     </div>
+  </div>
+
+  <!-- Floating Toolbar -->
+  <div id="rich-toolbar" class="rich-toolbar hidden">
+    <button class="toolbar-btn" onmousedown="app.execCmd('bold', event)" title="굵게"><b>B</b></button>
+    <button class="toolbar-btn" onmousedown="app.execCmd('italic', event)" title="기울임"><i>I</i></button>
+    <button class="toolbar-btn" onmousedown="app.execCmd('underline', event)" title="밑줄"><u>U</u></button>
+    <button class="toolbar-btn" onmousedown="app.execCmd('foreColor', event, 'red')" title="빨간색 글씨" style="color:red; font-weight:bold;">A</button>
+    <button class="toolbar-btn" onmousedown="app.execCmd('foreColor', event, '#06b6d4')" title="파란색 글씨" style="color:#06b6d4; font-weight:bold;">A</button>
+    <button class="toolbar-btn" onmousedown="app.execCmd('foreColor', event, '#e2e8f0')" title="기본색 글씨" style="color:#e2e8f0; font-weight:bold;">A</button>
+  </div>
+
+  <!-- Context Menu -->
+  <div id="context-menu" class="context-menu hidden">
+    <ul>
+      <li onclick="app.ctxInsertRowAbove()">행 위에 삽입</li>
+      <li onclick="app.ctxInsertRowBelow()">행 아래에 삽입</li>
+      <li class="menu-separator"></li>
+      <li class="text-danger" onclick="app.ctxDeleteRow()">행 삭제</li>
+    </ul>
   </div>
 
   <script src="script.js"></script>

@@ -14,6 +14,8 @@ function doPost(e) {
     else if (action === 'upsertStudent') result = upsertStudent(payload);
     else if (action === 'upsertInstructor') result = upsertInstructor(payload);
     else if (action === 'deleteData') result = deleteData(payload.sheetName, payload.id);
+    else if (action === 'reorderRows') result = reorderRows(payload);
+    else if (action === 'saveUISettings') result = saveUISettings(payload);
     
     return ContentService.createTextOutput(JSON.stringify(result)).setMimeType(ContentService.MimeType.JSON);
   } catch (error) {
@@ -83,6 +85,13 @@ function getInitialData() {
         result[name] = [];
       }
     });
+    
+    try {
+      result.uiSettings = PropertiesService.getDocumentProperties().getProperties() || {};
+    } catch(e) {
+      result.uiSettings = {};
+    }
+
     return result;
   } catch (error) {
     return { success: false, error: error.message };
@@ -149,4 +158,64 @@ function deleteData(sheetName, id) {
       return { success: false, message: '해당 ID를 찾을 수 없습니다.' };
     } catch (error) { return { success: false, message: error.message }; } finally { lock.releaseLock(); }
   } else { return { success: false, message: '동시 접속 지연' }; }
+}
+
+function reorderRows(payload) {
+  const lock = LockService.getScriptLock();
+  if (lock.tryLock(10000)) {
+    try {
+      const ss = getDbSpreadsheet();
+      const sheet = ss.getSheetByName(payload.sheetName);
+      if (!sheet) return { success: false, message: '시트를 찾을 수 없습니다.' };
+      
+      const data = sheet.getDataRange().getValues();
+      if (data.length <= 1) return { success: true }; // No data to reorder
+      
+      const headers = data[0];
+      const rows = data.slice(1);
+      const orderedIds = payload.orderedIds;
+      
+      const rowMap = {};
+      rows.forEach(r => { rowMap[r[0]] = r; });
+      
+      const newRows = [];
+      // Push ordered rows first
+      orderedIds.forEach(id => {
+        if (rowMap[id]) {
+          newRows.push(rowMap[id]);
+          delete rowMap[id];
+        }
+      });
+      // Push remaining rows if any
+      for (const id in rowMap) {
+        newRows.push(rowMap[id]);
+      }
+      
+      sheet.getRange(2, 1, newRows.length, headers.length).setValues(newRows);
+      
+      return { success: true };
+    } catch (error) {
+      return { success: false, message: error.message };
+    } finally {
+      lock.releaseLock();
+    }
+  } else {
+    return { success: false, message: '동시 접속 지연' };
+  }
+}
+
+function saveUISettings(payload) {
+  const lock = LockService.getScriptLock();
+  if (lock.tryLock(5000)) {
+    try {
+      PropertiesService.getDocumentProperties().setProperty(payload.key, payload.value);
+      return { success: true };
+    } catch (error) {
+      return { success: false, message: error.message };
+    } finally {
+      lock.releaseLock();
+    }
+  } else {
+    return { success: false, message: '동시 접속 지연' };
+  }
 }
