@@ -98,7 +98,7 @@ const app = {
         try {
           const authPass = sessionStorage.getItem('auth_pass') || '';
           const response = await fetch(API_URL, {
-            method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+            method: 'POST', keepalive: true, headers: { 'Content-Type': 'text/plain;charset=utf-8' },
             body: JSON.stringify({ action, authPass, ...payloadData })
           });
           resolve(await response.json());
