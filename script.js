@@ -764,10 +764,8 @@ const app = {
 
       const payloadArray = tasks.map(t => ({ id: t.rowObj[0], insertIndex: t.payloadInsertIdx, week: nextWeek, subject: t.sub, content: '', note: '' }));
       this.apiPost('upsertMultipleCurriculums', { payloadArray }).then(res => {
-        if (res && res.success && res.returnedIds) {
-          this.data.curriculums.forEach(r => { if (res.returnedIds[r[0]]) r[0] = res.returnedIds[r[0]]; });
-          app.renderView(type);
-        } else if (res && res.success) {
+        if (res && res.success) {
+          if (res.returnedIds) this.data.curriculums.forEach(r => { if (res.returnedIds[r[0]]) r[0] = res.returnedIds[r[0]]; });
           app.renderView(type);
         }
       });
@@ -935,8 +933,8 @@ const app = {
     if (payloadArray.length > 0) {
       try {
         const res = await this.apiPost('upsertMultipleTimetables', { payloadArray });
-        if (res && res.success && res.returnedIds) {
-          rowsToSave.forEach(r => { if (res.returnedIds[r[0]]) r[0] = res.returnedIds[r[0]]; });
+        if (res && res.success) {
+          if (res.returnedIds) rowsToSave.forEach(r => { if (res.returnedIds[r[0]]) r[0] = res.returnedIds[r[0]]; });
           const newIds = rowsToSave.map(r => r[0]).join(',');
           tr.setAttribute('data-ids', newIds);
         } else {
@@ -1027,8 +1025,8 @@ const app = {
     const payloadArray = rowsToSave.map(r => ({ id: r[0], date: r[1], type: r[2], start: r[3], end: r[4], className: r[5], subject: r[6], instructor: r[7], note: r[8], regtime: r[9] }));
     try {
       const res = await this.apiPost('upsertMultipleTimetables', { payloadArray });
-      if (res && res.success && res.returnedIds) {
-        rowsToSave.forEach(r => { if (res.returnedIds[r[0]]) r[0] = res.returnedIds[r[0]]; });
+      if (res && res.success) {
+        if (res.returnedIds) rowsToSave.forEach(r => { if (res.returnedIds[r[0]]) r[0] = res.returnedIds[r[0]]; });
         const newIds = rowsToSave.map(r => r[0]).join(',');
         tr.setAttribute('data-ids', newIds);
       } else {
@@ -1236,8 +1234,8 @@ const app = {
             if (payloadArray.length > 0) {
               try {
                 const res = await this.apiPost('upsertMultipleTimetables', { payloadArray });
-                if (res && res.success && res.returnedIds) {
-                  this.data.timetables.forEach(r => { if (res.returnedIds[r[0]]) r[0] = res.returnedIds[r[0]]; });
+                if (res && res.success) {
+                  if (res.returnedIds) this.data.timetables.forEach(r => { if (res.returnedIds[r[0]]) r[0] = res.returnedIds[r[0]]; });
                 } else {
                   throw new Error(res ? res.message : '알 수 없는 에러');
                 }
