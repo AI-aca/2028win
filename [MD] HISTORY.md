@@ -44,3 +44,16 @@
   - BUG-7: UI 설정 키 불일치 수정 (`res['UI설정']` → `res.uiSettings`)
   - BUG-9: doPost 글로벌 Lock 제거 (이중 잠금 해소)
   - 수정 파일: `Code.gs`, `script.js`
+
+## 2026-07-25
+- **[대규모 아키텍처 전환]**: 구글 시트(GAS) 백엔드 체제에서 Supabase(PostgreSQL 기반)로 데이터베이스 전면 교체 완료
+  - 로컬 노드 스크립트를 통해 구글 시트 기존 데이터 117개 무손실 마이그레이션 성공
+  - `index.html`에 Supabase CDN 연동
+  - `script.js` 내 통신 래퍼(`app.apiPost`, `app.login`, `app.fetchInitialData`) 로직을 Supabase 문법으로 전면 재작성 (컬럼명 소문자 매핑 로직 포함)
+  - 5대 에이전트 파이프라인(research -> PM -> coder -> qa -> release) 완벽 준수 및 문법/div/인코딩 무결성 검증 통과
+
+- **[Bug Fix]**: Supabase API 통신 에러 은폐(Silent Error) 문제 해결
+  - `apiPost` 함수: `{ error }` 캡처 후 throw 로직을 추가하여 저장 실패 시 화면에 붉은 에러 알림이 정상 작동하도록 복구
+  - `updatePivotRowTime` 함수: 시간표 업데이트 페이로드에 누락된 `regtime: r[9]` 매핑을 추가하여 DB 저장 거부 문제 해결
+  - 5대 에이전트 파이프라인 준수 및 무결성 검증 완료
+  - 수정 파일: `script.js`

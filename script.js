@@ -1,5 +1,8 @@
-// 원장님이 설정하신 GAS 웹앱 배포 주소 (여기로 데이터를 쏘고 받습니다)
-const API_URL = "https://script.google.com/macros/s/AKfycby8JE1MRUAIyIyHMi2H7xvW0xKTX8GgFL51SzKBdZvjjJwPCPIq3JxQUMR87cKrCXOM6g/exec";
+// Supabase 설정
+const SUPABASE_URL = "https://lkqvaovxiohkzgjsuwcd.supabase.co";
+const SUPABASE_KEY = "sb_publishable_ePWcQ0S9-DDaNRUdsyTG-g__3Jz6ziX";
+const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
 
 const app = {
   localMode: false,
@@ -115,77 +118,111 @@ const app = {
 
   apiQueue: Promise.resolve(),
 
-  apiPost: function(action, payloadData) {
-    // 큐에 넣기 직전에 바로 대기열 표시를 켜주기 위해 여기서 미리 증가
+  apiPost: async function(action, payloadData) {
     this.pendingRequests++;
     this.updateSyncStatus();
     
-    return new Promise((resolve) => {
-      this.apiQueue = this.apiQueue.then(async () => {
-        try {
-          const authPass = sessionStorage.getItem('auth_pass') || '';
-          const response = await fetch(API_URL, {
-            method: 'POST', keepalive: true, headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-            body: JSON.stringify({ action, authPass, ...payloadData })
-          });
-          resolve(await response.json());
-        } catch (e) {
-          resolve({ success: false, message: e.message });
-        } finally {
-          this.pendingRequests--;
-          this.updateSyncStatus();
-        }
-      });
-    });
-  },
-
-  apiGet: async function(action) {
     try {
-      const response = await fetch(`${API_URL}?action=${action}`);
-      return await response.json();
-    } catch (e) { return { success: false, error: e.message }; }
+      let table = '';
+      let data = {};
+      
+      if (payloadData) {
+        for (let key in payloadData) {
+          data[key.toLowerCase()] = payloadData[key];
+        }
+      }
+
+      switch(action) {
+        case 'upsertPreSchedule': table = 'preschedules'; break;
+        case 'upsertCurriculum': case 'upsertMultipleCurriculums': table = 'curriculums'; break;
+        case 'upsertTimetable': case 'upsertMultipleTimetables': table = 'timetables'; break;
+        case 'upsertStudent': table = 'students'; break;
+        case 'upsertInstructor': table = 'instructors'; break;
+        case 'saveUISettings': table = 'ui_settings'; break;
+        case 'deleteData': case 'deleteMultipleData': 
+          let delTable = '';
+          const sn = payloadData.sheetName;
+          if (sn === '사전준비일정') delTable = 'preschedules';
+          else if (sn === '수업진도계획') delTable = 'curriculums';
+          else if (sn === '시간표') delTable = 'timetables';
+          else if (sn === '학생관리') delTable = 'students';
+          else if (sn === '강사관리') delTable = 'instructors';
+          
+          if (action === 'deleteData') {
+            const { error } = await supabase.from(delTable).delete().eq('id', payloadData.id);
+            if (error) throw error;
+          } else {
+            const { error } = await supabase.from(delTable).delete().in('id', payloadData.ids);
+            if (error) throw error;
+          }
+          return { success: true };
+      }
+
+      if (table) {
+        if (action.includes('Multiple')) {
+          const arrData = payloadData.payloadArray.map(obj => {
+            let lowerObj = {};
+            for (let k in obj) lowerObj[k.toLowerCase()] = obj[k];
+            return lowerObj;
+          });
+          const { error } = await supabase.from(table).upsert(arrData);
+          if (error) throw error;
+        } else {
+          const { error } = await supabase.from(table).upsert(data);
+          if (error) throw error;
+        }
+        return { success: true, id: data.id };
+      }
+      return { success: true };
+    } catch (e) {
+      console.error(e);
+      return { success: false, message: e.message };
+    } finally {
+      this.pendingRequests--;
+      this.updateSyncStatus();
+    }
   },
 
   login: async function() {
     const pw = document.getElementById('login-password').value;
     if (!pw) return;
     this.showLoading();
-    try {
-      const response = await fetch(API_URL, {
-        method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-        body: JSON.stringify({ action: 'getInitialData', authPass: pw })
-      });
-      const res = await response.json();
-      
-      if (res.success === false) {
-        document.getElementById('login-error').classList.remove('hidden');
-        this.hideLoading();
-      } else {
-        sessionStorage.setItem('auth_pass', pw);
-        document.getElementById('login-error').classList.add('hidden');
-        document.getElementById('login-overlay').style.display = 'none';
-        document.getElementById('main-app').style.display = 'flex';
-        this.processInitialData(res);
-      }
-    } catch (e) {
-      alert("로그인 중 에러가 발생했습니다: " + e.message);
+    if (pw === '2028w!' || pw === 'weiz2028' || pw === '2028ㅈ!') {
+      sessionStorage.setItem('auth_pass', pw);
+      document.getElementById('login-error').classList.add('hidden');
+      document.getElementById('login-overlay').style.display = 'none';
+      document.getElementById('main-app').style.display = 'flex';
+      await this.fetchInitialData();
+    } else {
+      document.getElementById('login-error').classList.remove('hidden');
       this.hideLoading();
     }
   },
 
   fetchInitialData: async function() {
     this.showLoading();
-    const res = await this.apiPost('getInitialData');
-    if (res.error || res.success === false) {
-      if (res.message === '비밀번호 인증 실패') {
-        sessionStorage.removeItem('auth_pass');
-        location.reload();
-      } else {
-        alert("데이터 로딩 에러: " + (res.error || res.message));
-        this.hideLoading();
-      }
-    } else {
+    try {
+      const [preRes, curRes, ttRes, stuRes, insRes] = await Promise.all([
+        supabase.from('preschedules').select('*').order('date', { ascending: true }),
+        supabase.from('curriculums').select('*').order('week', { ascending: true }),
+        supabase.from('timetables').select('*').order('date', { ascending: true }).order('start', { ascending: true }),
+        supabase.from('students').select('*').order('created_at', { ascending: true }),
+        supabase.from('instructors').select('*').order('created_at', { ascending: true })
+      ]);
+
+      const res = {
+        '사전준비일정': (preRes.data || []).map(r => [r.id, r.date, r.content, r.status, r.note]),
+        '수업진도계획': (curRes.data || []).map(r => [r.id, r.week, r.subject, r.content, r.note]),
+        '시간표': (ttRes.data || []).map(r => [r.id, r.date, r.type, r.start, r.end, r.classname, r.subject, r.instructor, r.note, r.regtime]),
+        '학생관리': (stuRes.data || []).map(r => [r.id, r.name, r.center, r.school, r.grade, r.parentphone, r.studentphone, r.note]),
+        '강사관리': (insRes.data || []).map(r => [r.id, r.instructorname, r.subject, r.subsubject, r.phone, r.email, r.note]),
+        'uiSettings': {}
+      };
+      
       this.processInitialData(res);
+    } catch (e) {
+      alert("데이터 로딩 에러: " + e.message);
+      this.hideLoading();
     }
   },
 
@@ -727,7 +764,12 @@ const app = {
 
       const payloadArray = tasks.map(t => ({ id: t.rowObj[0], insertIndex: t.payloadInsertIdx, week: nextWeek, subject: t.sub, content: '', note: '' }));
       this.apiPost('upsertMultipleCurriculums', { payloadArray }).then(res => {
-        if (res.success) app.renderView(type);
+        if (res && res.success && res.returnedIds) {
+          this.data.curriculums.forEach(r => { if (res.returnedIds[r[0]]) r[0] = res.returnedIds[r[0]]; });
+          app.renderView(type);
+        } else if (res && res.success) {
+          app.renderView(type);
+        }
       });
     } else if (type === 'timetable') {
       if (this.dynamicCols.timetable.length === 0) this.dynamicCols.timetable.push('새 학급');
@@ -759,6 +801,11 @@ const app = {
       this.apiPost('upsertMultipleTimetables', { payloadArray }).then(res => {
         if (res && res.success && res.returnedIds) {
           this.data.timetables.forEach(r => { if (res.returnedIds[r[0]]) r[0] = res.returnedIds[r[0]]; });
+          const tr = document.querySelector(`tr[data-grp^="${tmpDate}|"]`);
+          if (tr) {
+            const newIds = this.data.timetables.filter(r => r[1] === tmpDate).map(r => r[0]).join(',');
+            tr.setAttribute('data-ids', newIds);
+          }
         }
       });
     } else if (type === 'holiday') {
@@ -977,7 +1024,7 @@ const app = {
       c.setAttribute('data-end', newEnd);
     });
 
-    const payloadArray = rowsToSave.map(r => ({ id: r[0], date: r[1], type: r[2], start: r[3], end: r[4], className: r[5], subject: r[6], instructor: r[7], note: r[8] }));
+    const payloadArray = rowsToSave.map(r => ({ id: r[0], date: r[1], type: r[2], start: r[3], end: r[4], className: r[5], subject: r[6], instructor: r[7], note: r[8], regtime: r[9] }));
     try {
       const res = await this.apiPost('upsertMultipleTimetables', { payloadArray });
       if (res && res.success && res.returnedIds) {
@@ -1092,7 +1139,7 @@ const app = {
     let isNew = false;
     
     if (!rowObj) {
-      rowObj = [id || '', date, '수업', start, end, cls, subject, instructor, '', ''];
+      rowObj = [id || '', date, '수업', start, end, cls, subject, instructor, '', new Date().toLocaleString()];
       this.data.timetables.push(rowObj);
       isNew = true;
     } else {
@@ -1103,7 +1150,7 @@ const app = {
     }
 
     try {
-      const res = await this.apiPost('upsertTimetable', { id: rowObj[0], date: rowObj[1], type: rowObj[2], start: rowObj[3], end: rowObj[4], className: rowObj[5], subject: rowObj[6], instructor: rowObj[7], note: rowObj[8] });
+      const res = await this.apiPost('upsertTimetable', { id: rowObj[0], date: rowObj[1], type: rowObj[2], start: rowObj[3], end: rowObj[4], className: rowObj[5], subject: rowObj[6], instructor: rowObj[7], note: rowObj[8], regtime: rowObj[9] });
       if(res && res.success && res.id) { rowObj[0] = res.id; }
       else {
         if (isNew) { this.data.timetables.pop(); } 
