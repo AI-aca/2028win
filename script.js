@@ -952,6 +952,8 @@ const app = {
       newEnd = newTimeStr;
     }
     
+    if (newStart === oldStart && newEnd === oldEnd) return;
+    
     const newGrp = [oldDate, oldType, newStart, newEnd].join('|');
     const rowsToSave = [];
     const rollbackData = [];
