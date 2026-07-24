@@ -347,7 +347,8 @@ const app = {
       let dynWidths = [];
       
       dynThs.forEach((th, i) => {
-        const dynId = th.closest('.view-section').id + '-col-' + i;
+        const dynIdx = Array.from(th.parentNode.children).indexOf(th);
+        const dynId = th.closest('.view-section').id + '-col-' + dynIdx;
         let w = this.uiSettings[dynId];
         let val = (w && w.includes('%')) ? parseFloat(w) : (expectedDynTotal / dynThs.length);
         dynWidths.push(val);
