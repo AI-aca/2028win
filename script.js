@@ -89,12 +89,39 @@ const app = {
     }
   },
 
+  updateSyncStatus: function() {
+    const indicator = document.getElementById('sync-status-indicator');
+    if (!indicator) return;
+    
+    const icon = indicator.querySelector('.sync-icon');
+    const text = indicator.querySelector('.sync-text');
+    
+    if (this.pendingRequests === 0) {
+      indicator.style.color = '#10b981'; // 녹색
+      indicator.style.borderColor = 'rgba(16, 185, 129, 0.3)';
+      icon.innerHTML = '✓';
+      icon.style.display = 'inline-block';
+      icon.style.animation = 'none';
+      text.innerText = '모든 변경사항 저장됨';
+    } else {
+      indicator.style.color = '#ef4444'; // 빨간색
+      indicator.style.borderColor = 'rgba(239, 68, 68, 0.3)';
+      icon.innerHTML = '↻';
+      icon.style.display = 'inline-block';
+      icon.style.animation = 'spin 1s linear infinite';
+      text.innerText = `저장 중... (${this.pendingRequests}건 대기)`;
+    }
+  },
+
   apiQueue: Promise.resolve(),
 
   apiPost: function(action, payloadData) {
+    // 큐에 넣기 직전에 바로 대기열 표시를 켜주기 위해 여기서 미리 증가
+    this.pendingRequests++;
+    this.updateSyncStatus();
+    
     return new Promise((resolve) => {
       this.apiQueue = this.apiQueue.then(async () => {
-        this.pendingRequests++;
         try {
           const authPass = sessionStorage.getItem('auth_pass') || '';
           const response = await fetch(API_URL, {
@@ -106,6 +133,7 @@ const app = {
           resolve({ success: false, message: e.message });
         } finally {
           this.pendingRequests--;
+          this.updateSyncStatus();
         }
       });
     });

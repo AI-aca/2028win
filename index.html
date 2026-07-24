@@ -67,8 +67,14 @@
     </nav>
 
     <main class="main-content">
-      <header class="top-header" style="display:flex; justify-content:space-between; align-items:center;">
+      <header class="top-header" style="display:flex; justify-content:space-between; align-items:center; position:relative;">
         <h1 id="pageTitle" style="margin:0;">대시보드</h1>
+        
+        <div id="sync-status-indicator" style="position:absolute; left:50%; transform:translateX(-50%); display:flex; align-items:center; gap:8px; padding:6px 16px; border-radius:20px; font-size:13px; font-weight:600; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); color:var(--text-muted); transition:all 0.3s ease; pointer-events:none; z-index:100;">
+          <span class="sync-icon" style="font-size:14px;">✓</span>
+          <span class="sync-text">모든 변경사항 저장됨</span>
+        </div>
+
         <div id="top-header-actions" class="header-actions" style="display:flex; gap:10px;"></div>
       </header>
 
