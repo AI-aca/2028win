@@ -35,6 +35,9 @@ function doPost(e) {
     else if (action === 'upsertStudent') result = upsertStudent(payload);
     else if (action === 'upsertInstructor') result = upsertInstructor(payload);
     else if (action === 'deleteData') result = deleteData(payload.sheetName, payload.id);
+    else if (action === 'deleteMultipleData') result = deleteMultipleData(payload);
+    else if (action === 'upsertMultipleTimetables') result = upsertMultipleTimetables(payload.payloadArray);
+    else if (action === 'upsertMultipleCurriculums') result = upsertMultipleCurriculums(payload.payloadArray);
     else if (action === 'saveUISettings') result = saveUISettings(payload);
     
     return ContentService.createTextOutput(JSON.stringify(result)).setMimeType(ContentService.MimeType.JSON);
@@ -96,7 +99,7 @@ function getInitialData() {
     sheetNames.forEach(name => {
       const sheet = ss.getSheetByName(name);
       if (sheet) {
-        const data = sheet.getDataRange().getDisplayValues();
+        const data = sheet.getDataRange().getValues();
         result[name] = data.length > 1 ? data.slice(1) : [];
       } else {
         result[name] = [];
@@ -118,7 +121,7 @@ function getInitialData() {
 function generateId() { return Utilities.getUuid(); }
 function getCurrentTime() { return new Date().toLocaleString('ko-KR', { timeZone: 'Asia/Seoul' }); }
 
-function upsertRow(sheetName, id, rowDataArray) {
+function upsertRow(sheetName, id, rowDataArray, insertIndex) {
   const lock = LockService.getScriptLock();
   if (lock.tryLock(10000)) {
     try {
@@ -131,7 +134,8 @@ function upsertRow(sheetName, id, rowDataArray) {
         for (let i = 1; i < data.length; i++) {
           if (String(data[i][0]) === String(id)) {
             const safeRowDataArray = rowDataArray.map(v => v === undefined ? '' : v);
-            sheet.getRange(i + 1, 1, 1, safeRowDataArray.length).setValues([safeRowDataArray]);
+            safeRowDataArray[safeRowDataArray.length - 1] = data[i][data[i].length - 1] || '';
+            sheet.getRange(i + 1, 1, 1, safeRowDataArray.length).setNumberFormat('@').setValues([safeRowDataArray]);
             return { success: true, message: '업데이트 완료', id: id };
           }
         }
@@ -141,8 +145,24 @@ function upsertRow(sheetName, id, rowDataArray) {
       rowDataArray[0] = newId;
       rowDataArray[rowDataArray.length - 1] = getCurrentTime();
       const safeRowDataArray = rowDataArray.map(v => v === undefined ? '' : v);
-      sheet.appendRow(safeRowDataArray);
-      return { success: true, message: '생성 완료', id: newId };
+      
+      if (insertIndex !== undefined && insertIndex !== null && insertIndex !== '') {
+        const targetRowIdx = parseInt(insertIndex, 10) + 2; 
+        if (targetRowIdx >= 2 && targetRowIdx <= sheet.getLastRow() + 1) {
+          if (targetRowIdx <= sheet.getLastRow()) {
+            sheet.insertRowBefore(targetRowIdx);
+          }
+          sheet.getRange(targetRowIdx, 1, 1, safeRowDataArray.length).setNumberFormat('@').setValues([safeRowDataArray]);
+        } else {
+          const lastRowIdx = sheet.getLastRow() + 1;
+          sheet.getRange(lastRowIdx, 1, 1, safeRowDataArray.length).setNumberFormat('@').setValues([safeRowDataArray]);
+        }
+      } else {
+        const lastRowIdx = sheet.getLastRow() + 1;
+        sheet.getRange(lastRowIdx, 1, 1, safeRowDataArray.length).setNumberFormat('@').setValues([safeRowDataArray]);
+      }
+      
+      return { success: true, message: '추가 완료', id: newId };
     } catch (error) {
       return { success: false, message: error.message };
     } finally {
@@ -153,11 +173,110 @@ function upsertRow(sheetName, id, rowDataArray) {
   }
 }
 
-function upsertPreSchedule(p) { return upsertRow('사전준비일정', p.id, [p.id, p.date, p.content, p.status, p.note, '']); }
-function upsertCurriculum(p) { return upsertRow('수업진도계획', p.id, [p.id, p.week, p.subject, p.content, '']); }
-function upsertTimetable(p) { return upsertRow('시간표', p.id, [p.id, p.date, p.type, p.start, p.end, p.className, p.subject, p.instructor, p.note, '']); }
-function upsertStudent(p) { return upsertRow('학생관리', p.id, [p.id, p.name, p.center, p.school, p.grade, p.parentPhone, p.studentPhone, p.note, '']); }
-function upsertInstructor(p) { return upsertRow('강사관리', p.id, [p.id, p.instructorName, p.subject, p.subSubject, p.phone, p.email, p.note, '']); }
+function upsertPreSchedule(p) { return upsertRow('사전준비일정', p.id, [p.id, p.date, p.content, p.status, p.note, ''], p.insertIndex); }
+function upsertCurriculum(p) { return upsertRow('수업진도계획', p.id, [p.id, p.week, p.subject, p.content, ''], p.insertIndex); }
+function upsertTimetable(p) {
+  const safeDate = String(p.date || '').startsWith('tmp-') ? '' : (p.date || '');
+  return upsertRow('시간표', p.id, [p.id, safeDate, p.type, p.start, p.end, p.className, p.subject, p.instructor, p.note, ''], p.insertIndex);
+}
+function upsertStudent(p) { return upsertRow('학생관리', p.id, [p.id, p.name, p.center, p.school, p.grade, p.parentPhone, p.studentPhone, p.note, ''], p.insertIndex); }
+function upsertInstructor(p) { return upsertRow('강사관리', p.id, [p.id, p.instructorName, p.subject, p.subSubject, p.phone, p.email, p.note, ''], p.insertIndex); }
+
+function upsertMultipleTimetables(payloadArray) {
+  const lock = LockService.getScriptLock();
+  if (lock.tryLock(15000)) {
+    try {
+      const ss = getDbSpreadsheet();
+      const sheet = ss.getSheetByName('시간표');
+      if (!sheet) return { success: false, message: '시트를 찾을 수 없습니다.' };
+      
+      const data = sheet.getDataRange().getValues();
+      const rowMap = {};
+      for (let i = 1; i < data.length; i++) {
+        const id = data[i][0];
+        if (id) rowMap[String(id)] = i; 
+      }
+      
+      const returnedIds = {};
+      const newRows = [];
+      const updateList = [];
+      
+      for (const p of payloadArray) {
+        const safeDate = String(p.date || '').startsWith('tmp-') ? '' : (p.date || '');
+        const safeRow = [p.id||'', safeDate, p.type||'', p.start||'', p.end||'', p.className||'', p.subject||'', p.instructor||'', p.note||'', getCurrentTime()];
+        
+        if (p.id && rowMap[String(p.id)]) {
+          updateList.push({ rowIndex: rowMap[String(p.id)] + 1, rowData: safeRow });
+          returnedIds[p.id] = p.id;
+        } else {
+          const newId = (p.id && !String(p.id).startsWith('tmp-')) ? p.id : generateId();
+          safeRow[0] = newId;
+          newRows.push(safeRow);
+          returnedIds[p.id || newId] = newId;
+        }
+      }
+      
+      if (updateList.length > 0) {
+        for (const update of updateList) {
+          sheet.getRange(update.rowIndex, 1, 1, update.rowData.length).setNumberFormat('@').setValues([update.rowData]);
+        }
+      }
+      
+      if (newRows.length > 0) {
+        sheet.getRange(sheet.getLastRow() + 1, 1, newRows.length, newRows[0].length).setNumberFormat('@').setValues(newRows);
+      }
+      
+      return { success: true, returnedIds };
+    } catch (error) { return { success: false, message: error.message }; } finally { lock.releaseLock(); }
+  } else { return { success: false, message: '동시 접속 지연' }; }
+}
+
+function upsertMultipleCurriculums(payloadArray) {
+  const lock = LockService.getScriptLock();
+  if (lock.tryLock(15000)) {
+    try {
+      const ss = getDbSpreadsheet();
+      const sheet = ss.getSheetByName('수업진도계획');
+      if (!sheet) return { success: false, message: '시트를 찾을 수 없습니다.' };
+      
+      const data = sheet.getDataRange().getValues();
+      const rowMap = {};
+      for (let i = 1; i < data.length; i++) {
+        const id = data[i][0];
+        if (id) rowMap[String(id)] = i; 
+      }
+      
+      const returnedIds = {};
+      const newRows = [];
+      const updateList = [];
+      
+      for (const p of payloadArray) {
+        const safeRow = [p.id||'', p.week||'', p.subject||'', p.content||'', getCurrentTime()];
+        if (p.id && rowMap[String(p.id)]) {
+          updateList.push({ rowIndex: rowMap[String(p.id)] + 1, rowData: safeRow });
+          returnedIds[p.id] = p.id;
+        } else {
+          const newId = (p.id && !String(p.id).startsWith('tmp-')) ? p.id : generateId();
+          safeRow[0] = newId;
+          newRows.push(safeRow);
+          returnedIds[p.id || newId] = newId;
+        }
+      }
+      
+      if (updateList.length > 0) {
+        for (const update of updateList) {
+          sheet.getRange(update.rowIndex, 1, 1, update.rowData.length).setNumberFormat('@').setValues([update.rowData]);
+        }
+      }
+      
+      if (newRows.length > 0) {
+        sheet.getRange(sheet.getLastRow() + 1, 1, newRows.length, newRows[0].length).setNumberFormat('@').setValues(newRows);
+      }
+      
+      return { success: true, returnedIds };
+    } catch (error) { return { success: false, message: error.message }; } finally { lock.releaseLock(); }
+  } else { return { success: false, message: '동시 접속 지연' }; }
+}
 
 function deleteData(sheetName, id) {
   const lock = LockService.getScriptLock();
@@ -174,7 +293,31 @@ function deleteData(sheetName, id) {
           return { success: true };
         }
       }
-      return { success: false, message: '해당 ID를 찾을 수 없습니다.' };
+      return { success: true };
+    } catch (error) { return { success: false, message: error.message }; } finally { lock.releaseLock(); }
+  } else { return { success: false, message: '동시 접속 지연' }; }
+}
+
+function deleteMultipleData(payload) {
+  const lock = LockService.getScriptLock();
+  if (lock.tryLock(10000)) {
+    try {
+      const ss = getDbSpreadsheet();
+      const sheet = ss.getSheetByName(payload.sheetName);
+      if (!sheet) return { success: false, message: '시트를 찾을 수 없습니다.' };
+      
+      const idsToDelete = payload.ids || [];
+      const data = sheet.getDataRange().getValues();
+      let deletedCount = 0;
+      
+      // Delete from bottom to top to avoid shifting indexes affecting the rows we want to delete
+      for (let i = data.length - 1; i > 0; i--) {
+        if (idsToDelete.includes(String(data[i][0]))) {
+          sheet.deleteRow(i + 1);
+          deletedCount++;
+        }
+      }
+      return { success: true, count: deletedCount };
     } catch (error) { return { success: false, message: error.message }; } finally { lock.releaseLock(); }
   } else { return { success: false, message: '동시 접속 지연' }; }
 }
