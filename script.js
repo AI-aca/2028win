@@ -839,7 +839,8 @@ const app = {
       if (isHoliday) {
         const holidayRow = this.data.timetables.find(r => r[1] === date && r[2] === '휴일');
         const holidayNote = holidayRow ? (holidayRow[8] || '') : '';
-        headHtml += `<td colspan="${this.dynamicCols.timetable.length + 2}" class="timetable-cell" data-id="${holidayRow?holidayRow[0]:''}" data-date="${date}" contenteditable="true" onblur="app.onTimetableHolidayBlur(this)" style="text-align:center; background:rgba(255,255,255,0.05); color:var(--text-muted); font-style:italic;">${holidayNote || '휴일/특이사항 입력'}</td>`;
+        headHtml += `<td colspan="2" class="fixed-col label-col" style="text-align:center; color:var(--text-muted); font-style:italic;">🏖️ 휴일</td>`;
+        headHtml += `<td colspan="${this.dynamicCols.timetable.length}" class="timetable-cell" data-id="${holidayRow?holidayRow[0]:''}" data-date="${date}" contenteditable="true" onblur="app.onTimetableHolidayBlur(this)" style="text-align:center; background:rgba(255,255,255,0.05); color:var(--text-muted); font-style:italic;">${holidayNote || '휴일/특이사항 입력'}</td>`;
       } else {
         headHtml += `<td class="fixed-col label-col"><input type="text" value="${start}" onblur="app.updatePivotRowTime(this, 'start', this.value)" placeholder="00:00" style="width:100%; background:transparent; border:none; color:inherit; text-align:center; outline:none; font-family:inherit; font-size:inherit; line-height:1; padding:0; margin:0;"></td>
         <td class="fixed-col label-col"><input type="text" value="${end}" onblur="app.updatePivotRowTime(this, 'end', this.value)" placeholder="00:00" style="width:100%; background:transparent; border:none; color:inherit; text-align:center; outline:none; font-family:inherit; font-size:inherit; line-height:1; padding:0; margin:0;"></td>`;
