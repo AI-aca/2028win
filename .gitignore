@@ -2,3 +2,5 @@ node_modules/
 scratch/
 백업/
 .env
+
+*.md
