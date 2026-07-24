@@ -1,7 +1,7 @@
 // Supabase 설정
 const SUPABASE_URL = "https://lkqvaovxiohkzgjsuwcd.supabase.co";
 const SUPABASE_KEY = "sb_publishable_ePWcQ0S9-DDaNRUdsyTG-g__3Jz6ziX";
-const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 
 const app = {
@@ -149,10 +149,10 @@ const app = {
           else if (sn === '강사관리') delTable = 'instructors';
           
           if (action === 'deleteData') {
-            const { error } = await supabase.from(delTable).delete().eq('id', payloadData.id);
+            const { error } = await supabaseClient.from(delTable).delete().eq('id', payloadData.id);
             if (error) throw error;
           } else {
-            const { error } = await supabase.from(delTable).delete().in('id', payloadData.ids);
+            const { error } = await supabaseClient.from(delTable).delete().in('id', payloadData.ids);
             if (error) throw error;
           }
           return { success: true };
@@ -165,10 +165,10 @@ const app = {
             for (let k in obj) lowerObj[k.toLowerCase()] = obj[k];
             return lowerObj;
           });
-          const { error } = await supabase.from(table).upsert(arrData);
+          const { error } = await supabaseClient.from(table).upsert(arrData);
           if (error) throw error;
         } else {
-          const { error } = await supabase.from(table).upsert(data);
+          const { error } = await supabaseClient.from(table).upsert(data);
           if (error) throw error;
         }
         return { success: true, id: data.id };
@@ -203,11 +203,11 @@ const app = {
     this.showLoading();
     try {
       const [preRes, curRes, ttRes, stuRes, insRes] = await Promise.all([
-        supabase.from('preschedules').select('*').order('date', { ascending: true }),
-        supabase.from('curriculums').select('*').order('week', { ascending: true }),
-        supabase.from('timetables').select('*').order('date', { ascending: true }).order('start', { ascending: true }),
-        supabase.from('students').select('*').order('created_at', { ascending: true }),
-        supabase.from('instructors').select('*').order('created_at', { ascending: true })
+        supabaseClient.from('preschedules').select('*').order('date', { ascending: true }),
+        supabaseClient.from('curriculums').select('*').order('week', { ascending: true }),
+        supabaseClient.from('timetables').select('*').order('date', { ascending: true }).order('start', { ascending: true }),
+        supabaseClient.from('students').select('*').order('created_at', { ascending: true }),
+        supabaseClient.from('instructors').select('*').order('created_at', { ascending: true })
       ]);
 
       const res = {
