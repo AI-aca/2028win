@@ -34,7 +34,7 @@ const app = {
 
     // 달력/시간 입력창 우클릭 시 플랫피커 팝업 반응 강제 차단 (깜빡임 방지)
     document.addEventListener('mousedown', (e) => {
-      if (e.button === 2 && e.target && e.target.classList.contains('date-picker-input')) {
+      if (e.button === 2 && e.target && (e.target.classList.contains('date-picker-input') || e.target.classList.contains('time-picker-input'))) {
         e.preventDefault();
       }
     }, true);
@@ -306,7 +306,14 @@ const app = {
           app.updatePivotRowDate(instance.element, dateStr);
         }
       });
+      const tp = flatpickr('.time-picker-input', { 
+        locale: "ko", enableTime: true, noCalendar: true, dateFormat: "H:i", time_24hr: true, minuteIncrement: 10,
+        onClose: function(selectedDates, dateStr, instance) {
+          app.updatePivotRowTime(instance.element, instance.element.getAttribute('data-type'), dateStr);
+        }
+      });
       if (dp) app.flatpickrInstances = app.flatpickrInstances.concat(dp);
+      if (tp) app.flatpickrInstances = app.flatpickrInstances.concat(tp);
     }
   },
 
@@ -832,17 +839,19 @@ const app = {
       const displayDate = isTmpDate ? '' : date;
       
       const idsForGrp = this.data.timetables.filter(r => r[1] === date && r[2] === type && r[3] === start && r[4] === end).map(r => r[0]).join(',');
-      
-      headHtml += `<tr data-ids="${idsForGrp}" data-grp="${grp}">
-        <td class="fixed-col label-col"><span class="drag-handle"></span><input type="text" class="date-picker-input" value="${displayDate}" placeholder="날짜 선택" style="width:100%; background:transparent; border:none; color:inherit; text-align:center; outline:none; font-family:inherit; font-size:inherit; line-height:1; cursor:pointer; padding:0; margin:0;"></td>`;
-      
+      headHtml += `<tr data-grp="${grp}" data-ids="${idsForGrp}"><td class="label-col" style="text-align:center;"><input type="text" class="date-picker-input" value="${displayDate}" placeholder="날짜 선택" style="width:100%; background:transparent; border:none; color:inherit; text-align:center; outline:none; font-family:inherit; font-size:inherit; line-height:1; cursor:pointer; padding:0; margin:0;"></td>`;
+
       if (isHoliday) {
         const holidayRow = this.data.timetables.find(r => r[1] === date && r[2] === '휴일');
-        const holidayNote = holidayRow ? (holidayRow[8] || '') : '';
-        headHtml += `<td colspan="${this.dynamicCols.timetable.length + 2}" class="timetable-cell" data-id="${holidayRow?holidayRow[0]:''}" data-date="${date}" contenteditable="true" onblur="app.onTimetableHolidayBlur(this)" style="text-align:center; background:rgba(255,255,255,0.05); color:var(--text-muted); font-style:italic;">${holidayNote || '휴일/특이사항 입력'}</td>`;
+        const holidayNote = holidayRow ? holidayRow[8] : '';
+        const holidayId = holidayRow ? holidayRow[0] : '';
+        headHtml += `
+          <td colspan="2" class="label-col holiday-row" style="text-align:center; color:#f43f5e; font-weight:bold;">휴일</td>
+          <td colspan="${this.dynamicCols.timetable.length}" contenteditable="true" data-id="${holidayId}" data-date="${date}" onblur="app.onTimetableHolidayBlur(this)" onkeydown="app.onKeyDown(event, this)" placeholder="어떠한 휴일인가요? (비고 입력)" style="text-align:center; color:#94a3b8;">${holidayNote}</td>`;
       } else {
-        headHtml += `<td class="fixed-col label-col"><input type="text" value="${start}" onblur="app.updatePivotRowTime(this, 'start', this.value)" placeholder="00:00" style="width:100%; background:transparent; border:none; color:inherit; text-align:center; outline:none; font-family:inherit; font-size:inherit; line-height:1; padding:0; margin:0;"></td>
-        <td class="fixed-col label-col"><input type="text" value="${end}" onblur="app.updatePivotRowTime(this, 'end', this.value)" placeholder="00:00" style="width:100%; background:transparent; border:none; color:inherit; text-align:center; outline:none; font-family:inherit; font-size:inherit; line-height:1; padding:0; margin:0;"></td>`;
+        headHtml += `
+          <td class="label-col" style="text-align:center;"><input type="text" class="time-picker-input" data-type="start" value="${start}" placeholder="00:00" style="width:100%; background:transparent; color:white; border:none; outline:none; text-align:center; font-family:inherit; font-size:inherit; line-height:1; cursor:pointer; padding:0; margin:0;" required></td>
+          <td class="label-col" style="text-align:center;"><input type="text" class="time-picker-input" data-type="end" value="${end}" placeholder="00:00" style="width:100%; background:transparent; color:white; border:none; outline:none; text-align:center; font-family:inherit; font-size:inherit; line-height:1; cursor:pointer; padding:0; margin:0;" required></td>`;
         this.dynamicCols.timetable.forEach(cls => {
           const row = this.data.timetables.find(r => r[1] === date && r[2] === type && r[3] === start && r[4] === end && r[5] === cls);
           let displayStr = row && (row[6] || row[7]) ? `${row[6]||''}${row[7]?'('+row[7]+')':''}` : '';
@@ -867,11 +876,9 @@ const app = {
     const newGrp = [newDate, oldType, oldStart, oldEnd].join('|');
     const payloadArray = [];
     const rowsToSave = [];
-    const rollbackData = [];
     
     this.data.timetables.forEach(r => {
       if (r[1] === oldDate && r[2] === oldType && r[3] === oldStart && r[4] === oldEnd) {
-        rollbackData.push({ row: r, oldDate: r[1] });
         r[1] = newDate;
         rowsToSave.push(r);
         payloadArray.push({ id: r[0], date: r[1], type: r[2], start: r[3], end: r[4], className: r[5], subject: r[6], instructor: r[7], note: r[8] });
@@ -889,14 +896,8 @@ const app = {
         const res = await this.apiPost('upsertMultipleTimetables', { payloadArray });
         if (res && res.success && res.returnedIds) {
           rowsToSave.forEach(r => { if (res.returnedIds[r[0]]) r[0] = res.returnedIds[r[0]]; });
-        } else {
-          rollbackData.forEach(rb => { rb.row[1] = rb.oldDate; });
-          app.renderView('timetable');
         }
-      } catch(e) {
-        rollbackData.forEach(rb => { rb.row[1] = rb.oldDate; });
-        app.renderView('timetable');
-      }
+      } catch(e) {}
     }
   },
 
@@ -916,20 +917,6 @@ const app = {
   },
 
   updatePivotRowTime: async function(el, type, newTimeStr) {
-    // 자동 포맷: 숫자만 추출 후 HH:MM (24시간) 변환
-    if (newTimeStr) {
-      const digits = newTimeStr.replace(/\D/g, '');
-      if (digits.length > 0) {
-        let h, m;
-        if (digits.length <= 2) { h = parseInt(digits, 10); m = 0; }
-        else if (digits.length === 3) { h = parseInt(digits[0], 10); m = parseInt(digits.substring(1), 10); }
-        else { h = parseInt(digits.substring(0, 2), 10); m = parseInt(digits.substring(2, 4), 10); }
-        if (h > 23) h = 23;
-        if (m > 59) m = 59;
-        newTimeStr = String(h).padStart(2, '0') + ':' + String(m).padStart(2, '0');
-        el.value = newTimeStr;
-      }
-    }
     if(!newTimeStr) return;
     const tr = el.closest('tr');
     if(!tr) return;
@@ -954,11 +941,9 @@ const app = {
     
     const newGrp = [oldDate, oldType, newStart, newEnd].join('|');
     const rowsToSave = [];
-    const rollbackData = [];
 
     this.data.timetables.forEach(r => {
       if (ids.includes(String(r[0])) || ids.includes(String(r[9]))) {
-        rollbackData.push({ row: r, oldStart: r[3], oldEnd: r[4] });
         r[3] = newStart; r[4] = newEnd;
         rowsToSave.push(r);
       }
@@ -972,23 +957,33 @@ const app = {
       c.setAttribute('data-end', newEnd);
     });
 
-    const payloadArray = rowsToSave.map(r => ({ id: r[0], date: r[1], type: r[2], start: r[3], end: r[4], className: r[5], subject: r[6], instructor: r[7], note: r[8] }));
-    try {
-      const res = await this.apiPost('upsertMultipleTimetables', { payloadArray });
-      if (res && res.success && res.returnedIds) {
-        rowsToSave.forEach(r => { if (res.returnedIds[r[0]]) r[0] = res.returnedIds[r[0]]; });
-        const newIds = rowsToSave.map(r => r[0]).join(',');
-        tr.setAttribute('data-ids', newIds);
-      } else {
-        app.showToast('저장 실패: ' + (res ? res.message : '알 수 없는 에러'), true);
-        rollbackData.forEach(rb => { rb.row[3] = rb.oldStart; rb.row[4] = rb.oldEnd; });
-        app.renderView(app.currentView.replace('view-', ''));
-      }
-    } catch(e) {
-      app.showToast('저장 중 예외 발생: ' + e.message, true);
-      rollbackData.forEach(rb => { rb.row[3] = rb.oldStart; rb.row[4] = rb.oldEnd; });
-      app.renderView(app.currentView.replace('view-', ''));
+    if (!this.saveTimeoutMap) this.saveTimeoutMap = {};
+    
+    let debounceKey = tr.getAttribute('data-debounce-key');
+    if (!debounceKey) {
+      debounceKey = 'db_' + Date.now() + '_' + Math.random();
+      tr.setAttribute('data-debounce-key', debounceKey);
     }
+    
+    if (this.saveTimeoutMap[debounceKey]) {
+      clearTimeout(this.saveTimeoutMap[debounceKey]);
+    }
+
+    this.saveTimeoutMap[debounceKey] = setTimeout(async () => {
+      const payloadArray = rowsToSave.map(r => ({ id: r[0], date: r[1], type: r[2], start: r[3], end: r[4], className: r[5], subject: r[6], instructor: r[7], note: r[8] }));
+      try {
+        const res = await this.apiPost('upsertMultipleTimetables', { payloadArray });
+        if (res && res.success && res.returnedIds) {
+          rowsToSave.forEach(r => { if (res.returnedIds[r[0]]) r[0] = res.returnedIds[r[0]]; });
+          const newIds = rowsToSave.map(r => r[0]).join(',');
+          tr.setAttribute('data-ids', newIds);
+        } else if (res && !res.success) {
+          app.showToast('저장 실패: ' + (res.message || '알 수 없는 에러'), true);
+        }
+      } catch(e) {
+        app.showToast('저장 중 예외 발생: ' + e.message, true);
+      }
+    }, 800);
   },
 
   onTimetableHolidayBlur: function(cell) {
@@ -1076,69 +1071,44 @@ const app = {
     }
   },
 
-  saveTimetableEditor: async function(id, date, start, end, cls) {
+  saveTimetableEditor: function(id, date, start, end, cls) {
     const modal = document.getElementById('timetable-editor-modal');
     if(!modal) return;
     const subject = modal.querySelector('#tt-edit-subject').value;
     const instructor = modal.querySelector('#tt-edit-instructor').value;
 
     let rowObj = this.data.timetables.find(r => r[1] === date && r[2] === '수업' && r[3] === start && r[4] === end && r[5] === cls);
-    const rollbackData = {};
-    let isNew = false;
-    
     if (!rowObj) {
       rowObj = [id || '', date, '수업', start, end, cls, subject, instructor, '', ''];
       this.data.timetables.push(rowObj);
-      isNew = true;
     } else {
-      rollbackData.oldSubject = rowObj[6];
-      rollbackData.oldInstructor = rowObj[7];
       rowObj[6] = subject;
       rowObj[7] = instructor;
     }
 
-    try {
-      const res = await this.apiPost('upsertTimetable', { id: rowObj[0], date: rowObj[1], type: rowObj[2], start: rowObj[3], end: rowObj[4], className: rowObj[5], subject: rowObj[6], instructor: rowObj[7], note: rowObj[8] });
-      if(res && res.success && res.id) { rowObj[0] = res.id; }
-      else {
-        if (isNew) { this.data.timetables.pop(); } 
-        else { rowObj[6] = rollbackData.oldSubject; rowObj[7] = rollbackData.oldInstructor; }
-        app.showToast('저장 실패: ' + (res ? res.message : '알 수 없는 에러'), true);
-      }
-    } catch(e) {
-      if (isNew) { this.data.timetables.pop(); } 
-      else { rowObj[6] = rollbackData.oldSubject; rowObj[7] = rollbackData.oldInstructor; }
-      app.showToast('저장 중 예외 발생: ' + e.message, true);
-    }
+    this.apiPost('upsertTimetable', { id: rowObj[0], date: rowObj[1], type: rowObj[2], start: rowObj[3], end: rowObj[4], className: rowObj[5], subject: rowObj[6], instructor: rowObj[7], note: rowObj[8] }).then(res => {
+      if(res.success && res.id) { rowObj[0] = res.id; }
+    });
 
-    const overlay = document.getElementById('timetable-editor-overlay');
-    if(overlay) overlay.remove();
+    document.getElementById('timetable-editor-overlay').remove();
     modal.remove();
     
     this.renderView('timetable');
   },
 
-  updatePivotRowLabel: async function(type, oldLabel, newLabel) {
+  updatePivotRowLabel: function(type, oldLabel, newLabel) {
     newLabel = newLabel.replace(/<span class="drag-handle">.*?<\/span>/g, '').trim();
     if(!newLabel || oldLabel === newLabel) return;
     if(type === 'curriculum') {
       const payloadArray = [];
-      const rollbackData = [];
       this.data.curriculums.forEach(r => {
         if(r[1] === oldLabel) { 
-          rollbackData.push({ row: r, oldWeek: r[1] });
           r[1] = newLabel; 
           payloadArray.push({id: r[0], week: newLabel, subject: r[2], content: r[3], note: ''});
         }
       });
       if (payloadArray.length > 0) {
-        try {
-          const res = await this.apiPost('upsertMultipleCurriculums', { payloadArray });
-          if (!res || !res.success) throw new Error(res ? res.message : '알 수 없는 에러');
-        } catch(e) {
-          app.showToast('저장 실패: ' + e.message, true);
-          rollbackData.forEach(rb => { rb.row[1] = rb.oldWeek; });
-        }
+        this.apiPost('upsertMultipleCurriculums', { payloadArray });
       }
     }
     this.renderView(type);
@@ -1149,7 +1119,7 @@ const app = {
     document.getElementById('generic-modal-title').innerText = title;
     document.getElementById('generic-modal-body').innerHTML = `<div class="form-group"><label>${type === 'curriculum' ? '과목명' : '반이름'}</label><input type="text" id="new-col-input" class="form-control"></div>`;
     document.getElementById('modal-container').classList.remove('hidden'); document.getElementById('generic-modal').classList.remove('hidden');
-    this.currentModalAction = async () => {
+    this.currentModalAction = () => {
       const val = document.getElementById('new-col-input').value.trim();
       if(val) {
         if(type === 'curriculum' && !this.dynamicCols.curriculum.includes(val)) {
@@ -1158,42 +1128,25 @@ const app = {
             const newId = 'f-' + Date.now().toString(36) + '-' + Math.random().toString(36).substr(2, 5);
             const rowObj = [newId, week, val, '', ''];
             this.data.curriculums.push(rowObj);
-            try {
-              const res = await this.apiPost('upsertCurriculum', { id: newId, week, subject: val, content: '', note: '' });
-              if(res && res.success) rowObj[0] = res.id;
-              else throw new Error(res ? res.message : '알 수 없는 에러');
-            } catch(e) {
-              app.showToast('저장 실패: ' + e.message, true);
-              this.dynamicCols.curriculum.pop();
-              this.data.curriculums.pop();
-            }
+            this.apiPost('upsertCurriculum', { id: newId, week, subject: val, content: '', note: '' }).then(res => { if(res.success) rowObj[0] = res.id; });
         }
         if(type === 'timetable' && !this.dynamicCols.timetable.includes(val)) {
             this.dynamicCols.timetable.push(val);
             const rowGroups = Array.from(new Set(this.data.timetables.map(r => r[1] + '|' + r[2] + '|' + r[3] + '|' + r[4]).filter(t => t !== '|||')));
             const payloadArray = [];
-            let addedCount = 0;
             rowGroups.forEach(grp => {
               const [date, tType, start, end] = grp.split('|');
               const newId = 'f-' + Date.now().toString(36) + '-' + Math.random().toString(36).substr(2, 5);
               const rowObj = [newId, date, tType, start, end, val, '', '', '', ''];
               this.data.timetables.push(rowObj);
               payloadArray.push({ id: newId, date, type: tType, start, end, className: val, subject: '', instructor: '', note: '' });
-              addedCount++;
             });
             if (payloadArray.length > 0) {
-              try {
-                const res = await this.apiPost('upsertMultipleTimetables', { payloadArray });
+              this.apiPost('upsertMultipleTimetables', { payloadArray }).then(res => {
                 if (res && res.success && res.returnedIds) {
                   this.data.timetables.forEach(r => { if (res.returnedIds[r[0]]) r[0] = res.returnedIds[r[0]]; });
-                } else {
-                  throw new Error(res ? res.message : '알 수 없는 에러');
                 }
-              } catch(e) {
-                app.showToast('저장 실패: ' + e.message, true);
-                this.dynamicCols.timetable.pop();
-                this.data.timetables.splice(-addedCount, addedCount);
-              }
+              });
             }
         }
         this.renderView(type);

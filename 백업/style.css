@@ -258,13 +258,8 @@ body {
 }
 .excel-table th.fixed-col, .excel-table td.label-col {
   position: sticky;
-  z-index: 2;
-}
-.excel-table th.fixed-col {
   background: #1e293b !important;
-}
-.excel-table td.label-col {
-  background: #0f172a !important; /* 일반 셀과 동일한 앱 배경색 */
+  z-index: 2;
 }
 .excel-table th.fixed-col {
   z-index: 3 !important;
@@ -426,7 +421,29 @@ span.flatpickr-weekday {
 .flatpickr-prev-month:hover svg, .flatpickr-next-month:hover svg {
   fill: var(--primary) !important;
 }
+.flatpickr-time {
+  border-top: 1px solid var(--border-glass) !important;
+  max-height: 40px !important;
+}
+.flatpickr-calendar.noCalendar {
+  max-width: 140px !important;
+  min-width: 140px !important;
+}
+.flatpickr-time input {
+  font-size: 14px !important;
+}
+.flatpickr-time input:hover, .flatpickr-time .flatpickr-am-pm:hover, .flatpickr-time input:focus, .flatpickr-time .flatpickr-am-pm:focus {
+  background: rgba(255, 255, 255, 0.1) !important;
+}
+.numInputWrapper span.arrowUp:after { border-bottom-color: var(--text-muted) !important; }
+.numInputWrapper span.arrowDown:after { border-top-color: var(--text-muted) !important; }
+.numInputWrapper:hover span.arrowUp:after { border-bottom-color: var(--primary) !important; }
+.numInputWrapper:hover span.arrowDown:after { border-top-color: var(--primary) !important; }
 
+.time-picker-input {
+  margin: 0 !important;
+  padding: 0 !important;
+}
 
 .label-col-header {
   background: #1e293b !important;

@@ -91,44 +91,37 @@ function getDbSpreadsheet() {
 }
 
 function getInitialData() {
-  const lock = LockService.getScriptLock();
-  if (lock.tryLock(10000)) {
-    try {
-      const ss = getDbSpreadsheet();
-      const result = { success: true };
-      const sheetNames = ['사전준비일정', '수업진도계획', '시간표', '학생관리', '강사관리'];
-      
-      sheetNames.forEach(name => {
-        const sheet = ss.getSheetByName(name);
-        if (sheet) {
-          const data = sheet.getDataRange().getValues();
-          result[name] = data.length > 1 ? data.slice(1) : [];
-        } else {
-          result[name] = [];
-        }
-      });
-      
-      try {
-        result.uiSettings = PropertiesService.getScriptProperties().getProperties() || {};
-      } catch(e) {
-        result.uiSettings = {};
+  try {
+    const ss = getDbSpreadsheet();
+    const result = { success: true };
+    const sheetNames = ['사전준비일정', '수업진도계획', '시간표', '학생관리', '강사관리'];
+    
+    sheetNames.forEach(name => {
+      const sheet = ss.getSheetByName(name);
+      if (sheet) {
+        const data = sheet.getDataRange().getValues();
+        result[name] = data.length > 1 ? data.slice(1) : [];
+      } else {
+        result[name] = [];
       }
-
-      return result;
-    } catch (error) {
-      return { success: false, error: error.message };
-    } finally {
-      lock.releaseLock();
+    });
+    
+    try {
+      result.uiSettings = PropertiesService.getScriptProperties().getProperties() || {};
+    } catch(e) {
+      result.uiSettings = {};
     }
-  } else {
-    return { success: false, error: '동시 접속 지연' };
+
+    return result;
+  } catch (error) {
+    return { success: false, error: error.message };
   }
 }
 
 function generateId() { return Utilities.getUuid(); }
 function getCurrentTime() { return new Date().toLocaleString('ko-KR', { timeZone: 'Asia/Seoul' }); }
 
-function upsertRow(sheetName, id, rowDataArray) {
+function upsertRow(sheetName, id, rowDataArray, insertIndex) {
   const lock = LockService.getScriptLock();
   if (lock.tryLock(10000)) {
     try {
@@ -153,8 +146,21 @@ function upsertRow(sheetName, id, rowDataArray) {
       rowDataArray[rowDataArray.length - 1] = getCurrentTime();
       const safeRowDataArray = rowDataArray.map(v => v === undefined ? '' : v);
       
-      const lastRowIdx = sheet.getLastRow() + 1;
-      sheet.getRange(lastRowIdx, 1, 1, safeRowDataArray.length).setNumberFormat('@').setValues([safeRowDataArray]);
+      if (insertIndex !== undefined && insertIndex !== null && insertIndex !== '') {
+        const targetRowIdx = parseInt(insertIndex, 10) + 2; 
+        if (targetRowIdx >= 2 && targetRowIdx <= sheet.getLastRow() + 1) {
+          if (targetRowIdx <= sheet.getLastRow()) {
+            sheet.insertRowBefore(targetRowIdx);
+          }
+          sheet.getRange(targetRowIdx, 1, 1, safeRowDataArray.length).setNumberFormat('@').setValues([safeRowDataArray]);
+        } else {
+          const lastRowIdx = sheet.getLastRow() + 1;
+          sheet.getRange(lastRowIdx, 1, 1, safeRowDataArray.length).setNumberFormat('@').setValues([safeRowDataArray]);
+        }
+      } else {
+        const lastRowIdx = sheet.getLastRow() + 1;
+        sheet.getRange(lastRowIdx, 1, 1, safeRowDataArray.length).setNumberFormat('@').setValues([safeRowDataArray]);
+      }
       
       return { success: true, message: '추가 완료', id: newId };
     } catch (error) {
@@ -167,14 +173,14 @@ function upsertRow(sheetName, id, rowDataArray) {
   }
 }
 
-function upsertPreSchedule(p) { return upsertRow('사전준비일정', p.id, [p.id, p.date, p.content, p.status, p.note, '']); }
-function upsertCurriculum(p) { return upsertRow('수업진도계획', p.id, [p.id, p.week, p.subject, p.content, '']); }
+function upsertPreSchedule(p) { return upsertRow('사전준비일정', p.id, [p.id, p.date, p.content, p.status, p.note, ''], p.insertIndex); }
+function upsertCurriculum(p) { return upsertRow('수업진도계획', p.id, [p.id, p.week, p.subject, p.content, ''], p.insertIndex); }
 function upsertTimetable(p) {
   const safeDate = String(p.date || '').startsWith('tmp-') ? '' : (p.date || '');
-  return upsertRow('시간표', p.id, [p.id, safeDate, p.type, p.start, p.end, p.className, p.subject, p.instructor, p.note, '']);
+  return upsertRow('시간표', p.id, [p.id, safeDate, p.type, p.start, p.end, p.className, p.subject, p.instructor, p.note, ''], p.insertIndex);
 }
-function upsertStudent(p) { return upsertRow('학생관리', p.id, [p.id, p.name, p.center, p.school, p.grade, p.parentPhone, p.studentPhone, p.note, '']); }
-function upsertInstructor(p) { return upsertRow('강사관리', p.id, [p.id, p.instructorName, p.subject, p.subSubject, p.phone, p.email, p.note, '']); }
+function upsertStudent(p) { return upsertRow('학생관리', p.id, [p.id, p.name, p.center, p.school, p.grade, p.parentPhone, p.studentPhone, p.note, ''], p.insertIndex); }
+function upsertInstructor(p) { return upsertRow('강사관리', p.id, [p.id, p.instructorName, p.subject, p.subSubject, p.phone, p.email, p.note, ''], p.insertIndex); }
 
 function upsertMultipleTimetables(payloadArray) {
   const lock = LockService.getScriptLock();
