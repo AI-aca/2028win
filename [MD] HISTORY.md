@@ -34,3 +34,13 @@
 
 ## 2026-07-24
 - 시간표 및 진도계획 중간 행 삽입 위치 오작동 버그 수정 완료 (`Code.gs`, `script.js` 수정 반영)
+- **[CRITICAL] 저장/불러오기 9건 버그 전수 분석 및 수정 완료**:
+  - BUG-1: 시간표 시간 연속 수정 시 Race Condition 해소 (DOM 낙관적 업데이트로 전환)
+  - BUG-2: 단일 행 upsert 시 `.setNumberFormat('@')` 누락으로 시간 데이터 자동변환 파괴 수정
+  - BUG-3: 수업진도계획 스키마 밀림 해소 (헤더 5개 vs 데이터 6개 → 5개로 통일)
+  - BUG-4: 기존 행 업데이트 시 등록일시 영구 삭제 → 기존 값 보존 로직 추가
+  - BUG-5: updatePivotRowDate 동일 Race Condition 해소
+  - BUG-6: 강사관리 키 매핑 주석 추가 (유지보수성 향상)
+  - BUG-7: UI 설정 키 불일치 수정 (`res['UI설정']` → `res.uiSettings`)
+  - BUG-9: doPost 글로벌 Lock 제거 (이중 잠금 해소)
+  - 수정 파일: `Code.gs`, `script.js`
