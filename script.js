@@ -890,6 +890,8 @@ const app = {
         const res = await this.apiPost('upsertMultipleTimetables', { payloadArray });
         if (res && res.success && res.returnedIds) {
           rowsToSave.forEach(r => { if (res.returnedIds[r[0]]) r[0] = res.returnedIds[r[0]]; });
+          const newIds = rowsToSave.map(r => r[0]).join(',');
+          tr.setAttribute('data-ids', newIds);
         } else {
           rollbackData.forEach(rb => { rb.row[1] = rb.oldDate; });
           app.renderView('timetable');
