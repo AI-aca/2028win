@@ -462,7 +462,7 @@ const app = {
   },
 
   renderView: function(viewName) {
-    if (viewName === 'preschedule') this.renderFlatTable('preschedule', this.data.preschedules, [{label:'일자', idx:1, fixed:true, width:'10%', left:'0'}, {label:'상태', idx:3, fixed:true, width:'10%', left:'10%'}, {label:'내용', idx:2}, {label:'비고', idx:4}]);
+    if (viewName === 'preschedule') this.renderFlatTable('preschedule', this.data.preschedules, [{label:'일자', idx:1, fixed:true, width:'12%', left:'0'}, {label:'상태', idx:3, fixed:true, width:'10%', left:'12%'}, {label:'내용', idx:2}, {label:'비고', idx:4}]);
     else if (viewName === 'student') this.renderFlatTable('student', this.data.students, [{label:'학생명', idx:1, fixed:true, width:'6%', left:'0'}, {label:'센터', idx:2}, {label:'학교', idx:3}, {label:'학년', idx:4}, {label:'학부모 연락처', idx:5}, {label:'학생 연락처', idx:6}, {label:'비고', idx:7}]);
     else if (viewName === 'instructor') this.renderFlatTable('instructor', this.data.instructors, [{label:'강사명', idx:1, fixed:true, width:'6%', left:'0'}, {label:'영역', idx:2}, {label:'과목', idx:3}, {label:'연락처', idx:4}, {label:'지메일', idx:5}, {label:'비고', idx:6}]);
     else if (viewName === 'curriculum') this.renderCurriculumPivot('curriculum');
@@ -981,15 +981,15 @@ const app = {
     grps.forEach(grp => {
       const [week, hoicha] = grp.split('|');
       headHtml += `<tr data-week="${week}">
-      <td class="fixed-col label-col" style="font-weight:bold; text-align:center; left:0;" contenteditable="true" onblur="app.updatePivotRowLabel('${type}', '${week}', '${hoicha}', this.innerText.trim())">${week}</td>`;
+      <td class="fixed-col label-col" data-cell-key="tt_fmt_curr_wk_${grp}" style="font-weight:bold; text-align:center; left:0;" contenteditable="true" onblur="app.updatePivotRowLabel('${type}', '${week}', '${hoicha}', this.innerText.trim())">${week}</td>`;
       const firstRow = dataArr.find(r => r[1] === week && (r[4] || '') === hoicha);
-      headHtml += `<td class="fixed-col label-col" style="text-align:center; left:5%;" contenteditable="true" data-id="${firstRow ? firstRow[0] : ''}" data-week="${week}" data-sub="hoicha" onblur="app.onCurriculumHoichaBlur(this, '${type}', '${week}', '${hoicha}')">${hoicha}</td>`;
+      headHtml += `<td class="fixed-col label-col" data-cell-key="tt_fmt_curr_hc_${grp}" style="text-align:center; left:5%;" contenteditable="true" data-id="${firstRow ? firstRow[0] : ''}" data-week="${week}" data-sub="hoicha" onblur="app.onCurriculumHoichaBlur(this, '${type}', '${week}', '${hoicha}')">${hoicha}</td>`;
       dynCols.forEach(sub => {
         const row = dataArr.find(r => r[1] === week && r[2] === sub);
         const content = row ? row[3] : '';
         const id = row ? row[0] : '';
         let bgStyle = id && this.uiSettings['cell_bg_' + id] ? `background-color:${this.uiSettings['cell_bg_' + id]};` : '';
-        headHtml += `<td contenteditable="true" data-id="${id}" data-week="${week}" data-sub="${sub}" onblur="app.onCurriculumBlur(this, '${type}')" onkeydown="app.onKeyDown(event, this)" style="${bgStyle}">${content}</td>`;
+        headHtml += `<td contenteditable="true" data-cell-key="cell_bg_${id}" data-id="${id}" data-week="${week}" data-sub="${sub}" onblur="app.onCurriculumBlur(this, '${type}')" onkeydown="app.onKeyDown(event, this)" style="${bgStyle}">${content}</td>`;
       });
       headHtml += `</tr>`;
     });
@@ -1079,7 +1079,7 @@ const app = {
 
   renderTimetablePivot: function() {
     const table = document.querySelector('#view-timetable .excel-table');
-    let headHtml = `<thead><tr><th class="label-col-header fixed-col" style="width:10%; left:0;">일자</th><th class="label-col-header fixed-col" style="width:5%; left:10%;">주차</th><th class="label-col-header fixed-col" style="width:5%; left:15%;">회차</th><th class="label-col-header fixed-col" style="width:6%; left:20%;">시작 시간</th><th class="label-col-header fixed-col" style="width:6%; left:26%;">종료 시간</th>`;
+    let headHtml = `<thead><tr><th class="label-col-header fixed-col" style="width:12%; left:0;">일자</th><th class="label-col-header fixed-col" style="width:5%; left:12%;">주차</th><th class="label-col-header fixed-col" style="width:5%; left:17%;">회차</th><th class="label-col-header fixed-col" style="width:8%; left:22%;">시작 시간</th><th class="label-col-header fixed-col" style="width:8%; left:30%;">종료 시간</th>`;
     this.dynamicCols.timetable.forEach(cls => {
       headHtml += `<th data-colname="${cls}" onclick="app.editTimetableClassName('${cls}')" style="cursor:pointer;" title="클릭하여 반 이름 수정">${cls}</th>`;
     });
@@ -1101,17 +1101,27 @@ const app = {
       const firstRow = this.data.timetables.find(r => r[1] === date && r[2] === type && r[3] === start && r[4] === end);
       const hoicha = firstRow ? (firstRow[8] || '') : '';
       const weekVal = this.uiSettings['tt_week_' + grp] || '';
-      headHtml += `<td class="fixed-col label-col" style="text-align:center; left:10%;" contenteditable="true" onblur="app.updateTimetableWeek(this, '${grp}')">${weekVal}</td>`;
-      headHtml += `<td class="fixed-col label-col" style="text-align:center; left:15%;" contenteditable="true" onblur="app.updateTimetableHoicha(this, '${grp}')">${hoicha}</td>`;
+      headHtml += `<td class="fixed-col label-col" data-cell-key="tt_fmt_ttwk_${grp}" style="text-align:center; left:12%;" contenteditable="true" onblur="app.updateTimetableWeek(this, '${grp}')">${weekVal}</td>`;
+      headHtml += `<td class="fixed-col label-col" data-cell-key="tt_fmt_tthc_${grp}" style="text-align:center; left:17%;" contenteditable="true" onblur="app.updateTimetableHoicha(this, '${grp}')">${hoicha}</td>`;
 
       if (isHoliday) {
         const holidayRow = this.data.timetables.find(r => r[1] === date && r[2] === '휴일');
         const holidayNote = holidayRow ? (holidayRow[8] || '') : '';
-        headHtml += `<td colspan="3" class="fixed-col label-col" style="text-align:center; left:10%; color:var(--text-muted); font-style:italic;">🏖️ 휴일</td>`;
+        headHtml += `<td colspan="3" class="fixed-col label-col" data-cell-key="tt_fmt_hol_${grp}" style="text-align:center; left:12%; color:var(--text-muted); font-style:italic;">🏖️ 휴일</td>`;
         headHtml += `<td colspan="${this.dynamicCols.timetable.length}" class="timetable-cell" data-id="${holidayRow?holidayRow[0]:''}" data-date="${date}" contenteditable="true" onblur="app.onTimetableHolidayBlur(this)" style="text-align:center; background:rgba(255,255,255,0.05); color:var(--text-muted); font-style:italic;">${holidayNote || '휴일/특이사항 입력'}</td>`;
       } else {
-        headHtml += `<td class="fixed-col label-col" style="left:20%; text-align:center; cursor:pointer;" onclick="app.openTimePicker(this, 'start')" title="클릭하여 시간 선택">${start || '00:00'}</td>
-        <td class="fixed-col label-col" style="left:26%; text-align:center; cursor:pointer;" onclick="app.openTimePicker(this, 'end')" title="클릭하여 시간 선택">${end || '00:00'}</td>`;
+        headHtml += `<td class="fixed-col label-col" style="left:22%;" data-cell-key="tt_fmt_st_${grp}">
+          <div style="display:flex; align-items:center; justify-content:center; gap:5px; width:100%;">
+            <div contenteditable="true" onblur="app.updatePivotRowTime(this.closest('td'), 'start', this.innerText.trim())" style="outline:none; min-width:30px;">${start || '00:00'}</div>
+            <span onclick="app.openTimePicker(this.closest('td'), 'start')" style="cursor:pointer;" title="시간 선택">🕒</span>
+          </div>
+        </td>
+        <td class="fixed-col label-col" style="left:30%;" data-cell-key="tt_fmt_et_${grp}">
+          <div style="display:flex; align-items:center; justify-content:center; gap:5px; width:100%;">
+            <div contenteditable="true" onblur="app.updatePivotRowTime(this.closest('td'), 'end', this.innerText.trim())" style="outline:none; min-width:30px;">${end || '00:00'}</div>
+            <span onclick="app.openTimePicker(this.closest('td'), 'end')" style="cursor:pointer;" title="시간 선택">🕒</span>
+          </div>
+        </td>`;
         this.dynamicCols.timetable.forEach(cls => {
           const row = this.data.timetables.find(r => r[1] === date && r[2] === type && r[3] === start && r[4] === end && r[5] === cls);
           let subject = row && row[6] ? row[6] : '';
