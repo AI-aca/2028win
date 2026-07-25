@@ -664,7 +664,7 @@ const app = {
           if (!this.resizeTooltip) {
             this.resizeTooltip = document.createElement('div');
             this.resizeTooltip.className = 'resize-tooltip';
-            this.resizeTooltip.style.cssText = 'position: fixed; background: rgba(0,0,0,0.8); color: #06b6d4; padding: 4px 8px; border-radius: 4px; font-size: 13px; font-weight: 600; pointer-events: none; z-index: 9999; box-shadow: 0 2px 10px rgba(0,0,0,0.5); border: 1px solid rgba(6,182,212,0.3); transition: none;';
+            this.resizeTooltip.style.cssText = 'position: fixed; background: rgba(0,0,0,0.8); color: #06b6d4; padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: 600; pointer-events: none; z-index: 9999; box-shadow: 0 2px 10px rgba(0,0,0,0.5); border: 1px solid rgba(6,182,212,0.3); transition: none;';
             document.body.appendChild(this.resizeTooltip);
           }
           this.resizeTooltip.style.left = (e.clientX + 15) + 'px';
@@ -791,7 +791,7 @@ const app = {
           const statusTxt = isDone ? '🟢 완료' : '🟡 진행 중';
           const txtColor = isDone ? '#10b981' : '#ffffff';
           const fw = isDone ? '600' : 'normal';
-          html += `<td data-col-idx="${colIdx}" class="status-cell ${isFixed ? 'fixed-col label-col' : ''}" style="text-align:center; cursor:pointer; ${leftStr}" onclick="app.toggleStatus(this.querySelector('span'), '${type}', ${colIdx})"><span style="font-weight:${fw}; color:${txtColor}; font-size:13px; user-select:none; transition:all 0.2s; padding:4px 8px; border-radius:4px;" onmouseover="this.style.backgroundColor='rgba(255,255,255,0.05)'" onmouseout="this.style.backgroundColor='transparent'">${statusTxt}</span></td>`;
+          html += `<td data-col-idx="${colIdx}" class="status-cell ${isFixed ? 'fixed-col label-col' : ''}" style="text-align:center; cursor:pointer; ${leftStr}" onclick="app.toggleStatus(this.querySelector('span'), '${type}', ${colIdx})"><span style="font-weight:${fw}; color:${txtColor}; font-size:12px; user-select:none; transition:all 0.2s; padding:4px 8px; border-radius:4px;" onmouseover="this.style.backgroundColor='rgba(255,255,255,0.05)'" onmouseout="this.style.backgroundColor='transparent'">${statusTxt}</span></td>`;
         } else if (type === 'instructor' && colIdx === 2) {
           html += `<td ${cellClassStr} data-col-idx="${colIdx}" onclick="app.openInstructorSelectModal(this, 'area')" style="cursor:pointer; text-align:center;">${val}</td>`;
         } else if (type === 'instructor' && colIdx === 3) {
@@ -1427,7 +1427,7 @@ const app = {
     let html = '';
     this.managedSubjects.forEach((sub, idx) => {
       html += `<div style="display:flex; align-items:center; background:rgba(255,255,255,0.1); padding:5px 10px; border-radius:20px; font-size:13px;">
-        ${sub.emoji} ${sub.name} <span style="font-size:13px; margin-left:5px; opacity:0.6;">(${sub.category})</span>
+        ${sub.emoji} ${sub.name} <span style="font-size:10px; margin-left:5px; opacity:0.6;">(${sub.category})</span>
         <button style="background:transparent; border:none; color:#ff6b6b; margin-left:8px; cursor:pointer; font-weight:bold;" onclick="app.removeSubject(${idx})">✖</button>
       </div>`;
     });
@@ -1507,13 +1507,13 @@ const app = {
       </div>
       <div class="modal-body" style="display:flex; flex-direction:column; gap:15px;">
         <div>
-          <label style="font-size:13px; color:var(--text-muted); margin-bottom:5px; display:block;">과목</label>
+          <label style="font-size:12px; color:var(--text-muted); margin-bottom:5px; display:block;">과목</label>
           <select id="tt-edit-subject" class="form-control" style="width:100%;">
             ${subjectOptsStr}
           </select>
         </div>
         <div>
-          <label style="font-size:13px; color:var(--text-muted); margin-bottom:5px; display:block;">담당자</label>
+          <label style="font-size:12px; color:var(--text-muted); margin-bottom:5px; display:block;">담당자</label>
           <select id="tt-edit-instructor" class="form-control" style="width:100%;">
             ${instructorOptsStr}
           </select>

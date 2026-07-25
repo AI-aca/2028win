@@ -23,7 +23,7 @@
         <input type="password" id="login-password" placeholder="비밀번호를 입력하세요" required>
         <button type="submit" id="login-btn">접속하기</button>
       </form>
-      <p id="login-error" class="hidden text-danger" style="margin-top:15px; font-size:13px; text-align:center;">비밀번호가 일치하지 않습니다.</p>
+      <p id="login-error" class="hidden text-danger" style="margin-top:15px; font-size:14px; text-align:center;">비밀번호가 일치하지 않습니다.</p>
     </div>
   </div>
 
@@ -87,7 +87,7 @@
           <div class="glass-panel text-center" style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 30px; padding: 30px 30px 34px 30px;">
             <h2 style="font-size: 16px; font-weight: 600; color: var(--secondary); margin: 0; line-height: 1;">환영합니다!</h2>
             <img src="main_logo.png?v=4" alt="와이즈만 송도센터" style="max-width: 250px; width: 100%; height: auto; margin: 0; border-radius: 8px;">
-            <p class="empty-msg" style="font-size: 13px; margin: 0; padding: 0; line-height: 1;">좌측 메뉴에서 항목을 선택해 주세요.</p>
+            <p class="empty-msg" style="font-size: 14px; margin: 0; padding: 0; line-height: 1;">좌측 메뉴에서 항목을 선택해 주세요.</p>
           </div>
         </div>
 
@@ -184,13 +184,13 @@
       <li class="menu-separator"></li>
       <li class="text-danger" onclick="app.ctxDeleteRow()">행 삭제</li>
       <li class="menu-separator"></li>
-      <li style="padding: 4px 15px; font-size: 13px; color: var(--text-muted); pointer-events: none;">셀 배경색</li>
+      <li style="padding: 4px 15px; font-size: 11px; color: var(--text-muted); pointer-events: none;">셀 배경색</li>
       <li style="display: flex; gap: 6px; padding: 6px 15px;">
         <div onclick="app.setCellBgColor('rgba(59, 130, 246, 0.2)')" style="width: 20px; height: 20px; border-radius: 4px; background: rgba(59, 130, 246, 0.5); border: 1px solid rgba(59, 130, 246, 1); cursor: pointer;" title="Deep Blue"></div>
         <div onclick="app.setCellBgColor('rgba(16, 185, 129, 0.2)')" style="width: 20px; height: 20px; border-radius: 4px; background: rgba(16, 185, 129, 0.5); border: 1px solid rgba(16, 185, 129, 1); cursor: pointer;" title="Deep Green"></div>
         <div onclick="app.setCellBgColor('rgba(239, 68, 68, 0.2)')" style="width: 20px; height: 20px; border-radius: 4px; background: rgba(239, 68, 68, 0.5); border: 1px solid rgba(239, 68, 68, 1); cursor: pointer;" title="Deep Red"></div>
         <div onclick="app.setCellBgColor('rgba(168, 85, 247, 0.2)')" style="width: 20px; height: 20px; border-radius: 4px; background: rgba(168, 85, 247, 0.5); border: 1px solid rgba(168, 85, 247, 1); cursor: pointer;" title="Deep Purple"></div>
-        <div onclick="app.setCellBgColor('transparent')" style="width: 20px; height: 20px; border-radius: 4px; background: transparent; border: 1px dashed var(--text-muted); cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 13px; color: var(--text-muted);" title="초기화">✕</div>
+        <div onclick="app.setCellBgColor('transparent')" style="width: 20px; height: 20px; border-radius: 4px; background: transparent; border: 1px dashed var(--text-muted); cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 14px; color: var(--text-muted);" title="초기화">✕</div>
       </li>
     </ul>
     <ul id="ctx-menu-col" class="hidden">
