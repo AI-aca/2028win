@@ -204,14 +204,20 @@ const app = {
   fetchInitialData: async function() {
     this.showLoading();
     try {
-      const [preRes, curRes, curSciRes, ttRes, stuRes, insRes] = await Promise.all([
+      const [preRes, curRes, curSciRes, ttRes, stuRes, insRes, uiRes] = await Promise.all([
         supabaseClient.from('preschedules').select('*').order('date', { ascending: true }),
         supabaseClient.from('curriculums').select('*').order('week', { ascending: true }),
         supabaseClient.from('curriculums_science').select('*').order('week', { ascending: true }),
         supabaseClient.from('timetables').select('*').order('date', { ascending: true }).order('start', { ascending: true }),
         supabaseClient.from('students').select('*').order('created_at', { ascending: true }),
-        supabaseClient.from('instructors').select('*').order('created_at', { ascending: true })
+        supabaseClient.from('instructors').select('*').order('created_at', { ascending: true }),
+        supabaseClient.from('ui_settings').select('*')
       ]);
+
+      let uiMap = {};
+      if (uiRes && uiRes.data) {
+        uiRes.data.forEach(r => { uiMap[r.key] = r.value; });
+      }
 
       const res = {
         '사전준비일정': (preRes.data || []).map(r => [r.id, r.date, r.content, r.status, r.note]),
@@ -220,7 +226,7 @@ const app = {
         '시간표': (ttRes.data || []).map(r => [r.id, r.date, r.type, r.start, r.end, r.classname, r.subject, r.instructor, r.note, r.regtime]),
         '학생관리': (stuRes.data || []).map(r => [r.id, r.name, r.center, r.school, r.grade, r.parentphone, r.studentphone, r.note]),
         '강사관리': (insRes.data || []).map(r => [r.id, r.instructorname, r.subject, r.subsubject, r.phone, r.email, r.note]),
-        'uiSettings': {}
+        'uiSettings': uiMap
       };
       
       this.processInitialData(res);
@@ -570,8 +576,9 @@ const app = {
     const thead = tbody.previousElementSibling;
     if(thead && thead.querySelector('tr')) {
       let ths = '';
-      cols.forEach((c) => {
+      cols.forEach((c, i) => {
         const label = typeof c === 'object' ? c.label : c;
+        const colIdx = typeof c === 'object' ? (c.idx !== undefined ? c.idx : i+1) : i+1;
         const widthStr = (typeof c === 'object' && c.width) ? `width:${c.width};` : '';
         const fixedClass = (typeof c === 'object' && c.fixed) ? 'fixed-col label-col-header' : '';
         const savedHeader = this.uiSettings['header_view-' + type + '_' + colIdx] || label;
