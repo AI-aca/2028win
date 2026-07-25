@@ -168,10 +168,7 @@
     <button class="toolbar-btn" onmousedown="app.execCmd('foreColor', event, '#06b6d4')" title="파란색 글씨" style="color:#06b6d4; font-weight:bold;">A</button>
     <button class="toolbar-btn" onmousedown="app.execCmd('foreColor', event, '#e2e8f0')" title="기본색 글씨" style="color:#e2e8f0; font-weight:bold;">A</button>
     <div style="width:1px; background:var(--border-glass); margin:0 5px;"></div>
-    <button class="toolbar-btn" onmousedown="app.execCmd('backColor', event, '#ff6b6b')" title="빨강 배경" style="background-color:#ff6b6b; width:20px; height:20px; border-radius:3px;"></button>
-    <button class="toolbar-btn" onmousedown="app.execCmd('backColor', event, '#10b981')" title="초록 배경" style="background-color:#10b981; width:20px; height:20px; border-radius:3px;"></button>
-    <button class="toolbar-btn" onmousedown="app.execCmd('backColor', event, '#06b6d4')" title="파랑 배경" style="background-color:#06b6d4; width:20px; height:20px; border-radius:3px;"></button>
-    <div style="width:1px; background:var(--border-glass); margin:0 5px;"></div>
+
     <button class="toolbar-btn" onmousedown="app.execCmd('justifyLeft', event)" title="좌측 정렬">⫷</button>
     <button class="toolbar-btn" onmousedown="app.execCmd('justifyCenter', event)" title="중앙 정렬">≡</button>
     <button class="toolbar-btn" onmousedown="app.execCmd('justifyRight', event)" title="우측 정렬">⫸</button>
@@ -184,6 +181,15 @@
       <li onclick="app.ctxInsertRowBelow()">행 아래에 삽입</li>
       <li class="menu-separator"></li>
       <li class="text-danger" onclick="app.ctxDeleteRow()">행 삭제</li>
+      <li class="menu-separator"></li>
+      <li style="padding: 4px 15px; font-size: 11px; color: var(--text-muted); pointer-events: none;">셀 배경색</li>
+      <li style="display: flex; gap: 6px; padding: 6px 15px;">
+        <div onclick="app.setCellBgColor('rgba(59, 130, 246, 0.2)')" style="width: 20px; height: 20px; border-radius: 4px; background: rgba(59, 130, 246, 0.5); border: 1px solid rgba(59, 130, 246, 1); cursor: pointer;" title="Deep Blue"></div>
+        <div onclick="app.setCellBgColor('rgba(16, 185, 129, 0.2)')" style="width: 20px; height: 20px; border-radius: 4px; background: rgba(16, 185, 129, 0.5); border: 1px solid rgba(16, 185, 129, 1); cursor: pointer;" title="Deep Green"></div>
+        <div onclick="app.setCellBgColor('rgba(239, 68, 68, 0.2)')" style="width: 20px; height: 20px; border-radius: 4px; background: rgba(239, 68, 68, 0.5); border: 1px solid rgba(239, 68, 68, 1); cursor: pointer;" title="Deep Red"></div>
+        <div onclick="app.setCellBgColor('rgba(168, 85, 247, 0.2)')" style="width: 20px; height: 20px; border-radius: 4px; background: rgba(168, 85, 247, 0.5); border: 1px solid rgba(168, 85, 247, 1); cursor: pointer;" title="Deep Purple"></div>
+        <div onclick="app.setCellBgColor('transparent')" style="width: 20px; height: 20px; border-radius: 4px; background: transparent; border: 1px dashed var(--text-muted); cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 14px; color: var(--text-muted);" title="초기화">✕</div>
+      </li>
     </ul>
     <ul id="ctx-menu-col" class="hidden">
       <li class="text-danger" onclick="app.ctxDeleteCol()">이 열 삭제</li>

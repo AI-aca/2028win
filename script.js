@@ -370,7 +370,10 @@ const app = {
 
   bindRowEvents: function(tr, type) {
     tr.addEventListener('contextmenu', (e) => {
-      e.preventDefault(); this.ctxTargetRow = tr; this.ctxTargetType = type;
+      e.preventDefault(); 
+      this.ctxTargetRow = tr; 
+      this.ctxTargetType = type;
+      this.ctxTargetCell = e.target.closest('td');
       this.showContextMenu(e.pageX, e.pageY);
     });
   },
@@ -859,7 +862,9 @@ const app = {
       dynCols.forEach(sub => {
         const row = dataArr.find(r => r[1] === week && r[2] === sub);
         const content = row ? row[3] : '';
-        headHtml += `<td contenteditable="true" data-id="${row?row[0]:''}" data-week="${week}" data-sub="${sub}" onblur="app.onCurriculumBlur(this, '${type}')" onkeydown="app.onKeyDown(event, this)">${content}</td>`;
+        const id = row ? row[0] : '';
+        let bgStyle = id && this.uiSettings['cell_bg_' + id] ? `background-color:${this.uiSettings['cell_bg_' + id]};` : '';
+        headHtml += `<td contenteditable="true" data-id="${id}" data-week="${week}" data-sub="${sub}" onblur="app.onCurriculumBlur(this, '${type}')" onkeydown="app.onKeyDown(event, this)" style="${bgStyle}">${content}</td>`;
       });
       headHtml += `</tr>`;
     });
@@ -919,7 +924,10 @@ const app = {
           const row = this.data.timetables.find(r => r[1] === date && r[2] === type && r[3] === start && r[4] === end && r[5] === cls);
           let displayStr = row && (row[6] || row[7]) ? `${row[6]||''}${row[7]?'('+row[7]+')':''}` : '';
           displayStr = displayStr.trim();
-          headHtml += `<td class="timetable-cell" data-id="${row?row[0]:''}" data-start="${start}" data-end="${end}" data-cls="${cls}" data-date="${date}" onclick="app.openTimetableEditor(this)" style="cursor:pointer;">${displayStr}</td>`;
+          const id = row ? row[0] : '';
+          let bgStyle = 'cursor:pointer;';
+          if (id && this.uiSettings['cell_bg_' + id]) bgStyle += ` background-color:${this.uiSettings['cell_bg_' + id]};`;
+          headHtml += `<td class="timetable-cell" data-id="${id}" data-start="${start}" data-end="${end}" data-cls="${cls}" data-date="${date}" onclick="app.openTimetableEditor(this)" style="${bgStyle}">${displayStr}</td>`;
         });
       }
       headHtml += `</tr>`;
@@ -1379,6 +1387,19 @@ const app = {
     tb.classList.remove('hidden');
   },
   hideToolbar: function() { const tb = document.getElementById('rich-toolbar'); if(tb) tb.classList.add('hidden'); },
+  setCellBgColor: function(color) {
+    this.hideContextMenu();
+    if (!this.ctxTargetCell) return;
+    const td = this.ctxTargetCell;
+    const id = td.getAttribute('data-id');
+    if (id) {
+      td.style.backgroundColor = color === 'transparent' ? '' : color;
+      this.silentSave('saveUISettings', { key: 'cell_bg_' + id, value: color });
+      this.uiSettings['cell_bg_' + id] = color;
+    } else {
+      app.showToast('배경색을 적용할 수 없는 빈 셀입니다.', true);
+    }
+  },
   execCmd: function(cmd, e, val = null) {
     e.preventDefault(); // Prevent losing focus
     document.execCommand(cmd, false, val);
