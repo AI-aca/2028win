@@ -210,14 +210,14 @@ body {
   table-layout: fixed;
   width: 100%;
   border-collapse: collapse;
-  font-size: 14px;
+  font-size: 12px;
 }
 .excel-table th, .excel-table td {
   white-space: pre-wrap;
   word-break: keep-all;
   overflow-wrap: break-word;
   border: 1px solid rgba(255,255,255,0.15);
-  padding: 12px 10px;
+  padding: 6px 8px;
   text-align: center;
   vertical-align: middle;
 }
@@ -237,7 +237,7 @@ body {
   background: transparent;
   color: inherit;
   width: 100%;
-  font-size: 14px;
+  font-size: 12px;
   font-weight: inherit;
 }
 .excel-table td[contenteditable="true"]:focus,

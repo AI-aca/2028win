@@ -7,8 +7,6 @@
   <link href="https://fonts.googleapis.com/css2?family=Pretendard:wght@400;600;700&display=swap" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
-  <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/themes/dark.css">
 </head>
 <body>
   <div id="loadingSpinner" class="hidden"><div class="spinner"></div></div>
@@ -39,11 +37,15 @@
       <ul class="nav-menu accordion-menu">
         <li class="nav-item single-item" data-target="view-preschedule">
           <span class="icon">📅</span>
-          <span class="text">사전 준비일정</span>
+          <span class="text">타임테이블</span>
         </li>
         <li class="nav-item single-item" data-target="view-curriculum">
           <span class="icon">📚</span>
-          <span class="text">수업 진도계획</span>
+          <span class="text">진도 계획(수학)</span>
+        </li>
+        <li class="nav-item single-item" data-target="view-curriculum-science">
+          <span class="icon">🔬</span>
+          <span class="text">진도 계획(과학)</span>
         </li>
         <li class="nav-item single-item" data-target="view-timetable">
           <span class="icon">⏰</span>
@@ -104,6 +106,14 @@
           </div>
         </div>
 
+        <div id="view-curriculum-science" class="view-section hidden data-view">
+          <div class="table-container">
+            <table class="excel-table" id="table-curriculum-science">
+              <!-- pivot generated -->
+            </table>
+          </div>
+        </div>
+
         <div id="view-timetable" class="view-section hidden data-view">
           <div class="table-container">
             <table class="excel-table" id="table-timetable">
@@ -158,6 +168,10 @@
     <button class="toolbar-btn" onmousedown="app.execCmd('foreColor', event, '#06b6d4')" title="파란색 글씨" style="color:#06b6d4; font-weight:bold;">A</button>
     <button class="toolbar-btn" onmousedown="app.execCmd('foreColor', event, '#e2e8f0')" title="기본색 글씨" style="color:#e2e8f0; font-weight:bold;">A</button>
     <div style="width:1px; background:var(--border-glass); margin:0 5px;"></div>
+    <button class="toolbar-btn" onmousedown="app.execCmd('backColor', event, '#ff6b6b')" title="빨강 배경" style="background-color:#ff6b6b; width:20px; height:20px; border-radius:3px;"></button>
+    <button class="toolbar-btn" onmousedown="app.execCmd('backColor', event, '#10b981')" title="초록 배경" style="background-color:#10b981; width:20px; height:20px; border-radius:3px;"></button>
+    <button class="toolbar-btn" onmousedown="app.execCmd('backColor', event, '#06b6d4')" title="파랑 배경" style="background-color:#06b6d4; width:20px; height:20px; border-radius:3px;"></button>
+    <div style="width:1px; background:var(--border-glass); margin:0 5px;"></div>
     <button class="toolbar-btn" onmousedown="app.execCmd('justifyLeft', event)" title="좌측 정렬">⫷</button>
     <button class="toolbar-btn" onmousedown="app.execCmd('justifyCenter', event)" title="중앙 정렬">≡</button>
     <button class="toolbar-btn" onmousedown="app.execCmd('justifyRight', event)" title="우측 정렬">⫸</button>
@@ -177,8 +191,6 @@
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
-  <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/ko.js"></script>
   <script src="script.js"></script>
 </body>
 </html>

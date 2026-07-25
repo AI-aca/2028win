@@ -7,8 +7,8 @@ const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 const app = {
   localMode: false,
   currentView: 'view-dashboard',
-  data: { preschedules: [], curriculums: [], timetables: [], students: [], instructors: [] },
-  dynamicCols: { curriculum: [], timetable: [] },
+  data: { preschedules: [], curriculums: [], curriculums_science: [], timetables: [], students: [], instructors: [] },
+  dynamicCols: { curriculum: [], curriculum_science: [], timetable: [] },
   uiSettings: {},
   ctxTargetRow: null, ctxTargetType: null, draggedRow: null, draggedType: null,
   sortState: {},
@@ -135,6 +135,7 @@ const app = {
       switch(action) {
         case 'upsertPreSchedule': table = 'preschedules'; break;
         case 'upsertCurriculum': case 'upsertMultipleCurriculums': table = 'curriculums'; break;
+        case 'upsertCurriculumScience': case 'upsertMultipleCurriculumSciences': table = 'curriculums_science'; break;
         case 'upsertTimetable': case 'upsertMultipleTimetables': table = 'timetables'; break;
         case 'upsertStudent': table = 'students'; break;
         case 'upsertInstructor': table = 'instructors'; break;
@@ -144,6 +145,7 @@ const app = {
           const sn = payloadData.sheetName;
           if (sn === '사전준비일정') delTable = 'preschedules';
           else if (sn === '수업진도계획') delTable = 'curriculums';
+          else if (sn === '과학진도계획') delTable = 'curriculums_science';
           else if (sn === '시간표') delTable = 'timetables';
           else if (sn === '학생관리') delTable = 'students';
           else if (sn === '강사관리') delTable = 'instructors';
@@ -202,9 +204,10 @@ const app = {
   fetchInitialData: async function() {
     this.showLoading();
     try {
-      const [preRes, curRes, ttRes, stuRes, insRes] = await Promise.all([
+      const [preRes, curRes, curSciRes, ttRes, stuRes, insRes] = await Promise.all([
         supabaseClient.from('preschedules').select('*').order('date', { ascending: true }),
         supabaseClient.from('curriculums').select('*').order('week', { ascending: true }),
+        supabaseClient.from('curriculums_science').select('*').order('week', { ascending: true }),
         supabaseClient.from('timetables').select('*').order('date', { ascending: true }).order('start', { ascending: true }),
         supabaseClient.from('students').select('*').order('created_at', { ascending: true }),
         supabaseClient.from('instructors').select('*').order('created_at', { ascending: true })
@@ -213,6 +216,7 @@ const app = {
       const res = {
         '사전준비일정': (preRes.data || []).map(r => [r.id, r.date, r.content, r.status, r.note]),
         '수업진도계획': (curRes.data || []).map(r => [r.id, r.week, r.subject, r.content, r.note]),
+        '과학진도계획': (curSciRes.data || []).map(r => [r.id, r.week, r.subject, r.content, r.note]),
         '시간표': (ttRes.data || []).map(r => [r.id, r.date, r.type, r.start, r.end, r.classname, r.subject, r.instructor, r.note, r.regtime]),
         '학생관리': (stuRes.data || []).map(r => [r.id, r.name, r.center, r.school, r.grade, r.parentphone, r.studentphone, r.note]),
         '강사관리': (insRes.data || []).map(r => [r.id, r.instructorname, r.subject, r.subsubject, r.phone, r.email, r.note]),
@@ -243,6 +247,7 @@ const app = {
     }));
     this.data.preschedules = cleanDate(res['사전준비일정'] || []);
     this.data.curriculums = cleanDate(res['수업진도계획'] || []);
+    this.data.curriculums_science = cleanDate(res['과학진도계획'] || []);
     
     let ttData = cleanDate(res['시간표'] || []);
     ttData.forEach(r => {
@@ -266,6 +271,7 @@ const app = {
 
   extractDynamicCols: function() {
     this.dynamicCols.curriculum = Array.from(new Set(this.data.curriculums.map(r => r[2]).filter(x => x)));
+    this.dynamicCols.curriculum_science = Array.from(new Set(this.data.curriculums_science.map(r => r[2]).filter(x => x)));
     
     this.dynamicCols.timetable = Array.from(new Set(this.data.timetables.map(r => r[5]).filter(x => x && x !== '전체')));
   },
@@ -310,6 +316,8 @@ const app = {
         headerActions.innerHTML = `<button class="btn btn-primary" onclick="app.addRow('preschedule')">+ 일정 추가</button>`;
       } else if (viewId === 'view-curriculum') {
         headerActions.innerHTML = `<button class="btn btn-primary" onclick="app.addRow('curriculum')">+ 주차 추가</button> <button class="btn btn-primary" style="background:#06b6d4;" onclick="app.addColumn('curriculum')">+ 과목 추가</button>`;
+      } else if (viewId === 'view-curriculum-science') {
+        headerActions.innerHTML = `<button class="btn btn-primary" onclick="app.addRow('curriculum_science')">+ 주차 추가</button> <button class="btn btn-primary" style="background:#06b6d4;" onclick="app.addColumn('curriculum_science')">+ 과목 추가</button>`;
       } else if (viewId === 'view-timetable') {
         headerActions.innerHTML = `<button class="btn btn-primary" onclick="app.addRow('timetable')">+ 시간 추가</button> <button class="btn btn-primary" style="background:#f43f5e;" onclick="app.addRow('holiday')">+ 휴일 추가</button> <button class="btn btn-primary" style="background:#06b6d4;" onclick="app.addColumn('timetable')">+ 학급 추가</button>`;
       } else if (viewId === 'view-student') {
@@ -323,7 +331,7 @@ const app = {
   },
 
   renderAllViews: function() {
-    this.renderView('preschedule'); this.renderView('curriculum');
+    this.renderView('preschedule'); this.renderView('curriculum'); this.renderView('curriculum_science');
     this.renderView('timetable'); this.renderView('student'); this.renderView('instructor');
   },
 
@@ -331,20 +339,9 @@ const app = {
     if (viewName === 'preschedule') this.renderFlatTable('preschedule', this.data.preschedules, [{label:'일자', idx:1, fixed:true, width:'10%'}, {label:'상태', idx:3, fixed:true, width:'10%'}, {label:'내용', idx:2}, {label:'비고', idx:4}]);
     else if (viewName === 'student') this.renderFlatTable('student', this.data.students, [{label:'학생명', idx:1, fixed:true, width:'10%'}, {label:'센터', idx:2}, {label:'학교', idx:3}, {label:'학년', idx:4}, {label:'학부모 연락처', idx:5}, {label:'학생 연락처', idx:6}, {label:'비고', idx:7}]);
     else if (viewName === 'instructor') this.renderFlatTable('instructor', this.data.instructors, [{label:'강사명', idx:1, fixed:true, width:'10%'}, {label:'영역', idx:2}, {label:'과목', idx:3}, {label:'연락처', idx:4}, {label:'지메일', idx:5}, {label:'비고', idx:6}]);
-    else if (viewName === 'curriculum') this.renderCurriculumPivot();
+    else if (viewName === 'curriculum') this.renderCurriculumPivot('curriculum');
+    else if (viewName === 'curriculum_science') this.renderCurriculumPivot('curriculum_science');
     else if (viewName === 'timetable') this.renderTimetablePivot();
-    
-    if (window.flatpickr) {
-      if (app.flatpickrInstances) { app.flatpickrInstances.forEach(inst => { if (inst && inst.destroy) inst.destroy(); }); }
-      app.flatpickrInstances = [];
-      const dp = flatpickr('.date-picker-input', { 
-        locale: "ko", dateFormat: "y-m-d (D)",
-        onClose: function(selectedDates, dateStr, instance) {
-          app.updatePivotRowDate(instance.element, dateStr);
-        }
-      });
-      if (dp) app.flatpickrInstances = app.flatpickrInstances.concat(dp);
-    }
   },
 
   getCleanHTML: function(cell) {
@@ -352,7 +349,7 @@ const app = {
     // 엔터(div)를 br로 변환하여 줄바꿈 유지
     html = html.replace(/<div>/gi, '<br>').replace(/<\/div>/gi, '');
     // 색상, 굵기 등 안전한 태그만 남기고 전부 삭제
-    html = html.replace(/<\/?(?!(span|font|b|i|u|br)\b)[^>]*>/gi, '');
+    html = html.replace(/<\/?(?!(span|div|font|b|i|u|br)\b)[^>]*>/gi, '');
     // 딜리미터 충돌 방지
     let val = html.replace(/\|/g, '／');
     return val.trim();
@@ -557,7 +554,10 @@ const app = {
         th.addEventListener('contextmenu', (e) => {
           e.preventDefault();
           this.ctxTargetColName = th.getAttribute('data-colname');
-          this.ctxTargetType = th.closest('#view-curriculum') ? 'curriculum' : 'timetable';
+          let tType = 'timetable';
+          if (th.closest('#view-curriculum')) tType = 'curriculum';
+          else if (th.closest('#view-curriculum-science')) tType = 'curriculum_science';
+          this.ctxTargetType = tType;
           this.showContextMenu(e.pageX, e.pageY, 'col');
         });
       }
@@ -574,7 +574,8 @@ const app = {
         const label = typeof c === 'object' ? c.label : c;
         const widthStr = (typeof c === 'object' && c.width) ? `width:${c.width};` : '';
         const fixedClass = (typeof c === 'object' && c.fixed) ? 'fixed-col label-col-header' : '';
-        ths += `<th class="${fixedClass}" style="${widthStr}">${label}</th>`;
+        const savedHeader = this.uiSettings['header_view-' + type + '_' + colIdx] || label;
+        ths += `<th class="${fixedClass}" style="${widthStr}"><div contenteditable="true" onblur="app.onHeaderBlur(this, 'view-' + type, ${colIdx})" style="display:inline-block; min-width:30px; outline:none;">${savedHeader}</div></th>`;
       });
       thead.querySelector('tr').innerHTML = ths;
     }
@@ -591,7 +592,7 @@ const app = {
         const val = row[colIdx] || '';
         
         if (label === '일자') {
-          html += `<td data-col-idx="${colIdx}" ${cellClassStr} style="text-align:center;"><input type="text" class="date-picker-input" value="${val}" onchange="app.onFlatCellBlur('${type}', this.parentElement)" placeholder="날짜 선택" style="width:100%; background:transparent; border:none; color:inherit; text-align:center; outline:none; font-family:inherit; font-size:inherit; line-height:1; cursor:pointer; padding:0; margin:0;"></td>`;
+          html += `<td data-col-idx="${colIdx}" ${cellClassStr} contenteditable="true" onblur="app.onFlatCellBlur('${type}', this)" placeholder="날짜 선택" style="text-align:center;">${val}</td>`;
         } else if (label === '상태') {
           const isDone = val === '완료';
           const statusTxt = isDone ? '완료' : '진행 중';
@@ -731,9 +732,13 @@ const app = {
           if (newRowTr) newRowTr.setAttribute('data-id', res.id);
         }
       });
-    } else if (type === 'curriculum') {
-      if (this.dynamicCols.curriculum.length === 0) this.dynamicCols.curriculum.push('새 과목');
-      const weeks = new Set(this.data.curriculums.map(r => r[1]).filter(Boolean));
+    } else if (type === 'curriculum' || type === 'curriculum_science') {
+      const dataArr = type === 'curriculum' ? this.data.curriculums : this.data.curriculums_science;
+      const dynCols = type === 'curriculum' ? this.dynamicCols.curriculum : this.dynamicCols.curriculum_science;
+      const action = type === 'curriculum' ? 'upsertMultipleCurriculums' : 'upsertMultipleCurriculumSciences';
+
+      if (dynCols.length === 0) dynCols.push('새 과목');
+      const weeks = new Set(dataArr.map(r => r[1]).filter(Boolean));
       let maxWeek = 0;
       weeks.forEach(w => {
         const m = w.match(/\d+/);
@@ -741,20 +746,20 @@ const app = {
       });
       let nextWeek = `${maxWeek + 1}주차`;
       
-      let actualInsertIndex = this.data.curriculums.length;
-      if (insertIndex >= 0 && insertIndex <= this.data.curriculums.length) {
+      let actualInsertIndex = dataArr.length;
+      if (insertIndex >= 0 && insertIndex <= dataArr.length) {
         actualInsertIndex = insertIndex;
       }
       
       let i = 0;
       const tasks = [];
-      this.dynamicCols.curriculum.forEach(sub => {
+      dynCols.forEach(sub => {
         const newId = 'f-' + Date.now().toString(36) + '-' + Math.random().toString(36).substr(2, 5);
         const rowObj = [newId, nextWeek, sub, '', ''];
         if (insertIndex >= 0) {
-          this.data.curriculums.splice(actualInsertIndex + i, 0, rowObj);
+          dataArr.splice(actualInsertIndex + i, 0, rowObj);
         } else {
-          this.data.curriculums.push(rowObj);
+          dataArr.push(rowObj);
         }
         const payloadInsertIdx = insertIndex >= 0 ? actualInsertIndex + i : -1;
         tasks.push({ rowObj, sub, payloadInsertIdx });
@@ -763,9 +768,9 @@ const app = {
       this.renderView(type);
 
       const payloadArray = tasks.map(t => ({ id: t.rowObj[0], insertIndex: t.payloadInsertIdx, week: nextWeek, subject: t.sub, content: '', note: '' }));
-      this.apiPost('upsertMultipleCurriculums', { payloadArray }).then(res => {
+      this.apiPost(action, { payloadArray }).then(res => {
         if (res && res.success) {
-          if (res.returnedIds) this.data.curriculums.forEach(r => { if (res.returnedIds[r[0]]) r[0] = res.returnedIds[r[0]]; });
+          if (res.returnedIds) dataArr.forEach(r => { if (res.returnedIds[r[0]]) r[0] = res.returnedIds[r[0]]; });
           app.renderView(type);
         }
       });
@@ -821,41 +826,52 @@ const app = {
     }
   },
 
-  renderCurriculumPivot: function() {
-    const table = document.querySelector('#view-curriculum .excel-table');
-    let headHtml = `<thead><tr><th class="label-col-header fixed-col" style="width:10%;">주차</th>`;
-    this.dynamicCols.curriculum.forEach(sub => {
-      headHtml += `<th data-colname="${sub}">${sub}</th>`;
-    });
-    headHtml += `</tr></thead><tbody id="tbody-curriculum">`;
+  renderCurriculumPivot: function(type = 'curriculum') {
+    const isSci = type === 'curriculum_science';
+    const viewId = isSci ? 'view-curriculum-science' : 'view-curriculum';
+    const table = document.querySelector(`#${viewId} .excel-table`);
+    const dynCols = isSci ? this.dynamicCols.curriculum_science : this.dynamicCols.curriculum;
+    const dataArr = isSci ? this.data.curriculums_science : this.data.curriculums;
 
-    const weeks = Array.from(new Set(this.data.curriculums.map(r => r[1]).filter(Boolean)));
+    let weekHeader = this.uiSettings['header_' + viewId + '_0'] || '주차';
+    let headHtml = `<thead><tr><th class="label-col-header fixed-col" style="width:10%;"><div contenteditable="true" onblur="app.onHeaderBlur(this, '${viewId}', 0)" style="display:inline-block; min-width:30px; outline:none;">${weekHeader}</div></th>`;
+    dynCols.forEach((sub, i) => {
+      const dynHeader = this.uiSettings['header_' + viewId + '_' + (i+1)] || sub;
+      headHtml += `<th data-colname="${sub}"><div contenteditable="true" onblur="app.onHeaderBlur(this, '${viewId}', ${i+1})" style="display:inline-block; min-width:30px; outline:none;">${dynHeader}</div></th>`;
+    });
+    headHtml += `</tr></thead><tbody id="tbody-${isSci ? 'curriculum-science' : 'curriculum'}">`;
+
+    const weeks = Array.from(new Set(dataArr.map(r => r[1]).filter(Boolean)));
 
     weeks.forEach(week => {
       headHtml += `<tr data-week="${week}">
-      <td class="label-col" style="font-weight:bold; text-align:center;" contenteditable="true" onblur="app.updatePivotRowLabel('curriculum', '${week}', this.innerText.trim())">${week}</td>`;
-      this.dynamicCols.curriculum.forEach(sub => {
-        const row = this.data.curriculums.find(r => r[1] === week && r[2] === sub);
+      <td class="label-col" style="font-weight:bold; text-align:center;" contenteditable="true" onblur="app.updatePivotRowLabel('${type}', '${week}', this.innerText.trim())">${week}</td>`;
+      dynCols.forEach(sub => {
+        const row = dataArr.find(r => r[1] === week && r[2] === sub);
         const content = row ? row[3] : '';
-        headHtml += `<td contenteditable="true" data-id="${row?row[0]:''}" data-week="${week}" data-sub="${sub}" onblur="app.onCurriculumBlur(this)" onkeydown="app.onKeyDown(event, this)">${content}</td>`;
+        headHtml += `<td contenteditable="true" data-id="${row?row[0]:''}" data-week="${week}" data-sub="${sub}" onblur="app.onCurriculumBlur(this, '${type}')" onkeydown="app.onKeyDown(event, this)">${content}</td>`;
       });
       headHtml += `</tr>`;
     });
     headHtml += `</tbody>`; table.innerHTML = headHtml;
-    table.querySelectorAll('tbody tr').forEach(tr => this.bindRowEvents(tr, 'curriculum'));
+    table.querySelectorAll('tbody tr').forEach(tr => this.bindRowEvents(tr, type));
     this.initResizers();
   },
 
-  onCurriculumBlur: function(cell) {
+  onCurriculumBlur: function(cell, type = 'curriculum') {
     let newValue = this.getCleanHTML(cell);
     newValue = newValue.replace(/<span class="drag-handle">.*?<\/span>/g, '').trim();
     if(newValue === '<br>') newValue = '';
     const id = cell.getAttribute('data-id'), week = cell.getAttribute('data-week'), sub = cell.getAttribute('data-sub');
-    let rowObj = this.data.curriculums.find(r => (id && r[0] === id) || (r[1] === week && r[2] === sub));
+    const isSci = type === 'curriculum_science';
+    const dataArr = isSci ? this.data.curriculums_science : this.data.curriculums;
+    const action = isSci ? 'upsertCurriculumScience' : 'upsertCurriculum';
+
+    let rowObj = dataArr.find(r => (id && r[0] === id) || (r[1] === week && r[2] === sub));
     if (rowObj) { if (rowObj[3] === newValue) return; rowObj[3] = newValue; }
-    else { if (!newValue) return; rowObj = ['', week, sub, newValue, '']; this.data.curriculums.push(rowObj); }
+    else { if (!newValue) return; rowObj = ['', week, sub, newValue, '']; dataArr.push(rowObj); }
     
-    this.apiPost('upsertCurriculum', { id: rowObj[0], week, subject: sub, content: newValue }).then(res => {
+    this.apiPost(action, { id: rowObj[0], week, subject: sub, content: newValue }).then(res => {
       if(res.success && res.id) { rowObj[0] = res.id; cell.setAttribute('data-id', res.id); }
     });
   },
@@ -879,7 +895,7 @@ const app = {
       const idsForGrp = this.data.timetables.filter(r => r[1] === date && r[2] === type && r[3] === start && r[4] === end).map(r => r[0]).join(',');
       
       headHtml += `<tr data-ids="${idsForGrp}" data-grp="${grp}">
-        <td class="fixed-col label-col"><span class="drag-handle"></span><input type="text" class="date-picker-input" value="${displayDate}" placeholder="날짜 선택" style="width:100%; background:transparent; border:none; color:inherit; text-align:center; outline:none; font-family:inherit; font-size:inherit; line-height:1; cursor:pointer; padding:0; margin:0;"></td>`;
+        <td class="fixed-col label-col" contenteditable="true" onblur="app.updatePivotRowDate(this, this.innerText.trim())" placeholder="날짜 선택" style="text-align:center;"><span class="drag-handle"></span>${displayDate}</td>`;
       
       if (isHoliday) {
         const holidayRow = this.data.timetables.find(r => r[1] === date && r[2] === '휴일');
@@ -1171,10 +1187,13 @@ const app = {
   updatePivotRowLabel: async function(type, oldLabel, newLabel) {
     newLabel = newLabel.replace(/<span class="drag-handle">.*?<\/span>/g, '').trim();
     if(!newLabel || oldLabel === newLabel) return;
-    if(type === 'curriculum') {
+    if(type === 'curriculum' || type === 'curriculum_science') {
+      const isSci = type === 'curriculum_science';
+      const dataArr = isSci ? this.data.curriculums_science : this.data.curriculums;
+      const action = isSci ? 'upsertMultipleCurriculumSciences' : 'upsertMultipleCurriculums';
       const payloadArray = [];
       const rollbackData = [];
-      this.data.curriculums.forEach(r => {
+      dataArr.forEach(r => {
         if(r[1] === oldLabel) { 
           rollbackData.push({ row: r, oldWeek: r[1] });
           r[1] = newLabel; 
@@ -1183,7 +1202,7 @@ const app = {
       });
       if (payloadArray.length > 0) {
         try {
-          const res = await this.apiPost('upsertMultipleCurriculums', { payloadArray });
+          const res = await this.apiPost(action, { payloadArray });
           if (!res || !res.success) throw new Error(res ? res.message : '알 수 없는 에러');
         } catch(e) {
           app.showToast('저장 실패: ' + e.message, true);
@@ -1195,27 +1214,34 @@ const app = {
   },
 
   addColumn: function(type) {
-    const title = type === 'curriculum' ? '새 과목(열) 추가' : '새 반이름(열) 추가';
+    const title = (type === 'curriculum' || type === 'curriculum_science') ? '새 과목(열) 추가' : '새 반이름(열) 추가';
     document.getElementById('generic-modal-title').innerText = title;
-    document.getElementById('generic-modal-body').innerHTML = `<div class="form-group"><label>${type === 'curriculum' ? '과목명' : '반이름'}</label><input type="text" id="new-col-input" class="form-control"></div>`;
+    document.getElementById('generic-modal-body').innerHTML = `<div class="form-group"><label>${(type === 'curriculum' || type === 'curriculum_science') ? '과목명' : '반이름'}</label><input type="text" id="new-col-input" class="form-control"></div>`;
     document.getElementById('modal-container').classList.remove('hidden'); document.getElementById('generic-modal').classList.remove('hidden');
     this.currentModalAction = async () => {
       const val = document.getElementById('new-col-input').value.trim();
       if(val) {
-        if(type === 'curriculum' && !this.dynamicCols.curriculum.includes(val)) {
-            this.dynamicCols.curriculum.push(val);
-            const week = this.data.curriculums.length > 0 ? this.data.curriculums[0][1] : '1주차';
-            const newId = 'f-' + Date.now().toString(36) + '-' + Math.random().toString(36).substr(2, 5);
-            const rowObj = [newId, week, val, '', ''];
-            this.data.curriculums.push(rowObj);
-            try {
-              const res = await this.apiPost('upsertCurriculum', { id: newId, week, subject: val, content: '', note: '' });
-              if(res && res.success) rowObj[0] = res.id;
-              else throw new Error(res ? res.message : '알 수 없는 에러');
-            } catch(e) {
-              app.showToast('저장 실패: ' + e.message, true);
-              this.dynamicCols.curriculum.pop();
-              this.data.curriculums.pop();
+        if(type === 'curriculum' || type === 'curriculum_science') {
+            const isSci = type === 'curriculum_science';
+            const dynCols = isSci ? this.dynamicCols.curriculum_science : this.dynamicCols.curriculum;
+            const dataArr = isSci ? this.data.curriculums_science : this.data.curriculums;
+            const action = isSci ? 'upsertCurriculumScience' : 'upsertCurriculum';
+
+            if(!dynCols.includes(val)) {
+              dynCols.push(val);
+              const week = dataArr.length > 0 ? dataArr[0][1] : '1주차';
+              const newId = 'f-' + Date.now().toString(36) + '-' + Math.random().toString(36).substr(2, 5);
+              const rowObj = [newId, week, val, '', ''];
+              dataArr.push(rowObj);
+              try {
+                const res = await this.apiPost(action, { id: newId, week, subject: val, content: '', note: '' });
+                if(res && res.success) rowObj[0] = res.id;
+                else throw new Error(res ? res.message : '알 수 없는 에러');
+              } catch(e) {
+                app.showToast('저장 실패: ' + e.message, true);
+                dynCols.pop();
+                dataArr.pop();
+              }
             }
         }
         if(type === 'timetable' && !this.dynamicCols.timetable.includes(val)) {
@@ -1255,13 +1281,23 @@ const app = {
   removeColumn: async function(type, colName) {
     if(!confirm(`'${colName}' 열을 삭제하시겠습니까? (저장된 데이터도 삭제됩니다)`)) return;
     
-    if(type === 'curriculum') {
-      this.dynamicCols.curriculum = this.dynamicCols.curriculum.filter(c => c !== colName);
-      const toDelete = this.data.curriculums.filter(r => r[2] === colName);
-      this.data.curriculums = this.data.curriculums.filter(r => r[2] !== colName);
+    if(type === 'curriculum' || type === 'curriculum_science') {
+      const isSci = type === 'curriculum_science';
+      const sheetName = isSci ? '과학진도계획' : '수업진도계획';
+      if (isSci) {
+        this.dynamicCols.curriculum_science = this.dynamicCols.curriculum_science.filter(c => c !== colName);
+        const toDelete = this.data.curriculums_science.filter(r => r[2] === colName);
+        this.data.curriculums_science = this.data.curriculums_science.filter(r => r[2] !== colName);
+        const ids = toDelete.map(r => r[0]).filter(Boolean);
+        if (ids.length > 0) this.silentSave('deleteMultipleData', { sheetName, ids: ids });
+      } else {
+        this.dynamicCols.curriculum = this.dynamicCols.curriculum.filter(c => c !== colName);
+        const toDelete = this.data.curriculums.filter(r => r[2] === colName);
+        this.data.curriculums = this.data.curriculums.filter(r => r[2] !== colName);
+        const ids = toDelete.map(r => r[0]).filter(Boolean);
+        if (ids.length > 0) this.silentSave('deleteMultipleData', { sheetName, ids: ids });
+      }
       this.renderView(type);
-      const ids = toDelete.map(r => r[0]).filter(Boolean);
-      if (ids.length > 0) this.silentSave('deleteMultipleData', { sheetName: '수업진도계획', ids: ids });
     } else if(type === 'timetable') {
       this.dynamicCols.timetable = this.dynamicCols.timetable.filter(c => c !== colName);
       const toDelete = this.data.timetables.filter(r => r[5] === colName);
@@ -1274,6 +1310,13 @@ const app = {
 
   closeModal: function() { document.getElementById('modal-container').classList.add('hidden'); document.getElementById('generic-modal').classList.add('hidden'); },
   saveModalData: function() { if(typeof this.currentModalAction === 'function') this.currentModalAction(); },
+
+  onHeaderBlur: function(el, viewId, colIdx) {
+    const newText = el.innerText.trim();
+    const key = 'header_' + viewId + '_' + colIdx;
+    this.uiSettings[key] = newText;
+    this.silentSave('saveUISettings', { key: key, value: newText });
+  },
 
   silentSave: function(action, payload) {
     return this.apiPost(action, payload).then(res => {
@@ -1367,15 +1410,23 @@ const app = {
     const type = this.ctxTargetType;
     const id = this.ctxTargetRow.getAttribute('data-id');
     
-    if (type === 'curriculum') {
+    if (type === 'curriculum' || type === 'curriculum_science') {
       if(!confirm("이 줄에 입력된 모든 데이터가 삭제됩니다. 정말 삭제하시겠습니까?")) return;
+      const isSci = type === 'curriculum_science';
+      const sheetName = isSci ? '과학진도계획' : '수업진도계획';
       const week = this.ctxTargetRow.getAttribute('data-week');
-      const toDelete = this.data.curriculums.filter(r => r[1] === week);
-      this.data.curriculums = this.data.curriculums.filter(r => r[1] !== week);
-      this.renderView('curriculum');
-      
-      const ids = toDelete.map(r => r[0]).filter(Boolean);
-      if (ids.length > 0) this.silentSave('deleteMultipleData', { sheetName: '수업진도계획', ids: ids });
+      if (isSci) {
+        const toDelete = this.data.curriculums_science.filter(r => r[1] === week);
+        this.data.curriculums_science = this.data.curriculums_science.filter(r => r[1] !== week);
+        const ids = toDelete.map(r => r[0]).filter(Boolean);
+        if (ids.length > 0) this.silentSave('deleteMultipleData', { sheetName, ids: ids });
+      } else {
+        const toDelete = this.data.curriculums.filter(r => r[1] === week);
+        this.data.curriculums = this.data.curriculums.filter(r => r[1] !== week);
+        const ids = toDelete.map(r => r[0]).filter(Boolean);
+        if (ids.length > 0) this.silentSave('deleteMultipleData', { sheetName, ids: ids });
+      }
+      this.renderView(type);
     } else if (type === 'timetable') {
       if(!confirm("이 줄에 입력된 모든 데이터가 삭제됩니다. 정말 삭제하시겠습니까?")) return;
       const grp = this.ctxTargetRow.getAttribute('data-grp');
