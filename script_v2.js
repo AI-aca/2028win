@@ -208,60 +208,35 @@ const app = {
           else if (sn === '강사관리') delTable = 'instructors';
           
           if (action === 'deleteData') {
-            if (payloadData.id === '' || (typeof payloadData.id === 'string' && payloadData.id.startsWith('f-'))) return { success: true };
             const { error } = await supabaseClient.from(delTable).delete().eq('id', payloadData.id);
             if (error) throw error;
           } else {
-            const validIds = payloadData.ids.filter(id => id && !(typeof id === 'string' && id.startsWith('f-')));
-            if (validIds.length > 0) {
-              const { error } = await supabaseClient.from(delTable).delete().in('id', validIds);
-              if (error) throw error;
-            }
+            const { error } = await supabaseClient.from(delTable).delete().in('id', payloadData.ids);
+            if (error) throw error;
           }
           return { success: true };
       }
 
       if (table) {
         if (action.includes('Multiple')) {
-          const mappingInfo = [];
-          const arrData = payloadData.payloadArray.map((obj, index) => {
+          const arrData = payloadData.payloadArray.map(obj => {
             let lowerObj = {};
             for (let k in obj) {
               if (['action', 'authpass', 'payloadarray', 'insertindex', 'regtime'].includes(k.toLowerCase())) continue;
               lowerObj[k.toLowerCase()] = obj[k];
             }
-            mappingInfo.push({ originalId: lowerObj.id, isNew: false });
-            if (lowerObj.id === '' || (typeof lowerObj.id === 'string' && lowerObj.id.startsWith('f-'))) {
-              mappingInfo[index].isNew = true;
-              delete lowerObj.id;
-            }
             return lowerObj;
           });
-          const { data: returnData, error } = await supabaseClient.from(table).upsert(arrData).select();
+          const { error } = await supabaseClient.from(table).upsert(arrData);
           if (error) throw error;
-          
-          let returnedIds = {};
-          if (returnData && returnData.length === arrData.length) {
-            for (let i = 0; i < arrData.length; i++) {
-              if (mappingInfo[i].isNew && returnData[i].id) {
-                returnedIds[mappingInfo[i].originalId] = returnData[i].id;
-              }
-            }
-          }
-          return { success: true, returnedIds };
         } else {
           let lowerData = {};
           for (let k in data) {
             if (['action', 'authpass', 'payloadarray', 'insertindex', 'regtime'].includes(k.toLowerCase())) continue;
             lowerData[k.toLowerCase()] = data[k];
           }
-          if (lowerData.id === '' || (typeof lowerData.id === 'string' && lowerData.id.startsWith('f-'))) delete lowerData.id;
-          const { data: returnData, error } = await supabaseClient.from(table).upsert(lowerData).select();
+          const { error } = await supabaseClient.from(table).upsert(lowerData);
           if (error) throw error;
-          
-          if (returnData && returnData.length > 0 && returnData[0].id) {
-            return { success: true, id: returnData[0].id };
-          }
         }
         return { success: true, id: data.id };
       }
@@ -1049,9 +1024,10 @@ const app = {
       });
     } else if (type === 'holiday') {
       const tmpDate = 'tmp-' + Date.now() + Math.random().toString(36).substr(2, 5);
-      const rowObj = ['', tmpDate, '휴일', '00:00', '00:00', '전체', '휴일', '', '', ''];
+      const newId = 'f-' + Date.now().toString(36) + '-' + Math.random().toString(36).substr(2, 5);
+      const rowObj = [newId, tmpDate, '휴일', '00:00', '00:00', '전체', '휴일', '', '', ''];
       this.data.timetables.push(rowObj);
-      this.apiPost('upsertTimetable', { id: '', date: tmpDate, type: '휴일', start: '00:00', end: '00:00', className: '전체', subject: '휴일', instructor: '', note: '' }).then(res => {
+      this.apiPost('upsertTimetable', { id: newId, date: tmpDate, type: '휴일', start: '00:00', end: '00:00', className: '전체', subject: '휴일', instructor: '', note: '' }).then(res => {
         if (res.success && res.id) {
           rowObj[0] = res.id;
           const td = document.querySelector(`td[data-date="${tmpDate}"]`);
