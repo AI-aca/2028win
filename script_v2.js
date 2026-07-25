@@ -1079,7 +1079,7 @@ const app = {
 
   renderTimetablePivot: function() {
     const table = document.querySelector('#view-timetable .excel-table');
-    let headHtml = `<thead><tr><th class="label-col-header fixed-col" style="width:10%; left:0;">일자</th><th class="label-col-header fixed-col" style="width:5%; left:10%;">회차</th><th class="label-col-header fixed-col" style="width:6%; left:15%;">시작 시간</th><th class="label-col-header fixed-col" style="width:6%; left:21%;">종료 시간</th>`;
+    let headHtml = `<thead><tr><th class="label-col-header fixed-col" style="width:10%; left:0;">일자</th><th class="label-col-header fixed-col" style="width:5%; left:10%;">주차</th><th class="label-col-header fixed-col" style="width:5%; left:15%;">회차</th><th class="label-col-header fixed-col" style="width:6%; left:20%;">시작 시간</th><th class="label-col-header fixed-col" style="width:6%; left:26%;">종료 시간</th>`;
     this.dynamicCols.timetable.forEach(cls => {
       headHtml += `<th data-colname="${cls}" onclick="app.editTimetableClassName('${cls}')" style="cursor:pointer;" title="클릭하여 반 이름 수정">${cls}</th>`;
     });
@@ -1100,16 +1100,18 @@ const app = {
       
       const firstRow = this.data.timetables.find(r => r[1] === date && r[2] === type && r[3] === start && r[4] === end);
       const hoicha = firstRow ? (firstRow[8] || '') : '';
-      headHtml += `<td class="fixed-col label-col" style="text-align:center; left:10%;" contenteditable="true" onblur="app.updateTimetableHoicha(this, '${grp}')">${hoicha}</td>`;
+      const weekVal = this.uiSettings['tt_week_' + grp] || '';
+      headHtml += `<td class="fixed-col label-col" style="text-align:center; left:10%;" contenteditable="true" onblur="app.updateTimetableWeek(this, '${grp}')">${weekVal}</td>`;
+      headHtml += `<td class="fixed-col label-col" style="text-align:center; left:15%;" contenteditable="true" onblur="app.updateTimetableHoicha(this, '${grp}')">${hoicha}</td>`;
 
       if (isHoliday) {
         const holidayRow = this.data.timetables.find(r => r[1] === date && r[2] === '휴일');
         const holidayNote = holidayRow ? (holidayRow[8] || '') : '';
-        headHtml += `<td colspan="2" class="fixed-col label-col" style="text-align:center; left:10%; color:var(--text-muted); font-style:italic;">🏖️ 휴일</td>`;
+        headHtml += `<td colspan="3" class="fixed-col label-col" style="text-align:center; left:10%; color:var(--text-muted); font-style:italic;">🏖️ 휴일</td>`;
         headHtml += `<td colspan="${this.dynamicCols.timetable.length}" class="timetable-cell" data-id="${holidayRow?holidayRow[0]:''}" data-date="${date}" contenteditable="true" onblur="app.onTimetableHolidayBlur(this)" style="text-align:center; background:rgba(255,255,255,0.05); color:var(--text-muted); font-style:italic;">${holidayNote || '휴일/특이사항 입력'}</td>`;
       } else {
-        headHtml += `<td class="fixed-col label-col" style="left:15%; text-align:center; cursor:pointer;" onclick="app.openTimePicker(this, 'start')" title="클릭하여 시간 선택">${start || '00:00'}</td>
-        <td class="fixed-col label-col" style="left:21%; text-align:center; cursor:pointer;" onclick="app.openTimePicker(this, 'end')" title="클릭하여 시간 선택">${end || '00:00'}</td>`;
+        headHtml += `<td class="fixed-col label-col" style="left:20%; text-align:center; cursor:pointer;" onclick="app.openTimePicker(this, 'start')" title="클릭하여 시간 선택">${start || '00:00'}</td>
+        <td class="fixed-col label-col" style="left:26%; text-align:center; cursor:pointer;" onclick="app.openTimePicker(this, 'end')" title="클릭하여 시간 선택">${end || '00:00'}</td>`;
         this.dynamicCols.timetable.forEach(cls => {
           const row = this.data.timetables.find(r => r[1] === date && r[2] === type && r[3] === start && r[4] === end && r[5] === cls);
           let displayStr = row && (row[6] || row[7]) ? `${row[6]||''}${row[7]?'('+row[7]+')':''}` : '';
@@ -1178,6 +1180,17 @@ const app = {
     }
   },
 
+  updateTimetableWeek: function(cell, grp) {
+    let newValue = this.getCleanHTML(cell);
+    newValue = newValue.replace(/<span class="drag-handle">.*?<\/span>/g, '').trim();
+    if(newValue === '<br>') newValue = '';
+    const key = 'tt_week_' + grp;
+    if (this.uiSettings[key] !== newValue) {
+      this.uiSettings[key] = newValue;
+      this.silentSave('saveUISettings', { key, value: newValue });
+    }
+  },
+  
   updateTimetableHoicha: function(cell, grp) {
     let newValue = this.getCleanHTML(cell);
     newValue = newValue.replace(/<span class="drag-handle">.*?<\/span>/g, '').trim();
@@ -1481,7 +1494,7 @@ const app = {
         if(r[1] === oldLabel && (r[4] || '') === oldHoicha) { 
           rollbackData.push({ row: r, oldWeek: r[1] });
           r[1] = newLabel; 
-          payloadArray.push({id: r[0], week: newLabel, subject: r[2], content: r[3], hoicha: r[4]});
+          payloadArray.push({id: r[0], week: newLabel, subject: r[2], content: r[3], note: r[4]});
         }
       });
       if (payloadArray.length > 0) {
