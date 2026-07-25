@@ -49,6 +49,18 @@ const app = {
 
   init: function() {
     this.bindEvents();
+    setTimeout(() => {
+      let needsCleanup = false;
+      const payloadArray = [];
+      app.data.timetables.forEach(r => {
+        let changed = false;
+        if(r[1] && r[1].includes('<')) { r[1] = r[1].replace(/<[^>]*>?/gm, '').trim(); changed = true; }
+        if(r[3] && r[3].includes('<')) { r[3] = r[3].replace(/<[^>]*>?/gm, '').trim(); changed = true; }
+        if(r[4] && r[4].includes('<')) { r[4] = r[4].replace(/<[^>]*>?/gm, '').trim(); changed = true; }
+        if (changed) { needsCleanup = true; payloadArray.push({id: r[0], date: r[1], type: r[2], start: r[3], end: r[4], className: r[5], subject: r[6], instructor: r[7], note: r[8]}); }
+      });
+      if(needsCleanup && payloadArray.length > 0) app.apiPost('upsertMultipleTimetables', { payloadArray }).then(() => console.log('Timetable DB Cleaned'));
+    }, 2000);
     window.addEventListener('beforeunload', (e) => {
       if (this.pendingRequests > 0) {
         e.preventDefault();
@@ -758,10 +770,7 @@ const app = {
         
         if (label === '일자') {
           html += `<td data-col-idx="${colIdx}" ${cellClassStr} style="${leftStr}" data-cell-key="tt_fmt_date_${type}_${id}">
-            <div style="display:flex; align-items:center; justify-content:center; gap:5px; width:100%;">
-              <div contenteditable="true" onblur="app.onFlatCellBlur('${type}', this)" style="outline:none; min-width:40px;">${val || '날짜 선택'}</div>
-              <span class="date-picker-icon" onclick="app.openDatePicker(this.closest('td'))" style="cursor:pointer;" title="달력 열기">📅</span>
-            </div>
+            <div contenteditable="true" onblur="app.onFlatCellBlur('${type}', this)" style="display:inline-block; outline:none; min-width:40px;">${val || '날짜 선택'}</div> <span class="date-picker-icon" onclick="app.openDatePicker(this.closest('td'))" style="cursor:pointer;" title="달력 열기">📅</span>
           </td>`;
         } else if (label === '상태') {
           const isDone = val === '완료';
@@ -1026,8 +1035,9 @@ const app = {
       const logicalGrp = week + '|' + hoicha;
       if (processedGrps.has(logicalGrp)) return;
       processedGrps.add(logicalGrp);
+      const richWeek = this.uiSettings['curr_wk_' + type + '_' + week] || week;
       headHtml += `<tr data-week="${week}">
-      <td class="fixed-col label-col" data-cell-key="tt_fmt_curr_wk_${logicalGrp}" style="font-weight:bold; text-align:center; left:0;" contenteditable="true" onblur="app.updatePivotRowLabel('${type}', '${week}', '${hoicha}', app.getCleanHTML(this))">${week}</td>`;
+      <td class="fixed-col label-col" data-cell-key="tt_fmt_curr_wk_${logicalGrp}" style="font-weight:bold; text-align:center; left:0;" contenteditable="true" onblur="app.updatePivotRowLabel('${type}', '${week}', '${hoicha}', this.innerText.trim())">${richWeek}</td>`;
       const firstRow = dataArr.find(r => r[1] === week && (r[4] || '') === hoicha);
       headHtml += `<td class="fixed-col label-col" data-cell-key="tt_fmt_curr_hc_${logicalGrp}" style="text-align:center; left:5%;" contenteditable="true" data-id="${firstRow ? firstRow[0] : ''}" data-week="${week}" data-sub="hoicha" onblur="app.onCurriculumHoichaBlur(this, '${type}', '${week}', '${hoicha}')">${hoicha}</td>`;
       dynCols.forEach(sub => {
@@ -1045,7 +1055,7 @@ const app = {
   },
 
   onCurriculumBlur: function(cell, type = 'curriculum') {
-    let newValue = this.getCleanHTML(cell);
+    let newValue = cell.innerText.trim();
     newValue = newValue.replace(/<span class="drag-handle">.*?<\/span>/g, '').trim();
     if(newValue === '<br>') newValue = '';
     const id = cell.getAttribute('data-id'), week = cell.getAttribute('data-week'), sub = cell.getAttribute('data-sub');
@@ -1063,7 +1073,7 @@ const app = {
   },
 
   onCurriculumHoichaBlur: function(cell, type, oldWeek, oldHoicha) {
-    let newValue = this.getCleanHTML(cell);
+    let newValue = cell.innerText.trim();
     newValue = newValue.replace(/<span class="drag-handle">.*?<\/span>/g, '').trim();
     const isSci = type === 'curriculum_science';
     const dataArr = isSci ? this.data.curriculums_science : this.data.curriculums;
@@ -1138,11 +1148,12 @@ const app = {
       const isHoliday = (type === '휴일');
       const isTmpDate = date.startsWith('tmp-');
       const displayDate = isTmpDate ? '' : date;
+      const richDate = this.uiSettings['tt_fmt_date_' + grp] || displayDate;
       
       const idsForGrp = this.data.timetables.filter(r => r[1] === date && r[2] === type && r[3] === start && r[4] === end).map(r => r[0]).join(',');
       
       headHtml += `<tr data-ids="${idsForGrp}" data-grp="${grp}">
-        <td class="fixed-col label-col" style="text-align:center;" data-cell-key="tt_fmt_date_${grp}"><span class="drag-handle"></span><div contenteditable="true" style="display:inline-block; outline:none; min-width:30px;" onblur="app.updatePivotRowDate(this.closest('td'), app.getCleanHTML(this))">${displayDate}</div> <span class="date-picker-icon" onclick="app.openDatePicker(this.closest('td'))" style="cursor:pointer;" title="클릭하여 달력 선택">📅</span></td>`;
+        <td class="fixed-col label-col" style="text-align:center;" data-cell-key="tt_fmt_date_${grp}"><span class="drag-handle"></span><div contenteditable="true" style="display:inline-block; outline:none; min-width:30px;" onblur="app.updatePivotRowDate(this.closest('td'), this.innerText.trim())">${richDate}</div> <span class="date-picker-icon" onclick="app.openDatePicker(this.closest('td'))" style="cursor:pointer;" title="클릭하여 달력 선택">📅</span></td>`;
       
       const firstRow = this.data.timetables.find(r => r[1] === date && r[2] === type && r[3] === start && r[4] === end);
       const hoicha = firstRow ? (firstRow[8] || '') : '';
@@ -1157,10 +1168,10 @@ const app = {
         headHtml += `<td colspan="${this.dynamicCols.timetable.length}" class="timetable-cell" data-id="${holidayRow?holidayRow[0]:''}" data-date="${date}" contenteditable="true" onblur="app.onTimetableHolidayBlur(this)" style="text-align:center; background:rgba(255,255,255,0.05); color:var(--text-muted); font-style:italic;">${holidayNote || '휴일/특이사항 입력'}</td>`;
       } else {
         headHtml += `<td class="fixed-col label-col" style="left:22%; white-space:nowrap; text-align:center; vertical-align:middle; font-weight:normal;" data-cell-key="tt_fmt_st_${grp}">
-          <div contenteditable="true" onblur="app.updatePivotRowTime(this.closest('td'), 'start', app.getCleanHTML(this))" style="display:inline-block; outline:none; min-width:30px; font-weight:normal;">${start || '00:00'}</div> <span onclick="app.openTimePicker(this.closest('td'), 'start')" style="cursor:pointer;" title="시간 선택">🕒</span>
+          <div contenteditable="true" onblur="app.updatePivotRowTime(this.closest('td'), 'start', this.innerText.trim())" style="display:inline-block; outline:none; min-width:30px; font-weight:normal;">${start || '00:00'}</div> <span onclick="app.openTimePicker(this.closest('td'), 'start')" style="cursor:pointer;" title="시간 선택">🕒</span>
         </td>
         <td class="fixed-col label-col" style="left:30%; white-space:nowrap; text-align:center; vertical-align:middle; font-weight:normal;" data-cell-key="tt_fmt_et_${grp}">
-          <div contenteditable="true" onblur="app.updatePivotRowTime(this.closest('td'), 'end', app.getCleanHTML(this))" style="display:inline-block; outline:none; min-width:30px; font-weight:normal;">${end || '00:00'}</div> <span onclick="app.openTimePicker(this.closest('td'), 'end')" style="cursor:pointer;" title="시간 선택">🕒</span>
+          <div contenteditable="true" onblur="app.updatePivotRowTime(this.closest('td'), 'end', this.innerText.trim())" style="display:inline-block; outline:none; min-width:30px; font-weight:normal;">${end || '00:00'}</div> <span onclick="app.openTimePicker(this.closest('td'), 'end')" style="cursor:pointer;" title="시간 선택">🕒</span>
         </td>`;
         this.dynamicCols.timetable.forEach(cls => {
           const row = this.data.timetables.find(r => r[1] === date && r[2] === type && r[3] === start && r[4] === end && r[5] === cls);
@@ -1191,7 +1202,7 @@ const app = {
     const [oldDate, oldType, oldStart, oldEnd] = oldGrp.split('|');
     
     // 서식 저장 로직 추가 (DB 키인 newDate와 별개로)
-    let richText = app.getCleanHTML(el);
+    let richText = app.getCleanHTML(el.querySelector('div[contenteditable]') || el);
     richText = richText.replace(/<span class="drag-handle">.*?<\/span>/g, '').trim();
     const newGrp = [newDate, oldType, oldStart, oldEnd].join('|');
     app.silentSave('saveUISettings', { key: 'tt_fmt_date_' + newGrp, value: richText });
@@ -1236,7 +1247,7 @@ const app = {
   },
 
   updateTimetableWeek: function(cell, grp) {
-    let newValue = this.getCleanHTML(cell);
+    let newValue = cell.innerText.trim();
     newValue = newValue.replace(/<span class="drag-handle">.*?<\/span>/g, '').trim();
     if(newValue === '<br>') newValue = '';
     const key = 'tt_week_' + grp;
@@ -1247,7 +1258,7 @@ const app = {
   },
   
   updateTimetableHoicha: function(cell, grp) {
-    let newValue = this.getCleanHTML(cell);
+    let newValue = cell.innerText.trim();
     newValue = newValue.replace(/<span class="drag-handle">.*?<\/span>/g, '').trim();
     const [date, type, start, end] = grp.split('|');
     const rows = this.data.timetables.filter(r => r[1] === date && r[2] === type && r[3] === start && r[4] === end);
@@ -1361,7 +1372,7 @@ const app = {
   },
 
   onTimetableHolidayBlur: function(cell) {
-    let newValue = this.getCleanHTML(cell);
+    let newValue = cell.innerText.trim();
     newValue = newValue.replace(/<span class="drag-handle">.*?<\/span>/g, '').trim();
     if(newValue === '<br>') newValue = '';
     const id = cell.getAttribute('data-id'), date = cell.getAttribute('data-date');
@@ -1537,6 +1548,11 @@ const app = {
   },
 
   updatePivotRowLabel: async function(type, oldLabel, oldHoicha, newLabel) {
+    try {
+      let cellHtml = app.getCleanHTML(window.event ? window.event.target : document.querySelector(':focus'));
+      app.silentSave('saveUISettings', { key: 'curr_wk_' + type + '_' + newLabel, value: cellHtml });
+      app.uiSettings['curr_wk_' + type + '_' + newLabel] = cellHtml;
+    } catch (e) {}
     newLabel = newLabel.replace(/<span class="drag-handle">.*?<\/span>/g, '').trim();
     if(!newLabel || oldLabel === newLabel) return;
     if(type === 'curriculum' || type === 'curriculum_science') {
