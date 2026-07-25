@@ -555,7 +555,7 @@ const app = {
 
 
   renderSortableHeader: function(label, type, colIdx) {
-    return `${label} <span class="sort-icon" onclick="app.sortTable('${type}', ${colIdx})" style="cursor:pointer; font-size:11px; margin-left:4px; user-select:none;">▼</span>`;
+    return `${label} <span class="sort-icon" onclick="app.sortTable('${type}', ${colIdx})" style="cursor:pointer; margin-left:4px; user-select:none;">▼</span>`;
   },
 
   sortTable: function(type, colIdx) {
