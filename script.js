@@ -48,7 +48,7 @@ const app = {
       const range = sel.getRangeAt(0);
       const container = range.commonAncestorContainer;
       const td = container.nodeType === 3 ? container.parentElement.closest('td[contenteditable="true"]') : container.closest('td[contenteditable="true"]');
-      if (td) {
+      if (td && !td.classList.contains('label-col')) {
         const rect = range.getBoundingClientRect();
         this.showToolbar(rect.left + rect.width / 2, rect.top);
       } else { this.hideToolbar(); }
