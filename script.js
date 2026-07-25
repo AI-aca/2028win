@@ -139,7 +139,10 @@ const app = {
         case 'upsertTimetable': case 'upsertMultipleTimetables': table = 'timetables'; break;
         case 'upsertStudent': table = 'students'; break;
         case 'upsertInstructor': table = 'instructors'; break;
-        case 'saveUISettings': table = 'ui_settings'; break;
+        case 'saveUISettings': 
+          table = 'ui_settings'; 
+          if (!data.id && data.key) data.id = data.key;
+          break;
         case 'deleteData': case 'deleteMultipleData': 
           let delTable = '';
           const sn = payloadData.sheetName;
