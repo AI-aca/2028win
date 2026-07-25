@@ -12,7 +12,7 @@ const app = {
   uiSettings: {},
   ctxTargetRow: null, ctxTargetType: null, draggedRow: null, draggedType: null,
   sortState: {},
-  pendingRequests: 0,
+  pendingRequests: 0, failedRequests: 0,
 
   openInstructorSelectModal: function(td, mode) {
     document.getElementById('generic-modal-title').innerText = mode === 'area' ? '영역 선택' : '과목 선택';
@@ -159,12 +159,21 @@ const app = {
     const text = indicator.querySelector('.sync-text');
     
     if (this.pendingRequests === 0) {
-      indicator.style.color = '#10b981'; // 녹색
-      indicator.style.borderColor = 'rgba(16, 185, 129, 0.3)';
-      icon.innerHTML = '✓';
-      icon.style.display = 'inline-block';
-      icon.style.animation = 'none';
-      text.innerText = '모든 변경사항 저장됨';
+      if (this.failedRequests > 0) {
+        indicator.style.color = '#ef4444'; // 빨간색
+        indicator.style.borderColor = 'rgba(239, 68, 68, 0.3)';
+        icon.innerHTML = '❌';
+        icon.style.display = 'inline-block';
+        icon.style.animation = 'none';
+        text.innerText = '저장 실패 항목 있음 (새로고침 요망)';
+      } else {
+        indicator.style.color = '#10b981'; // 녹색
+        indicator.style.borderColor = 'rgba(16, 185, 129, 0.3)';
+        icon.innerHTML = '✓';
+        icon.style.display = 'inline-block';
+        icon.style.animation = 'none';
+        text.innerText = '모든 변경사항 저장됨';
+      }
     } else {
       indicator.style.color = '#ef4444'; // 빨간색
       indicator.style.borderColor = 'rgba(239, 68, 68, 0.3)';
@@ -226,7 +235,11 @@ const app = {
         if (action.includes('Multiple')) {
           const arrData = payloadData.payloadArray.map(obj => {
             let lowerObj = {};
-            for (let k in obj) lowerObj[k.toLowerCase()] = obj[k];
+            for (let k in obj) {
+              if (['action', 'authpass', 'payloadarray', 'insertindex', 'regtime'].includes(k.toLowerCase())) continue;
+              lowerObj[k.toLowerCase()] = obj[k];
+            }
+            if (lowerObj.id === '' || (typeof lowerObj.id === 'string' && lowerObj.id.startsWith('f-'))) delete lowerObj.id;
             return lowerObj;
           });
           const { error } = await supabaseClient.from(table).upsert(arrData);
@@ -234,9 +247,10 @@ const app = {
         } else {
           let lowerData = {};
           for (let k in data) {
-            if (['action', 'authpass', 'payloadarray'].includes(k.toLowerCase())) continue;
+            if (['action', 'authpass', 'payloadarray', 'insertindex', 'regtime'].includes(k.toLowerCase())) continue;
             lowerData[k.toLowerCase()] = data[k];
           }
+          if (lowerData.id === '' || (typeof lowerData.id === 'string' && lowerData.id.startsWith('f-'))) delete lowerData.id;
           const { error } = await supabaseClient.from(table).upsert(lowerData);
           if (error) throw error;
         }
@@ -245,6 +259,7 @@ const app = {
       return { success: true };
     } catch (e) {
       console.error(e);
+      this.failedRequests++;
       return { success: false, message: e.message };
     } finally {
       this.pendingRequests--;
