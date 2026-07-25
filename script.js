@@ -48,7 +48,7 @@ const app = {
       const range = sel.getRangeAt(0);
       const container = range.commonAncestorContainer;
       const td = container.nodeType === 3 ? container.parentElement.closest('td[contenteditable="true"]') : container.closest('td[contenteditable="true"]');
-      if (td && !td.classList.contains('label-col')) {
+      if (td) {
         const rect = range.getBoundingClientRect();
         this.showToolbar(rect.left + rect.width / 2, rect.top);
       } else { this.hideToolbar(); }
@@ -630,11 +630,13 @@ const app = {
     this.initResizers();
   },
   toggleStatus: function(btn, type, colIdx) {
-    const isDone = btn.classList.contains('status-done');
+    const isDone = btn.textContent.includes('완료');
     const newStatus = isDone ? '진행 중' : '완료';
+    const statusTxt = !isDone ? '🟢 완료' : '🟡 진행 중';
+    const txtColor = !isDone ? '#10b981' : '#f59e0b';
     
-    btn.textContent = newStatus;
-    btn.className = 'status-btn ' + (isDone ? 'status-progress' : 'status-done');
+    btn.textContent = statusTxt;
+    btn.style.color = txtColor;
     
     const rowEl = btn.closest('tr');
     const currentId = rowEl.getAttribute('data-id');
@@ -983,9 +985,16 @@ const app = {
     const tr = el.closest('tr');
     const oldGrp = tr.getAttribute('data-grp');
     const [oldDate, oldType, oldStart, oldEnd] = oldGrp.split('|');
+    
+    // 서식 저장 로직 추가 (DB 키인 newDate와 별개로)
+    let richText = app.getCleanHTML(el);
+    richText = richText.replace(/<span class="drag-handle">.*?<\/span>/g, '').trim();
+    const newGrp = [newDate, oldType, oldStart, oldEnd].join('|');
+    app.silentSave('saveUISettings', { key: 'tt_fmt_date_' + newGrp, value: richText });
+    app.uiSettings['tt_fmt_date_' + newGrp] = richText;
+    
     if (oldDate === newDate) return;
     
-    const newGrp = [newDate, oldType, oldStart, oldEnd].join('|');
     const payloadArray = [];
     const rowsToSave = [];
     const rollbackData = [];
@@ -999,7 +1008,6 @@ const app = {
       }
     });
 
-    // DOM을 await 전에 낙관적 업데이트 (Race Condition 방지)
     tr.setAttribute('data-grp', newGrp);
     tr.querySelectorAll('.timetable-cell').forEach(c => c.setAttribute('data-date', newDate));
     const h = tr.querySelector('[placeholder="어떠한 휴일인가요? (비고 입력)"]');
@@ -1432,14 +1440,14 @@ const app = {
     this.hideContextMenu();
     if (!this.ctxTargetCell) return;
     const td = this.ctxTargetCell;
-    const id = td.getAttribute('data-id');
-    if (id) {
+    const cellKey = td.getAttribute('data-cell-key');
+    if (cellKey) {
       const finalColor = color === 'transparent' ? '' : color;
       td.style.backgroundColor = finalColor;
-      this.silentSave('saveUISettings', { key: 'cell_bg_' + id, value: finalColor });
-      this.uiSettings['cell_bg_' + id] = finalColor;
+      this.silentSave('saveUISettings', { key: cellKey, value: finalColor });
+      this.uiSettings[cellKey] = finalColor;
     } else {
-      app.showToast('배경색을 적용할 수 없는 빈 셀입니다.', true);
+      app.showToast('배경색을 적용할 수 없는 셀입니다.', true);
     }
   },
   execCmd: function(cmd, e, val = null) {
