@@ -298,6 +298,90 @@ const app = {
     this.dynamicCols.timetable = Array.from(new Set(this.data.timetables.map(r => r[5]).filter(x => x && x !== '전체')));
   },
 
+  openDatePicker: function(td) {
+    const input = document.createElement('input');
+    input.style.display = 'none';
+    document.body.appendChild(input);
+    const fp = flatpickr(input, {
+      locale: "ko",
+      theme: "dark",
+      disableMobile: true,
+      defaultDate: new Date(),
+      onChange: function(selectedDates, dateStr, instance) {
+        const days = ['일', '월', '화', '수', '목', '금', '토'];
+        const date = selectedDates[0];
+        const yy = String(date.getFullYear()).slice(-2);
+        const mm = String(date.getMonth() + 1).padStart(2, '0');
+        const dd = String(date.getDate()).padStart(2, '0');
+        const day = days[date.getDay()];
+        const formatted = `${yy}-${mm}-${dd} (${day})`;
+        
+        td.innerHTML = formatted;
+        if(app.updatePivotRowDate) app.updatePivotRowDate(td, formatted);
+        setTimeout(() => { fp.destroy(); input.remove(); }, 100);
+      },
+      onClose: function() {
+        setTimeout(() => { fp.destroy(); input.remove(); }, 100);
+      }
+    });
+    fp.open();
+  },
+
+  openTimePicker: function(td, field) {
+    let dropdown = document.getElementById('time-dropdown');
+    if (!dropdown) {
+      dropdown = document.createElement('div');
+      dropdown.id = 'time-dropdown';
+      dropdown.style.position = 'absolute';
+      dropdown.style.backgroundColor = '#1f2937';
+      dropdown.style.border = '1px solid #374151';
+      dropdown.style.borderRadius = '8px';
+      dropdown.style.padding = '5px 0';
+      dropdown.style.maxHeight = '200px';
+      dropdown.style.overflowY = 'auto';
+      dropdown.style.zIndex = '10000';
+      dropdown.style.boxShadow = '0 10px 15px -3px rgba(0,0,0,0.5)';
+      document.body.appendChild(dropdown);
+    }
+    
+    dropdown.innerHTML = '';
+    const times = [];
+    for(let h=10; h<=22; h++) {
+      times.push(`${String(h).padStart(2,'0')}:00`);
+      if(h !== 22) times.push(`${String(h).padStart(2,'0')}:30`);
+    }
+    
+    times.forEach(t => {
+      const div = document.createElement('div');
+      div.innerText = t;
+      div.style.padding = '8px 16px';
+      div.style.cursor = 'pointer';
+      div.style.color = '#f3f4f6';
+      div.style.fontSize = '14px';
+      div.onmouseover = () => div.style.backgroundColor = '#374151';
+      div.onmouseout = () => div.style.backgroundColor = 'transparent';
+      div.onclick = () => {
+        td.innerHTML = t;
+        if(app.updatePivotRowTime) app.updatePivotRowTime(td, field, t);
+        dropdown.classList.add('hidden');
+      };
+      dropdown.appendChild(div);
+    });
+
+    const rect = td.getBoundingClientRect();
+    dropdown.style.left = `${rect.left}px`;
+    dropdown.style.top = `${rect.bottom + window.scrollY + 5}px`;
+    dropdown.classList.remove('hidden');
+    
+    const closeDropdown = (e) => {
+      if (!dropdown.contains(e.target) && e.target !== td) {
+        dropdown.classList.add('hidden');
+        document.removeEventListener('click', closeDropdown);
+      }
+    };
+    setTimeout(() => document.addEventListener('click', closeDropdown), 10);
+  },
+
   bindEvents: function() {
     document.addEventListener('paste', (e) => {
       const td = e.target.closest('td[contenteditable="true"]');
@@ -335,7 +419,7 @@ const app = {
     const headerActions = document.getElementById('top-header-actions');
     if (headerActions) {
       if (viewId === 'view-preschedule') {
-        headerActions.innerHTML = `<button class="btn btn-primary" onclick="app.addRow('preschedule')">+ 일정 추가</button>`;
+        headerActions.innerHTML = `<button class="btn btn-primary" onclick="app.addRow('preschedule')">+ 내용 추가</button>`;
       } else if (viewId === 'view-curriculum') {
         headerActions.innerHTML = `<button class="btn btn-primary" onclick="app.addRow('curriculum')">+ 주차 추가</button> <button class="btn btn-primary" style="background:#06b6d4;" onclick="app.addColumn('curriculum')">+ 과목 추가</button>`;
       } else if (viewId === 'view-curriculum-science') {
@@ -621,9 +705,9 @@ const app = {
           html += `<td data-col-idx="${colIdx}" ${cellClassStr} contenteditable="true" onblur="app.onFlatCellBlur('${type}', this)" placeholder="날짜 선택" style="text-align:center;">${val}</td>`;
         } else if (label === '상태') {
           const isDone = val === '완료';
-          const statusTxt = isDone ? '완료' : '진행 중';
-          const btnClass = isDone ? 'status-done' : 'status-progress';
-          html += `<td data-col-idx="${colIdx}" class="status-cell ${isFixed ? 'label-col' : ''}" style="text-align:center;"><button class="status-btn ${btnClass}" onclick="app.toggleStatus(this, '${type}', ${colIdx})">${statusTxt}</button></td>`;
+          const statusTxt = isDone ? '🟢 완료' : '🟡 진행 중';
+          const txtColor = isDone ? '#10b981' : '#f59e0b';
+          html += `<td data-col-idx="${colIdx}" class="status-cell ${isFixed ? 'label-col' : ''}" style="text-align:center; cursor:pointer;" onclick="app.toggleStatus(this.querySelector('span'), '${type}', ${colIdx})"><span style="font-weight:600; color:${txtColor}; font-size:14px; user-select:none; transition:all 0.2s; padding:4px 8px; border-radius:4px;" onmouseover="this.style.backgroundColor='rgba(255,255,255,0.05)'" onmouseout="this.style.backgroundColor='transparent'">${statusTxt}</span></td>`;
         } else {
           let extraEvents = `onkeydown="app.onKeyDown(event, this)"`;
           let displayVal = val;
@@ -911,7 +995,8 @@ const app = {
   },
 
   onCurriculumHoichaBlur: function(cell, type) {
-    let newValue = cell.innerText.trim();
+    let newValue = this.getCleanHTML(cell);
+    newValue = newValue.replace(/<span class="drag-handle">.*?<\/span>/g, '').trim();
     const week = cell.getAttribute('data-week');
     const isSci = type === 'curriculum_science';
     const dataArr = isSci ? this.data.curriculums_science : this.data.curriculums;
@@ -1073,7 +1158,8 @@ const app = {
   },
 
   updateTimetableHoicha: function(cell, grp) {
-    let newValue = cell.innerText.trim();
+    let newValue = this.getCleanHTML(cell);
+    newValue = newValue.replace(/<span class="drag-handle">.*?<\/span>/g, '').trim();
     const [date, type, start, end] = grp.split('|');
     const rows = this.data.timetables.filter(r => r[1] === date && r[2] === type && r[3] === start && r[4] === end);
     if (rows.length === 0) return;
