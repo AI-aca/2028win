@@ -1393,9 +1393,10 @@ const app = {
     const td = this.ctxTargetCell;
     const id = td.getAttribute('data-id');
     if (id) {
-      td.style.backgroundColor = color === 'transparent' ? '' : color;
-      this.silentSave('saveUISettings', { key: 'cell_bg_' + id, value: color });
-      this.uiSettings['cell_bg_' + id] = color;
+      const finalColor = color === 'transparent' ? '' : color;
+      td.style.backgroundColor = finalColor;
+      this.silentSave('saveUISettings', { key: 'cell_bg_' + id, value: finalColor });
+      this.uiSettings['cell_bg_' + id] = finalColor;
     } else {
       app.showToast('배경색을 적용할 수 없는 빈 셀입니다.', true);
     }
