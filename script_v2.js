@@ -523,7 +523,9 @@ const app = {
     html = html.replace(/<\/?(?!(span|div|font|b|i|u|br)\b)[^>]*>/gi, '');
     // 딜리미터 충돌 방지
     let val = html.replace(/\|/g, '／');
-    return val.trim();
+    val = val.trim();
+    val = val.replace(/^(?:<br>\s*)+|(?:<br>\s*)+$/gi, '');
+    return val;
   },
 
   onKeyDown: function(e, cell) {
@@ -1023,7 +1025,9 @@ const app = {
     let headHtml = `<thead><tr><th class="label-col-header fixed-col" style="width:5%; left:0;"><div contenteditable="true" onblur="app.onHeaderBlur(this, '${viewId}', 0)" style="display:inline-block; min-width:30px; min-height:20px; outline:none;">${weekHeader}</div></th>`;
     headHtml += `<th class="label-col-header fixed-col" style="width:5%; left:5%;">회차</th>`;
     dynCols.forEach((sub, i) => {
-      const dynHeader = this.uiSettings['header_' + viewId + '_' + (i+1)] || sub;
+      const matchedSub = this.managedSubjects.find(s => s.name === sub);
+      const subDisplay = matchedSub && matchedSub.emoji ? matchedSub.emoji + ' ' + sub : sub;
+      const dynHeader = this.uiSettings['header_' + viewId + '_' + (i+1)] || subDisplay;
       headHtml += `<th data-colname="${sub}"><div contenteditable="true" onblur="app.onHeaderBlur(this, '${viewId}', ${i+1})" style="display:inline-block; min-width:30px; min-height:20px; outline:none;">${dynHeader}</div></th>`;
     });
     headHtml += `</tr></thead><tbody id="tbody-${isSci ? 'curriculum-science' : 'curriculum'}">`;
@@ -1148,7 +1152,10 @@ const app = {
       const isHoliday = (type === '휴일');
       const isTmpDate = date.startsWith('tmp-');
       const displayDate = isTmpDate ? '' : date;
-      const richDate = this.uiSettings['tt_fmt_date_' + grp] || displayDate;
+      let richDate = this.uiSettings['tt_fmt_date_' + grp] || displayDate;
+      if (richDate.includes('date-picker-icon')) {
+        richDate = richDate.replace(/<span class="date-picker-icon"[^>]*>.*?<\/span>/g, '').trim();
+      }
       
       const idsForGrp = this.data.timetables.filter(r => r[1] === date && r[2] === type && r[3] === start && r[4] === end).map(r => r[0]).join(',');
       
@@ -1428,14 +1435,14 @@ const app = {
     else if (category === '과학') emoji = '🔬';
 
     this.managedSubjects.push({ name, category, emoji });
-    this.silentSave('managed_subjects', JSON.stringify(this.managedSubjects));
+    this.silentSave('saveUISettings', { key: 'managed_subjects', value: JSON.stringify(this.managedSubjects) });
     document.getElementById('new-subject-name').value = '';
     this.renderSubjectManagerList();
   },
   removeSubject: function(idx) {
     if(confirm(this.managedSubjects[idx].name + ' 과목을 리스트에서 삭제하시겠습니까?\n(이미 등록된 데이터의 이름이 바뀌진 않습니다)')) {
       this.managedSubjects.splice(idx, 1);
-      this.silentSave('managed_subjects', JSON.stringify(this.managedSubjects));
+      this.silentSave('saveUISettings', { key: 'managed_subjects', value: JSON.stringify(this.managedSubjects) });
       this.renderSubjectManagerList();
     }
   },
@@ -1836,8 +1843,8 @@ const app = {
       const grp = this.ctxTargetRow.getAttribute('data-grp');
       if (grp) {
         const [date, tType, start, end] = grp.split('|');
-        const toDelete = this.data.timetables.filter(r => r[1] === date && r[2] === tType && r[3] === start && r[4] === end);
-        this.data.timetables = this.data.timetables.filter(r => !(r[1] === date && r[2] === tType && r[3] === start && r[4] === end));
+        const toDelete = this.data.timetables.filter(r => r[1] === date && r[2] === tType && String(r[3]) === String(start) && r[4] === end);
+        this.data.timetables = this.data.timetables.filter(r => !(r[1] === date && r[2] === tType && String(r[3]) === String(start) && r[4] === end));
         this.renderView('timetable');
         
         const ids = toDelete.map(r => r[0]).filter(Boolean);
