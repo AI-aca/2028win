@@ -19,7 +19,7 @@ const app = {
     window.addEventListener('beforeunload', (e) => {
       if (this.pendingRequests > 0) {
         e.preventDefault();
-        e.returnValue = "아직 구글 서버에 저장 중인 데이터가 있습니다. 정말 창을 닫으시겠습니까?";
+        e.returnValue = "아직 서버에 저장 중인 데이터가 있습니다. 정말 창을 닫으시겠습니까?";
       }
     });
     if (sessionStorage.getItem('auth_pass')) {
@@ -30,7 +30,7 @@ const app = {
     
     document.addEventListener('mousedown', (e) => {
       const tb = document.getElementById('rich-toolbar');
-      if (tb && !tb.contains(e.target) && !e.target.closest('td[contenteditable="true"]')) this.hideToolbar();
+      if (tb && !tb.contains(e.target) && !e.target.closest('[contenteditable="true"]')) this.hideToolbar();
       const ctx = document.getElementById('context-menu');
       if (ctx && !ctx.contains(e.target)) this.hideContextMenu();
     });
@@ -60,7 +60,7 @@ const app = {
       if (!sel.rangeCount || sel.isCollapsed) { this.hideToolbar(); return; }
       const range = sel.getRangeAt(0);
       const container = range.commonAncestorContainer;
-      const td = container.nodeType === 3 ? container.parentElement.closest('td[contenteditable="true"]') : container.closest('td[contenteditable="true"]');
+      const td = container.nodeType === 3 ? container.parentElement.closest('[contenteditable="true"]') : container.closest('[contenteditable="true"]');
       if (td) {
         const rect = range.getBoundingClientRect();
         this.showToolbar(rect.left + rect.width / 2, rect.top);
@@ -724,13 +724,36 @@ const app = {
         const val = row[colIdx] || '';
         
         if (label === '일자') {
-          html += `<td data-col-idx="${colIdx}" ${cellClassStr} style="text-align:center; cursor:pointer; ${leftStr}" onclick="app.openDatePicker(this)" title="클릭하여 달력 선택" data-cell-key="tt_fmt_date_${type}_${id}">${val || '날짜 선택'}</td>`;
+          html += `<td data-col-idx="${colIdx}" ${cellClassStr} style="${leftStr}" data-cell-key="tt_fmt_date_${type}_${id}">
+            <div style="display:flex; align-items:center; justify-content:center; gap:5px; width:100%;">
+              <div contenteditable="true" onblur="app.onFlatCellBlur('${type}', this)" style="outline:none; min-width:40px;">${val || '날짜 선택'}</div>
+              <span class="date-picker-icon" onclick="app.openDatePicker(this.closest('td'))" style="cursor:pointer;" title="달력 열기">📅</span>
+            </div>
+          </td>`;
         } else if (label === '상태') {
           const isDone = val === '완료';
           const statusTxt = isDone ? '🟢 완료' : '🟡 진행 중';
           const txtColor = isDone ? '#10b981' : '#ffffff';
           const fw = isDone ? '600' : 'normal';
           html += `<td data-col-idx="${colIdx}" class="status-cell ${isFixed ? 'fixed-col label-col' : ''}" style="text-align:center; cursor:pointer; ${leftStr}" onclick="app.toggleStatus(this.querySelector('span'), '${type}', ${colIdx})"><span style="font-weight:${fw}; color:${txtColor}; font-size:12px; user-select:none; transition:all 0.2s; padding:4px 8px; border-radius:4px;" onmouseover="this.style.backgroundColor='rgba(255,255,255,0.05)'" onmouseout="this.style.backgroundColor='transparent'">${statusTxt}</span></td>`;
+        } else if (type === 'instructor' && colIdx === 2) {
+          html += `<td ${cellClassStr} data-col-idx="${colIdx}"><select class="form-control instructor-area-select" style="background-color:#1e293b; color:#f8fafc; outline:none; border:none; width:100%;" onchange="app.onFlatCellBlur('${type}', this.closest('td'))">
+            <option value="" ${!val ? 'selected' : ''}></option>
+            <option value="수학" ${val === '수학' ? 'selected' : ''}>수학</option>
+            <option value="과학" ${val === '과학' ? 'selected' : ''}>과학</option>
+          </select></td>`;
+        } else if (type === 'instructor' && colIdx === 3) {
+          const areaVal = row[2] || '';
+          let optsHtml = `<option value="" ${!val ? 'selected' : ''}></option>`;
+          if (this.managedSubjects && Array.isArray(this.managedSubjects)) {
+            this.managedSubjects.forEach(s => {
+              const show = !areaVal || s.category === areaVal;
+              if (show) {
+                optsHtml += `<option value="${s.name}" data-category="${s.category}" ${val === s.name ? 'selected' : ''}>${s.name}</option>`;
+              }
+            });
+          }
+          html += `<td ${cellClassStr} data-col-idx="${colIdx}"><select class="form-control instructor-subject-select" style="background-color:#1e293b; color:#f8fafc; outline:none; border:none; width:100%;" onchange="app.onFlatCellBlur('${type}', this.closest('td'))">${optsHtml}</select></td>`;
         } else {
           let extraEvents = `onkeydown="app.onKeyDown(event, this)"`;
           let displayVal = val;
@@ -977,15 +1000,19 @@ const app = {
     });
     headHtml += `</tr></thead><tbody id="tbody-${isSci ? 'curriculum-science' : 'curriculum'}">`;
 
-    const grps = Array.from(new Set(dataArr.map(r => r[1] + '|' + (r[4] || '')).filter(g => g !== '|')));
+    const grps = Array.from(new Set(dataArr.map(r => r[1] + '|' + (r[4] || '') + '|' + r[0]).filter(g => !g.startsWith('|'))));
+    const processedGrps = new Set();
     grps.forEach(grp => {
-      const [week, hoicha] = grp.split('|');
+      const [week, hoicha, rowId] = grp.split('|');
+      const logicalGrp = week + '|' + hoicha;
+      if (processedGrps.has(logicalGrp)) return;
+      processedGrps.add(logicalGrp);
       headHtml += `<tr data-week="${week}">
-      <td class="fixed-col label-col" data-cell-key="tt_fmt_curr_wk_${grp}" style="font-weight:bold; text-align:center; left:0;" contenteditable="true" onblur="app.updatePivotRowLabel('${type}', '${week}', '${hoicha}', this.innerText.trim())">${week}</td>`;
+      <td class="fixed-col label-col" data-cell-key="tt_fmt_curr_wk_${logicalGrp}" style="font-weight:bold; text-align:center; left:0;" contenteditable="true" onblur="app.updatePivotRowLabel('${type}', '${week}', '${hoicha}', this.innerText.trim())">${week}</td>`;
       const firstRow = dataArr.find(r => r[1] === week && (r[4] || '') === hoicha);
-      headHtml += `<td class="fixed-col label-col" data-cell-key="tt_fmt_curr_hc_${grp}" style="text-align:center; left:5%;" contenteditable="true" data-id="${firstRow ? firstRow[0] : ''}" data-week="${week}" data-sub="hoicha" onblur="app.onCurriculumHoichaBlur(this, '${type}', '${week}', '${hoicha}')">${hoicha}</td>`;
+      headHtml += `<td class="fixed-col label-col" data-cell-key="tt_fmt_curr_hc_${logicalGrp}" style="text-align:center; left:5%;" contenteditable="true" data-id="${firstRow ? firstRow[0] : ''}" data-week="${week}" data-sub="hoicha" onblur="app.onCurriculumHoichaBlur(this, '${type}', '${week}', '${hoicha}')">${hoicha}</td>`;
       dynCols.forEach(sub => {
-        const row = dataArr.find(r => r[1] === week && r[2] === sub);
+        const row = dataArr.find(r => r[1] === week && r[2] === sub && (r[4] || '') === hoicha);
         const content = row ? row[3] : '';
         const id = row ? row[0] : '';
         let bgStyle = id && this.uiSettings['cell_bg_' + id] ? `background-color:${this.uiSettings['cell_bg_' + id]};` : '';
@@ -1111,13 +1138,13 @@ const app = {
         headHtml += `<td colspan="${this.dynamicCols.timetable.length}" class="timetable-cell" data-id="${holidayRow?holidayRow[0]:''}" data-date="${date}" contenteditable="true" onblur="app.onTimetableHolidayBlur(this)" style="text-align:center; background:rgba(255,255,255,0.05); color:var(--text-muted); font-style:italic;">${holidayNote || '휴일/특이사항 입력'}</td>`;
       } else {
         headHtml += `<td class="fixed-col label-col" style="left:22%;" data-cell-key="tt_fmt_st_${grp}">
-          <div style="display:flex; align-items:center; justify-content:center; gap:5px; width:100%;">
+          <div style="display:flex; align-items:center; justify-content:center; gap:2px; white-space:nowrap; width:100%;">
             <div contenteditable="true" onblur="app.updatePivotRowTime(this.closest('td'), 'start', this.innerText.trim())" style="outline:none; min-width:30px;">${start || '00:00'}</div>
             <span onclick="app.openTimePicker(this.closest('td'), 'start')" style="cursor:pointer;" title="시간 선택">🕒</span>
           </div>
         </td>
         <td class="fixed-col label-col" style="left:30%;" data-cell-key="tt_fmt_et_${grp}">
-          <div style="display:flex; align-items:center; justify-content:center; gap:5px; width:100%;">
+          <div style="display:flex; align-items:center; justify-content:center; gap:2px; white-space:nowrap; width:100%;">
             <div contenteditable="true" onblur="app.updatePivotRowTime(this.closest('td'), 'end', this.innerText.trim())" style="outline:none; min-width:30px;">${end || '00:00'}</div>
             <span onclick="app.openTimePicker(this.closest('td'), 'end')" style="cursor:pointer;" title="시간 선택">🕒</span>
           </div>
@@ -1699,7 +1726,11 @@ const app = {
     const cellKey = td.getAttribute('data-cell-key');
     if (cellKey) {
       const finalColor = color === 'transparent' ? '' : color;
-      td.style.backgroundColor = finalColor;
+      if (finalColor === '') {
+        td.style.removeProperty('background-color');
+      } else {
+        td.style.setProperty('background-color', finalColor, 'important');
+      }
       this.silentSave('saveUISettings', { key: cellKey, value: finalColor });
       this.uiSettings[cellKey] = finalColor;
     } else {
