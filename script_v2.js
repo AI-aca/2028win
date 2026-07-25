@@ -791,7 +791,14 @@ const app = {
         } else if (type === 'instructor' && colIdx === 2) {
           html += `<td ${cellClassStr} data-col-idx="${colIdx}" onclick="app.openInstructorSelectModal(this, 'area')" style="cursor:pointer; text-align:center;">${val}</td>`;
         } else if (type === 'instructor' && colIdx === 3) {
-          html += `<td ${cellClassStr} data-col-idx="${colIdx}" onclick="app.openInstructorSelectModal(this, 'subject')" style="cursor:pointer; text-align:center;">${val}</td>`;
+          let displayVal = val;
+          if (val && app.managedSubjects && Array.isArray(app.managedSubjects)) {
+            const matchedSub = app.managedSubjects.find(s => s.name === val);
+            if (matchedSub && matchedSub.emoji) {
+              displayVal = `${matchedSub.emoji} ${val}`;
+            }
+          }
+          html += `<td ${cellClassStr} data-col-idx="${colIdx}" onclick="app.openInstructorSelectModal(this, 'subject')" style="cursor:pointer; text-align:center;">${displayVal}</td>`;
         } else {
           let extraEvents = `onkeydown="app.onKeyDown(event, this)"`;
           let displayVal = val;
@@ -1034,8 +1041,10 @@ const app = {
     headHtml += `<th class="label-col-header fixed-col" style="width:5%; left:5%;">회차</th>`;
     dynCols.forEach((sub, i) => {
       const matchedSub = this.managedSubjects.find(s => s.name === sub);
-      const subDisplay = matchedSub && matchedSub.emoji ? matchedSub.emoji + ' ' + sub : sub;
-      const dynHeader = this.uiSettings['header_' + viewId + '_' + sub] || subDisplay;
+      let dynHeader = this.uiSettings['header_' + viewId + '_' + sub] || sub;
+      if (matchedSub && matchedSub.emoji && !dynHeader.includes(matchedSub.emoji)) {
+        dynHeader = matchedSub.emoji + ' ' + dynHeader;
+      }
       headHtml += `<th data-colname="${sub}"><div contenteditable="true" onblur="app.onHeaderBlur(this, '${viewId}', '${sub}')" style="display:inline-block; min-width:30px; min-height:20px; outline:none;">${dynHeader}</div></th>`;
     });
     headHtml += `</tr></thead><tbody id="tbody-${isSci ? 'curriculum-science' : 'curriculum'}">`;
