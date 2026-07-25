@@ -1508,7 +1508,7 @@ const app = {
           if (!res || !res.success) throw new Error(res ? res.message : '알 수 없는 에러');
         } catch(e) {
           app.showToast('저장 실패: ' + e.message, true);
-          rollbackData.forEach(rb => { rb.row[1] = rb.oldWeek; });
+          rollbackData.forEach(rb => { rb.row[1] = rb.oldWeek; rb.row[4] = rb.oldHoicha; });
         }
       }
     }
