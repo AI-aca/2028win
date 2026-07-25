@@ -442,9 +442,9 @@ const app = {
   },
 
   renderView: function(viewName) {
-    if (viewName === 'preschedule') this.renderFlatTable('preschedule', this.data.preschedules, [{label:'일자', idx:1, fixed:true, width:'10%'}, {label:'상태', idx:3, fixed:true, width:'10%'}, {label:'내용', idx:2}, {label:'비고', idx:4}]);
-    else if (viewName === 'student') this.renderFlatTable('student', this.data.students, [{label:'학생명', idx:1, fixed:true, width:'10%'}, {label:'센터', idx:2}, {label:'학교', idx:3}, {label:'학년', idx:4}, {label:'학부모 연락처', idx:5}, {label:'학생 연락처', idx:6}, {label:'비고', idx:7}]);
-    else if (viewName === 'instructor') this.renderFlatTable('instructor', this.data.instructors, [{label:'강사명', idx:1, fixed:true, width:'10%'}, {label:'영역', idx:2}, {label:'과목', idx:3}, {label:'연락처', idx:4}, {label:'지메일', idx:5}, {label:'비고', idx:6}]);
+    if (viewName === 'preschedule') this.renderFlatTable('preschedule', this.data.preschedules, [{label:'일자', idx:1, fixed:true, width:'10%'}, {label:'상태', idx:3, fixed:true, width:'6%'}, {label:'내용', idx:2}, {label:'비고', idx:4}]);
+    else if (viewName === 'student') this.renderFlatTable('student', this.data.students, [{label:'학생명', idx:1, fixed:true, width:'6%'}, {label:'센터', idx:2}, {label:'학교', idx:3}, {label:'학년', idx:4}, {label:'학부모 연락처', idx:5}, {label:'학생 연락처', idx:6}, {label:'비고', idx:7}]);
+    else if (viewName === 'instructor') this.renderFlatTable('instructor', this.data.instructors, [{label:'강사명', idx:1, fixed:true, width:'6%'}, {label:'영역', idx:2}, {label:'과목', idx:3}, {label:'연락처', idx:4}, {label:'지메일', idx:5}, {label:'비고', idx:6}]);
     else if (viewName === 'curriculum') this.renderCurriculumPivot('curriculum');
     else if (viewName === 'curriculum_science') this.renderCurriculumPivot('curriculum_science');
     else if (viewName === 'timetable') this.renderTimetablePivot();
@@ -706,8 +706,9 @@ const app = {
         } else if (label === '상태') {
           const isDone = val === '완료';
           const statusTxt = isDone ? '🟢 완료' : '🟡 진행 중';
-          const txtColor = isDone ? '#10b981' : '#f59e0b';
-          html += `<td data-col-idx="${colIdx}" class="status-cell ${isFixed ? 'label-col' : ''}" style="text-align:center; cursor:pointer;" onclick="app.toggleStatus(this.querySelector('span'), '${type}', ${colIdx})"><span style="font-weight:600; color:${txtColor}; font-size:14px; user-select:none; transition:all 0.2s; padding:4px 8px; border-radius:4px;" onmouseover="this.style.backgroundColor='rgba(255,255,255,0.05)'" onmouseout="this.style.backgroundColor='transparent'">${statusTxt}</span></td>`;
+          const txtColor = isDone ? '#10b981' : '#ffffff';
+          const fw = isDone ? '600' : 'normal';
+          html += `<td data-col-idx="${colIdx}" class="status-cell ${isFixed ? 'label-col' : ''}" style="text-align:center; cursor:pointer;" onclick="app.toggleStatus(this.querySelector('span'), '${type}', ${colIdx})"><span style="font-weight:${fw}; color:${txtColor}; font-size:12px; user-select:none; transition:all 0.2s; padding:4px 8px; border-radius:4px;" onmouseover="this.style.backgroundColor='rgba(255,255,255,0.05)'" onmouseout="this.style.backgroundColor='transparent'">${statusTxt}</span></td>`;
         } else {
           let extraEvents = `onkeydown="app.onKeyDown(event, this)"`;
           let displayVal = val;
@@ -946,8 +947,8 @@ const app = {
     const dataArr = isSci ? this.data.curriculums_science : this.data.curriculums;
 
     let weekHeader = this.uiSettings['header_' + viewId + '_0'] || '주차';
-    let headHtml = `<thead><tr><th class="label-col-header fixed-col" style="width:10%;"><div contenteditable="true" onblur="app.onHeaderBlur(this, '${viewId}', 0)" style="display:inline-block; min-width:30px; min-height:20px; outline:none;">${weekHeader}</div></th>`;
-    headHtml += `<th class="label-col-header fixed-col" style="width:10%;">회차</th>`;
+    let headHtml = `<thead><tr><th class="label-col-header fixed-col" style="width:5%; left:0;"><div contenteditable="true" onblur="app.onHeaderBlur(this, '${viewId}', 0)" style="display:inline-block; min-width:30px; min-height:20px; outline:none;">${weekHeader}</div></th>`;
+    headHtml += `<th class="label-col-header fixed-col" style="width:5%; left:5%;">회차</th>`;
     dynCols.forEach((sub, i) => {
       const dynHeader = this.uiSettings['header_' + viewId + '_' + (i+1)] || sub;
       headHtml += `<th data-colname="${sub}"><div contenteditable="true" onblur="app.onHeaderBlur(this, '${viewId}', ${i+1})" style="display:inline-block; min-width:30px; min-height:20px; outline:none;">${dynHeader}</div></th>`;
@@ -1058,7 +1059,7 @@ const app = {
 
   renderTimetablePivot: function() {
     const table = document.querySelector('#view-timetable .excel-table');
-    let headHtml = `<thead><tr><th class="label-col-header fixed-col" style="width:10%;">일자</th><th class="label-col-header fixed-col" style="width:10%;">회차</th><th class="label-col-header fixed-col" style="width:10%;">시작 시간</th><th class="label-col-header fixed-col" style="width:10%;">종료 시간</th>`;
+    let headHtml = `<thead><tr><th class="label-col-header fixed-col" style="width:10%; left:0;">일자</th><th class="label-col-header fixed-col" style="width:5%; left:10%;">회차</th><th class="label-col-header fixed-col" style="width:6%; left:15%;">시작 시간</th><th class="label-col-header fixed-col" style="width:6%; left:21%;">종료 시간</th>`;
     this.dynamicCols.timetable.forEach(cls => {
       headHtml += `<th data-colname="${cls}" onclick="app.editTimetableClassName('${cls}')" style="cursor:pointer;" title="클릭하여 반 이름 수정">${cls}</th>`;
     });
@@ -1079,16 +1080,16 @@ const app = {
       
       const firstRow = this.data.timetables.find(r => r[1] === date && r[2] === type && r[3] === start && r[4] === end);
       const hoicha = firstRow ? (firstRow[8] || '') : '';
-      headHtml += `<td class="fixed-col label-col" style="text-align:center;" contenteditable="true" onblur="app.updateTimetableHoicha(this, '${grp}')">${hoicha}</td>`;
+      headHtml += `<td class="fixed-col label-col" style="text-align:center; left:10%;" contenteditable="true" onblur="app.updateTimetableHoicha(this, '${grp}')">${hoicha}</td>`;
 
       if (isHoliday) {
         const holidayRow = this.data.timetables.find(r => r[1] === date && r[2] === '휴일');
         const holidayNote = holidayRow ? (holidayRow[8] || '') : '';
-        headHtml += `<td colspan="2" class="fixed-col label-col" style="text-align:center; color:var(--text-muted); font-style:italic;">🏖️ 휴일</td>`;
+        headHtml += `<td colspan="2" class="fixed-col label-col" style="text-align:center; left:10%; color:var(--text-muted); font-style:italic;">🏖️ 휴일</td>`;
         headHtml += `<td colspan="${this.dynamicCols.timetable.length}" class="timetable-cell" data-id="${holidayRow?holidayRow[0]:''}" data-date="${date}" contenteditable="true" onblur="app.onTimetableHolidayBlur(this)" style="text-align:center; background:rgba(255,255,255,0.05); color:var(--text-muted); font-style:italic;">${holidayNote || '휴일/특이사항 입력'}</td>`;
       } else {
-        headHtml += `<td class="fixed-col label-col"><input type="text" value="${start}" onblur="app.updatePivotRowTime(this, 'start', this.value)" placeholder="00:00" style="width:100%; background:transparent; border:none; color:inherit; text-align:center; outline:none; font-family:inherit; font-size:inherit; line-height:1; padding:0; margin:0;"></td>
-        <td class="fixed-col label-col"><input type="text" value="${end}" onblur="app.updatePivotRowTime(this, 'end', this.value)" placeholder="00:00" style="width:100%; background:transparent; border:none; color:inherit; text-align:center; outline:none; font-family:inherit; font-size:inherit; line-height:1; padding:0; margin:0;"></td>`;
+        headHtml += `<td class="fixed-col label-col" style="left:15%;"><input type="text" value="${start}" onblur="app.updatePivotRowTime(this, 'start', this.value)" placeholder="00:00" style="width:100%; background:transparent; border:none; color:inherit; text-align:center; outline:none; font-family:inherit; font-size:inherit; line-height:1; padding:0; margin:0;"></td>
+        <td class="fixed-col label-col" style="left:21%;"><input type="text" value="${end}" onblur="app.updatePivotRowTime(this, 'end', this.value)" placeholder="00:00" style="width:100%; background:transparent; border:none; color:inherit; text-align:center; outline:none; font-family:inherit; font-size:inherit; line-height:1; padding:0; margin:0;"></td>`;
         this.dynamicCols.timetable.forEach(cls => {
           const row = this.data.timetables.find(r => r[1] === date && r[2] === type && r[3] === start && r[4] === end && r[5] === cls);
           let displayStr = row && (row[6] || row[7]) ? `${row[6]||''}${row[7]?'('+row[7]+')':''}` : '';
