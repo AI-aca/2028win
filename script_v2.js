@@ -16,13 +16,14 @@ const app = {
 
   openInstructorSelectModal: function(td, mode) {
     document.getElementById('generic-modal-title').innerText = mode === 'area' ? '영역 선택' : '과목 선택';
-    let optsHtml = '<option value="">(선택 안함)</option>';
+    let defaultText = mode === 'area' ? '-- 영역 선택 --' : '-- 과목 선택 --';
+    let optsHtml = `<option value="">${defaultText}</option>`;
     if (mode === 'area') {
       optsHtml += '<option value="수학">수학</option><option value="과학">과학</option>';
     } else {
       if (app.managedSubjects && Array.isArray(app.managedSubjects)) {
         app.managedSubjects.forEach(s => {
-          optsHtml += `<option value="${s.name}" data-category="${s.category}">${s.name}</option>`;
+          optsHtml += `<option value="${s.name}" data-category="${s.category}">${s.emoji} ${s.name}</option>`;
         });
       }
     }
@@ -30,7 +31,7 @@ const app = {
     document.getElementById('generic-modal-body').innerHTML = `
       <div class="form-group">
         <label>${mode === 'area' ? '영역' : '과목'}</label>
-        <select id="instructor-modal-select" class="form-control" style="background-color:#1e293b; color:#f8fafc; border:1px solid rgba(255,255,255,0.2);">
+        <select id="instructor-modal-select" class="form-control">
           ${optsHtml}
         </select>
       </div>
@@ -353,8 +354,17 @@ const app = {
   },
 
   extractDynamicCols: function() {
-    this.dynamicCols.curriculum = Array.from(new Set(this.data.curriculums.map(r => r[2]).filter(x => x)));
-    this.dynamicCols.curriculum_science = Array.from(new Set(this.data.curriculums_science.map(r => r[2]).filter(x => x)));
+    const sortByManaged = (a, b) => {
+      if (!this.managedSubjects) return 0;
+      const idxA = this.managedSubjects.findIndex(s => s.name === a);
+      const idxB = this.managedSubjects.findIndex(s => s.name === b);
+      if (idxA !== -1 && idxB !== -1) return idxA - idxB;
+      if (idxA !== -1) return -1;
+      if (idxB !== -1) return 1;
+      return 0;
+    };
+    this.dynamicCols.curriculum = Array.from(new Set(this.data.curriculums.map(r => r[2]).filter(x => x))).sort(sortByManaged);
+    this.dynamicCols.curriculum_science = Array.from(new Set(this.data.curriculums_science.map(r => r[2]).filter(x => x))).sort(sortByManaged);
     
     this.dynamicCols.timetable = Array.from(new Set(this.data.timetables.map(r => r[5]).filter(x => x && x !== '전체')));
   },
@@ -771,9 +781,7 @@ const app = {
         const val = row[colIdx] || '';
         
         if (label === '일자') {
-          html += `<td data-col-idx="${colIdx}" ${cellClassStr} style="${leftStr}" data-cell-key="tt_fmt_date_${type}_${id}">
-            <div contenteditable="true" onblur="app.onFlatCellBlur('${type}', this)" style="display:inline-block; outline:none; min-width:40px;">${val || '날짜 선택'}</div> <span class="date-picker-icon" onclick="app.openDatePicker(this.closest('td'))" style="cursor:pointer;" title="달력 열기">📅</span>
-          </td>`;
+          html += `<td data-col-idx="${colIdx}" ${cellClassStr} style="${leftStr}" data-cell-key="tt_fmt_date_${type}_${id}"><div contenteditable="true" onblur="app.onFlatCellBlur('${type}', this)" style="display:inline-block; outline:none; min-width:40px;">${val || '-- 날짜 선택 --'}</div> <span class="date-picker-icon" onclick="app.openDatePicker(this.closest('td'))" style="cursor:pointer;" title="달력 열기">📅</span></td>`;
         } else if (label === '상태') {
           const isDone = val === '완료';
           const statusTxt = isDone ? '🟢 완료' : '🟡 진행 중';
@@ -1022,13 +1030,13 @@ const app = {
     const dataArr = isSci ? this.data.curriculums_science : this.data.curriculums;
 
     let weekHeader = this.uiSettings['header_' + viewId + '_0'] || '주차';
-    let headHtml = `<thead><tr><th class="label-col-header fixed-col" style="width:5%; left:0;"><div contenteditable="true" onblur="app.onHeaderBlur(this, '${viewId}', 0)" style="display:inline-block; min-width:30px; min-height:20px; outline:none;">${weekHeader}</div></th>`;
+    let headHtml = `<thead><tr><th class="label-col-header fixed-col" style="width:5%; left:0;"><div contenteditable="true" onblur="app.onHeaderBlur(this, '${viewId}', '0')" style="display:inline-block; min-width:30px; min-height:20px; outline:none;">${weekHeader}</div></th>`;
     headHtml += `<th class="label-col-header fixed-col" style="width:5%; left:5%;">회차</th>`;
     dynCols.forEach((sub, i) => {
       const matchedSub = this.managedSubjects.find(s => s.name === sub);
       const subDisplay = matchedSub && matchedSub.emoji ? matchedSub.emoji + ' ' + sub : sub;
-      const dynHeader = this.uiSettings['header_' + viewId + '_' + (i+1)] || subDisplay;
-      headHtml += `<th data-colname="${sub}"><div contenteditable="true" onblur="app.onHeaderBlur(this, '${viewId}', ${i+1})" style="display:inline-block; min-width:30px; min-height:20px; outline:none;">${dynHeader}</div></th>`;
+      const dynHeader = this.uiSettings['header_' + viewId + '_' + sub] || subDisplay;
+      headHtml += `<th data-colname="${sub}"><div contenteditable="true" onblur="app.onHeaderBlur(this, '${viewId}', '${sub}')" style="display:inline-block; min-width:30px; min-height:20px; outline:none;">${dynHeader}</div></th>`;
     });
     headHtml += `</tr></thead><tbody id="tbody-${isSci ? 'curriculum-science' : 'curriculum'}">`;
 
@@ -1152,7 +1160,7 @@ const app = {
       const isHoliday = (type === '휴일');
       const isTmpDate = date.startsWith('tmp-');
       const displayDate = isTmpDate ? '' : date;
-      let richDate = this.uiSettings['tt_fmt_date_' + grp] || displayDate;
+      let richDate = this.uiSettings['tt_fmt_date_' + grp] || displayDate || '-- 날짜 선택 --';
       if (richDate.includes('date-picker-icon')) {
         richDate = richDate.replace(/<span class="date-picker-icon"[^>]*>.*?<\/span>/g, '').trim();
       }
@@ -1174,12 +1182,7 @@ const app = {
         headHtml += `<td colspan="3" class="fixed-col label-col" data-cell-key="tt_fmt_hol_${grp}" style="text-align:center; left:12%; color:var(--text-muted); font-style:italic;">🏖️ 휴일</td>`;
         headHtml += `<td colspan="${this.dynamicCols.timetable.length}" class="timetable-cell" data-id="${holidayRow?holidayRow[0]:''}" data-date="${date}" contenteditable="true" onblur="app.onTimetableHolidayBlur(this)" style="text-align:center; background:rgba(255,255,255,0.05); color:var(--text-muted); font-style:italic;">${holidayNote || '휴일/특이사항 입력'}</td>`;
       } else {
-        headHtml += `<td class="fixed-col label-col" style="left:22%; white-space:nowrap; text-align:center; vertical-align:middle; font-weight:normal;" data-cell-key="tt_fmt_st_${grp}">
-          <div contenteditable="true" onblur="app.updatePivotRowTime(this.closest('td'), 'start', this.innerText.trim())" style="display:inline-block; outline:none; min-width:30px; font-weight:normal;">${start || '00:00'}</div> <span onclick="app.openTimePicker(this.closest('td'), 'start')" style="cursor:pointer;" title="시간 선택">🕒</span>
-        </td>
-        <td class="fixed-col label-col" style="left:30%; white-space:nowrap; text-align:center; vertical-align:middle; font-weight:normal;" data-cell-key="tt_fmt_et_${grp}">
-          <div contenteditable="true" onblur="app.updatePivotRowTime(this.closest('td'), 'end', this.innerText.trim())" style="display:inline-block; outline:none; min-width:30px; font-weight:normal;">${end || '00:00'}</div> <span onclick="app.openTimePicker(this.closest('td'), 'end')" style="cursor:pointer;" title="시간 선택">🕒</span>
-        </td>`;
+        headHtml += `<td class="fixed-col label-col" style="left:22%; white-space:nowrap; text-align:center; vertical-align:middle; font-weight:normal;" data-cell-key="tt_fmt_st_${grp}"><div contenteditable="true" onblur="app.updatePivotRowTime(this.closest('td'), 'start', this.innerText.trim())" style="display:inline-block; outline:none; min-width:30px; font-weight:normal;">${start || '00:00'}</div> <span onclick="app.openTimePicker(this.closest('td'), 'start')" style="cursor:pointer;" title="시간 선택">🕒</span></td><td class="fixed-col label-col" style="left:30%; white-space:nowrap; text-align:center; vertical-align:middle; font-weight:normal;" data-cell-key="tt_fmt_et_${grp}"><div contenteditable="true" onblur="app.updatePivotRowTime(this.closest('td'), 'end', this.innerText.trim())" style="display:inline-block; outline:none; min-width:30px; font-weight:normal;">${end || '00:00'}</div> <span onclick="app.openTimePicker(this.closest('td'), 'end')" style="cursor:pointer;" title="시간 선택">🕒</span></td>`;
         this.dynamicCols.timetable.forEach(cls => {
           const row = this.data.timetables.find(r => r[1] === date && r[2] === type && r[3] === start && r[4] === end && r[5] === cls);
           let subject = row && row[6] ? row[6] : '';
@@ -1478,21 +1481,20 @@ const app = {
     }).filter(Boolean)));
     const subjects = this.managedSubjects.map(s => s.name);
 
-    const optStyle = 'background:#1e293b; color:#f8fafc;';
-    let instructorOpts = `<option value="" style="${optStyle}">-- 강사 선택 --</option>` + instructors.map(i => `<option value="${i}" style="${optStyle}" ${instructor===i?'selected':''}>${i}</option>`).join('');
-    let subjectOpts = `<option value="" style="${optStyle}">-- 과목 선택 --</option>` + subjects.map(s => `<option value="${s}" style="${optStyle}" ${subject===s?'selected':''}>${s}</option>`).join('');
+    let instructorOpts = `<option value="">-- 강사 선택 --</option>` + instructors.map(i => `<option value="${i}" ${instructor===i?'selected':''}>${i}</option>`).join('');
+    let subjectOpts = `<option value="">-- 과목 선택 --</option>` + this.managedSubjects.map(s => `<option value="${s.name}" ${subject===s.name?'selected':''}>${s.emoji} ${s.name}</option>`).join('');
 
     modal.innerHTML = `
       <h3 style="margin:0; font-size:16px; color:var(--primary); text-align:center;">${cls} 수업 편집</h3>
       <div>
         <label style="font-size:12px; color:var(--text-muted); margin-bottom:5px; display:block;">과목</label>
-        <select id="tt-edit-subject" style="width:100%; padding:10px; border-radius:6px; background:var(--bg-card); color:var(--text); border:1px solid var(--border-glass); outline:none;">
+        <select id="tt-edit-subject" class="form-control" style="width:100%;">
           ${subjectOpts}
         </select>
       </div>
       <div>
         <label style="font-size:12px; color:var(--text-muted); margin-bottom:5px; display:block;">담당자</label>
-        <select id="tt-edit-instructor" style="width:100%; padding:10px; border-radius:6px; background:var(--bg-card); color:var(--text); border:1px solid var(--border-glass); outline:none;">
+        <select id="tt-edit-instructor" class="form-control" style="width:100%;">
           ${instructorOpts}
         </select>
       </div>
@@ -1604,7 +1606,7 @@ const app = {
       const isSci = type === 'curriculum_science';
       const category = isSci ? '과학' : '수학';
       const filteredSubjects = this.managedSubjects.filter(s => s.category === category);
-      let optionsHtml = filteredSubjects.map(s => `<option value="${s.name}">${s.emoji} ${s.name}</option>`).join('');
+      let optionsHtml = '<option value="">-- 과목 선택 --</option>' + filteredSubjects.map(s => `<option value="${s.name}">${s.emoji} ${s.name}</option>`).join('');
       document.getElementById('generic-modal-body').innerHTML = `<div class="form-group"><label>과목 선택 (${category})</label><select id="new-col-input" class="form-control">${optionsHtml}</select></div>`;
     } else {
       document.getElementById('generic-modal-body').innerHTML = `<div class="form-group"><label>반이름</label><input type="text" id="new-col-input" class="form-control"></div>`;
@@ -1704,9 +1706,9 @@ const app = {
   closeModal: function() { document.getElementById('modal-container').classList.add('hidden'); document.getElementById('generic-modal').classList.add('hidden'); },
   saveModalData: function() { if(typeof this.currentModalAction === 'function') this.currentModalAction(); },
 
-  onHeaderBlur: function(el, viewId, colIdx) {
+  onHeaderBlur: function(el, viewId, colKey) {
     const newText = el.innerText.trim();
-    const key = 'header_' + viewId + '_' + colIdx;
+    const key = 'header_' + viewId + '_' + colKey;
     this.uiSettings[key] = newText;
     this.silentSave('saveUISettings', { key: key, value: newText });
   },
