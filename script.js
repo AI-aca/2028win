@@ -588,7 +588,7 @@ const app = {
         const widthStr = (typeof c === 'object' && c.width) ? `width:${c.width};` : '';
         const fixedClass = (typeof c === 'object' && c.fixed) ? 'fixed-col label-col-header' : '';
         const savedHeader = this.uiSettings['header_view-' + type + '_' + colIdx] || label;
-        ths += `<th class="${fixedClass}" style="${widthStr}"><div contenteditable="true" onblur="app.onHeaderBlur(this, 'view-' + type, ${colIdx})" style="display:inline-block; min-width:30px; outline:none;">${savedHeader}</div></th>`;
+        ths += `<th class="${fixedClass}" style="${widthStr}"><div contenteditable="true" onblur="app.onHeaderBlur(this, 'view-' + type, ${colIdx})" style="display:inline-block; min-width:30px; min-height:20px; outline:none;">${savedHeader}</div></th>`;
       });
       thead.querySelector('tr').innerHTML = ths;
     }
@@ -847,10 +847,10 @@ const app = {
     const dataArr = isSci ? this.data.curriculums_science : this.data.curriculums;
 
     let weekHeader = this.uiSettings['header_' + viewId + '_0'] || '주차';
-    let headHtml = `<thead><tr><th class="label-col-header fixed-col" style="width:10%;"><div contenteditable="true" onblur="app.onHeaderBlur(this, '${viewId}', 0)" style="display:inline-block; min-width:30px; outline:none;">${weekHeader}</div></th>`;
+    let headHtml = `<thead><tr><th class="label-col-header fixed-col" style="width:10%;"><div contenteditable="true" onblur="app.onHeaderBlur(this, '${viewId}', 0)" style="display:inline-block; min-width:30px; min-height:20px; outline:none;">${weekHeader}</div></th>`;
     dynCols.forEach((sub, i) => {
       const dynHeader = this.uiSettings['header_' + viewId + '_' + (i+1)] || sub;
-      headHtml += `<th data-colname="${sub}"><div contenteditable="true" onblur="app.onHeaderBlur(this, '${viewId}', ${i+1})" style="display:inline-block; min-width:30px; outline:none;">${dynHeader}</div></th>`;
+      headHtml += `<th data-colname="${sub}"><div contenteditable="true" onblur="app.onHeaderBlur(this, '${viewId}', ${i+1})" style="display:inline-block; min-width:30px; min-height:20px; outline:none;">${dynHeader}</div></th>`;
     });
     headHtml += `</tr></thead><tbody id="tbody-${isSci ? 'curriculum-science' : 'curriculum'}">`;
 
