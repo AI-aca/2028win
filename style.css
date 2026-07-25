@@ -353,8 +353,8 @@ body {
 .sort-icon {
   margin-left: 5px;
   cursor: pointer;
-  font-size: 14px;
-  color: var(--text-muted);
+  font-size: 7px;
+  color: #10b981;
 }
 .sort-icon:hover { color: white; }
 .remove-col-btn {
