@@ -891,11 +891,52 @@ const app = {
     });
   },
 
+  editTimetableClassName: function(oldName) {
+    document.getElementById('generic-modal-title').innerText = '반 이름 수정';
+    document.getElementById('generic-modal-body').innerHTML = `<div class="form-group"><label>반이름</label><input type="text" id="new-col-input" class="form-control" value="${oldName}"></div>`;
+    document.getElementById('modal-container').classList.remove('hidden'); 
+    document.getElementById('generic-modal').classList.remove('hidden');
+    
+    this.currentModalAction = async () => {
+      const newName = document.getElementById('new-col-input').value.trim();
+      if (!newName || newName === oldName) {
+        this.closeModal();
+        return;
+      }
+      
+      const payloadArray = [];
+      this.data.timetables.forEach(r => {
+        if (r[5] === oldName) {
+          r[5] = newName;
+          payloadArray.push({ id: r[0], date: r[1], type: r[2], start: r[3], end: r[4], className: r[5], subject: r[6], instructor: r[7], note: r[8] });
+        }
+      });
+      
+      if (payloadArray.length > 0) {
+        try {
+          const res = await this.apiPost('upsertMultipleTimetables', { payloadArray });
+          if (!res || !res.success) throw new Error(res ? res.message : '알 수 없는 에러');
+        } catch(e) {
+          app.showToast('저장 실패: ' + e.message, true);
+          this.data.timetables.forEach(r => { if (r[5] === newName) r[5] = oldName; });
+          this.closeModal();
+          return;
+        }
+      }
+      
+      const idx = this.dynamicCols.timetable.indexOf(oldName);
+      if (idx !== -1) this.dynamicCols.timetable[idx] = newName;
+      
+      this.renderView('timetable');
+      this.closeModal();
+    };
+  },
+
   renderTimetablePivot: function() {
     const table = document.querySelector('#view-timetable .excel-table');
     let headHtml = `<thead><tr><th class="label-col-header fixed-col" style="width:10%;">일자</th><th class="label-col-header fixed-col" style="width:10%;">시작 시간</th><th class="label-col-header fixed-col" style="width:10%;">종료 시간</th>`;
     this.dynamicCols.timetable.forEach(cls => {
-      headHtml += `<th data-colname="${cls}">${cls}</th>`;
+      headHtml += `<th data-colname="${cls}" onclick="app.editTimetableClassName('${cls}')" style="cursor:pointer;" title="클릭하여 반 이름 수정">${cls}</th>`;
     });
     headHtml += `</tr></thead><tbody id="tbody-timetable">`;
 
