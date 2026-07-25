@@ -442,9 +442,9 @@ const app = {
   },
 
   renderView: function(viewName) {
-    if (viewName === 'preschedule') this.renderFlatTable('preschedule', this.data.preschedules, [{label:'일자', idx:1, fixed:true, width:'10%'}, {label:'상태', idx:3, fixed:true, width:'6%'}, {label:'내용', idx:2}, {label:'비고', idx:4}]);
-    else if (viewName === 'student') this.renderFlatTable('student', this.data.students, [{label:'학생명', idx:1, fixed:true, width:'6%'}, {label:'센터', idx:2}, {label:'학교', idx:3}, {label:'학년', idx:4}, {label:'학부모 연락처', idx:5}, {label:'학생 연락처', idx:6}, {label:'비고', idx:7}]);
-    else if (viewName === 'instructor') this.renderFlatTable('instructor', this.data.instructors, [{label:'강사명', idx:1, fixed:true, width:'6%'}, {label:'영역', idx:2}, {label:'과목', idx:3}, {label:'연락처', idx:4}, {label:'지메일', idx:5}, {label:'비고', idx:6}]);
+    if (viewName === 'preschedule') this.renderFlatTable('preschedule', this.data.preschedules, [{label:'일자', idx:1, fixed:true, width:'10%', left:'0'}, {label:'상태', idx:3, fixed:true, width:'6%', left:'10%'}, {label:'내용', idx:2}, {label:'비고', idx:4}]);
+    else if (viewName === 'student') this.renderFlatTable('student', this.data.students, [{label:'학생명', idx:1, fixed:true, width:'6%', left:'0'}, {label:'센터', idx:2}, {label:'학교', idx:3}, {label:'학년', idx:4}, {label:'학부모 연락처', idx:5}, {label:'학생 연락처', idx:6}, {label:'비고', idx:7}]);
+    else if (viewName === 'instructor') this.renderFlatTable('instructor', this.data.instructors, [{label:'강사명', idx:1, fixed:true, width:'6%', left:'0'}, {label:'영역', idx:2}, {label:'과목', idx:3}, {label:'연락처', idx:4}, {label:'지메일', idx:5}, {label:'비고', idx:6}]);
     else if (viewName === 'curriculum') this.renderCurriculumPivot('curriculum');
     else if (viewName === 'curriculum_science') this.renderCurriculumPivot('curriculum_science');
     else if (viewName === 'timetable') this.renderTimetablePivot();
@@ -684,8 +684,9 @@ const app = {
         const colIdx = typeof c === 'object' ? (c.idx !== undefined ? c.idx : i+1) : i+1;
         const widthStr = (typeof c === 'object' && c.width) ? `width:${c.width};` : '';
         const fixedClass = (typeof c === 'object' && c.fixed) ? 'fixed-col label-col-header' : '';
+        const leftStr = (typeof c === 'object' && c.left) ? `left:${c.left};`: '';
         const savedHeader = this.uiSettings['header_view-' + type + '_' + colIdx] || label;
-        ths += `<th class="${fixedClass}" style="${widthStr}"><div contenteditable="true" onblur="app.onHeaderBlur(this, 'view-' + type, ${colIdx})" style="display:inline-block; min-width:30px; min-height:20px; outline:none;">${savedHeader}</div></th>`;
+        ths += `<th class="${fixedClass}" style="${widthStr} ${leftStr}"><div contenteditable="true" onblur="app.onHeaderBlur(this, 'view-' + type, ${colIdx})" style="display:inline-block; min-width:30px; min-height:20px; outline:none;">${savedHeader}</div></th>`;
       });
       thead.querySelector('tr').innerHTML = ths;
     }
@@ -698,17 +699,18 @@ const app = {
         const label = typeof c === 'object' ? c.label : c;
         const colIdx = typeof c === 'object' ? (c.idx !== undefined ? c.idx : i+1) : i+1;
         const isFixed = typeof c === 'object' && c.fixed;
-        const cellClassStr = isFixed ? 'class="label-col"' : '';
+        const leftStr = (typeof c === 'object' && c.left) ? `left:${c.left};`: '';
+        const cellClassStr = isFixed ? `class="fixed-col label-col" style="${leftStr}"` : '';
         const val = row[colIdx] || '';
         
         if (label === '일자') {
-          html += `<td data-col-idx="${colIdx}" ${cellClassStr} contenteditable="true" onblur="app.onFlatCellBlur('${type}', this)" placeholder="날짜 선택" style="text-align:center;">${val}</td>`;
+          html += `<td data-col-idx="${colIdx}" ${cellClassStr} style="text-align:center; cursor:pointer; ${leftStr}" onclick="app.openDatePicker(this)" title="클릭하여 달력 선택" data-cell-key="tt_fmt_date_${type}_${id}">${val || '날짜 선택'}</td>`;
         } else if (label === '상태') {
           const isDone = val === '완료';
           const statusTxt = isDone ? '🟢 완료' : '🟡 진행 중';
           const txtColor = isDone ? '#10b981' : '#ffffff';
           const fw = isDone ? '600' : 'normal';
-          html += `<td data-col-idx="${colIdx}" class="status-cell ${isFixed ? 'label-col' : ''}" style="text-align:center; cursor:pointer;" onclick="app.toggleStatus(this.querySelector('span'), '${type}', ${colIdx})"><span style="font-weight:${fw}; color:${txtColor}; font-size:12px; user-select:none; transition:all 0.2s; padding:4px 8px; border-radius:4px;" onmouseover="this.style.backgroundColor='rgba(255,255,255,0.05)'" onmouseout="this.style.backgroundColor='transparent'">${statusTxt}</span></td>`;
+          html += `<td data-col-idx="${colIdx}" class="status-cell ${isFixed ? 'fixed-col label-col' : ''}" style="text-align:center; cursor:pointer; ${leftStr}" onclick="app.toggleStatus(this.querySelector('span'), '${type}', ${colIdx})"><span style="font-weight:${fw}; color:${txtColor}; font-size:12px; user-select:none; transition:all 0.2s; padding:4px 8px; border-radius:4px;" onmouseover="this.style.backgroundColor='rgba(255,255,255,0.05)'" onmouseout="this.style.backgroundColor='transparent'">${statusTxt}</span></td>`;
         } else {
           let extraEvents = `onkeydown="app.onKeyDown(event, this)"`;
           let displayVal = val;
@@ -959,10 +961,10 @@ const app = {
 
     weeks.forEach(week => {
       headHtml += `<tr data-week="${week}">
-      <td class="label-col" style="font-weight:bold; text-align:center;" contenteditable="true" onblur="app.updatePivotRowLabel('${type}', '${week}', this.innerText.trim())">${week}</td>`;
+      <td class="fixed-col label-col" style="font-weight:bold; text-align:center; left:0;" contenteditable="true" onblur="app.updatePivotRowLabel('${type}', '${week}', this.innerText.trim())">${week}</td>`;
       const firstRow = dataArr.find(r => r[1] === week);
       const hoicha = firstRow ? (firstRow[4] || '') : '';
-      headHtml += `<td class="label-col" style="text-align:center;" contenteditable="true" data-id="${firstRow ? firstRow[0] : ''}" data-week="${week}" data-sub="hoicha" onblur="app.onCurriculumHoichaBlur(this, '${type}')">${hoicha}</td>`;
+      headHtml += `<td class="fixed-col label-col" style="text-align:center; left:5%;" contenteditable="true" data-id="${firstRow ? firstRow[0] : ''}" data-week="${week}" data-sub="hoicha" onblur="app.onCurriculumHoichaBlur(this, '${type}')">${hoicha}</td>`;
       dynCols.forEach(sub => {
         const row = dataArr.find(r => r[1] === week && r[2] === sub);
         const content = row ? row[3] : '';
