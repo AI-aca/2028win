@@ -1542,7 +1542,8 @@ const app = {
     let isNew = false;
     
     if (!rowObj) {
-      rowObj = [id || '', date, '수업', start, end, cls, subject, instructor, '', new Date().toLocaleString()];
+      const newId = id || 'f-' + Date.now().toString(36) + '-' + Math.random().toString(36).substr(2, 5);
+      rowObj = [newId, date, '수업', start, end, cls, subject, instructor, '', new Date().toLocaleString()];
       this.data.timetables.push(rowObj);
       isNew = true;
     } else {
