@@ -225,8 +225,8 @@ const app = {
         supabaseClient.from('curriculums').select('*').order('week', { ascending: true }),
         supabaseClient.from('curriculums_science').select('*').order('week', { ascending: true }),
         supabaseClient.from('timetables').select('*').order('date', { ascending: true }).order('start', { ascending: true }),
-        supabaseClient.from('students').select('*').order('created_at', { ascending: true }),
-        supabaseClient.from('instructors').select('*').order('created_at', { ascending: true }),
+        supabaseClient.from('students').select('*').order('name', { ascending: true }),
+        supabaseClient.from('instructors').select('*').order('instructorname', { ascending: true }),
         supabaseClient.from('ui_settings').select('*')
       ]);
 
