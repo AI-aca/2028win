@@ -863,7 +863,6 @@ const app = {
 
     let weekHeader = this.uiSettings['header_' + viewId + '_0'] || '주차';
     let headHtml = `<thead><tr><th class="label-col-header fixed-col" style="width:10%;"><div contenteditable="true" onblur="app.onHeaderBlur(this, '${viewId}', 0)" style="display:inline-block; min-width:30px; min-height:20px; outline:none;">${weekHeader}</div></th>`;
-    headHtml += `<th class="label-col-header fixed-col" style="width:10%;">회차</th>`;
     dynCols.forEach((sub, i) => {
       const dynHeader = this.uiSettings['header_' + viewId + '_' + (i+1)] || sub;
       headHtml += `<th data-colname="${sub}"><div contenteditable="true" onblur="app.onHeaderBlur(this, '${viewId}', ${i+1})" style="display:inline-block; min-width:30px; min-height:20px; outline:none;">${dynHeader}</div></th>`;
@@ -875,9 +874,6 @@ const app = {
     weeks.forEach(week => {
       headHtml += `<tr data-week="${week}">
       <td class="label-col" style="font-weight:bold; text-align:center;" contenteditable="true" onblur="app.updatePivotRowLabel('${type}', '${week}', this.innerText.trim())">${week}</td>`;
-      const firstRow = dataArr.find(r => r[1] === week);
-      const hoicha = firstRow ? (firstRow[4] || '') : '';
-      headHtml += `<td class="label-col" style="text-align:center;" contenteditable="true" data-id="${firstRow ? firstRow[0] : ''}" data-week="${week}" data-sub="hoicha" onblur="app.onCurriculumHoichaBlur(this, '${type}')">${hoicha}</td>`;
       dynCols.forEach(sub => {
         const row = dataArr.find(r => r[1] === week && r[2] === sub);
         const content = row ? row[3] : '';
@@ -907,26 +903,6 @@ const app = {
     
     this.apiPost(action, { id: rowObj[0], week, subject: sub, content: newValue }).then(res => {
       if(res.success && res.id) { rowObj[0] = res.id; cell.setAttribute('data-id', res.id); }
-    });
-  },
-
-  onCurriculumHoichaBlur: function(cell, type) {
-    let newValue = cell.innerText.trim();
-    const week = cell.getAttribute('data-week');
-    const isSci = type === 'curriculum_science';
-    const dataArr = isSci ? this.data.curriculums_science : this.data.curriculums;
-    const action = isSci ? 'upsertCurriculumScience' : 'upsertCurriculum';
-
-    // 해당 주차의 모든 행에 note 필드를 업데이트하여 회차 저장
-    const rows = dataArr.filter(r => r[1] === week);
-    if (rows.length === 0) return;
-    
-    rows.forEach(r => r[4] = newValue);
-    
-    // 첫 번째 행만 서버로 업데이트해서 저장 (편의상)
-    const firstRow = rows[0];
-    this.apiPost(action, { id: firstRow[0], week, subject: firstRow[2], content: firstRow[3], note: newValue }).then(res => {
-      if(res.success && res.id) { firstRow[0] = res.id; cell.setAttribute('data-id', res.id); }
     });
   },
 
@@ -973,7 +949,7 @@ const app = {
 
   renderTimetablePivot: function() {
     const table = document.querySelector('#view-timetable .excel-table');
-    let headHtml = `<thead><tr><th class="label-col-header fixed-col" style="width:10%;">일자</th><th class="label-col-header fixed-col" style="width:10%;">회차</th><th class="label-col-header fixed-col" style="width:10%;">시작 시간</th><th class="label-col-header fixed-col" style="width:10%;">종료 시간</th>`;
+    let headHtml = `<thead><tr><th class="label-col-header fixed-col" style="width:10%;">일자</th><th class="label-col-header fixed-col" style="width:10%;">시작 시간</th><th class="label-col-header fixed-col" style="width:10%;">종료 시간</th>`;
     this.dynamicCols.timetable.forEach(cls => {
       headHtml += `<th data-colname="${cls}" onclick="app.editTimetableClassName('${cls}')" style="cursor:pointer;" title="클릭하여 반 이름 수정">${cls}</th>`;
     });
@@ -992,10 +968,6 @@ const app = {
       headHtml += `<tr data-ids="${idsForGrp}" data-grp="${grp}">
         <td class="fixed-col label-col" contenteditable="true" onblur="app.updatePivotRowDate(this, this.innerText.trim())" placeholder="날짜 선택" style="text-align:center;"><span class="drag-handle"></span>${displayDate}</td>`;
       
-      const firstRow = this.data.timetables.find(r => r[1] === date && r[2] === type && r[3] === start && r[4] === end);
-      const hoicha = firstRow ? (firstRow[8] || '') : '';
-      headHtml += `<td class="fixed-col label-col" style="text-align:center;" contenteditable="true" onblur="app.updateTimetableHoicha(this, '${grp}')">${hoicha}</td>`;
-
       if (isHoliday) {
         const holidayRow = this.data.timetables.find(r => r[1] === date && r[2] === '휴일');
         const holidayNote = holidayRow ? (holidayRow[8] || '') : '';
@@ -1070,26 +1042,6 @@ const app = {
         app.renderView('timetable');
       }
     }
-  },
-
-  updateTimetableHoicha: function(cell, grp) {
-    let newValue = cell.innerText.trim();
-    const [date, type, start, end] = grp.split('|');
-    const rows = this.data.timetables.filter(r => r[1] === date && r[2] === type && r[3] === start && r[4] === end);
-    if (rows.length === 0) return;
-    
-    let isChanged = false;
-    rows.forEach(r => { if(r[8] !== newValue) { r[8] = newValue; isChanged = true; } });
-    if (!isChanged) return;
-
-    const payloadArray = rows.map(r => ({ id: r[0], date: r[1], type: r[2], start: r[3], end: r[4], className: r[5], subject: r[6], instructor: r[7], note: r[8] }));
-    this.apiPost('upsertMultipleTimetables', { payloadArray }).then(res => {
-      if (res && res.success) {
-         if (res.returnedIds) rows.forEach(r => { if (res.returnedIds[r[0]]) r[0] = res.returnedIds[r[0]]; });
-      } else {
-         app.showToast('회차 저장 실패');
-      }
-    });
   },
 
   updatePivotRowType: function(oldGrp, newType) {

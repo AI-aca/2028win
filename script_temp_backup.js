@@ -335,7 +335,7 @@ const app = {
     const headerActions = document.getElementById('top-header-actions');
     if (headerActions) {
       if (viewId === 'view-preschedule') {
-        headerActions.innerHTML = `<button class="btn btn-primary" onclick="app.addRow('preschedule')">+ 일정 추가</button>`;
+        headerActions.innerHTML = `<button class="btn btn-primary" onclick="app.addRow('preschedule')">+ 내용 추가</button>`;
       } else if (viewId === 'view-curriculum') {
         headerActions.innerHTML = `<button class="btn btn-primary" onclick="app.addRow('curriculum')">+ 주차 추가</button> <button class="btn btn-primary" style="background:#06b6d4;" onclick="app.addColumn('curriculum')">+ 과목 추가</button>`;
       } else if (viewId === 'view-curriculum-science') {
@@ -358,7 +358,7 @@ const app = {
   },
 
   renderView: function(viewName) {
-    if (viewName === 'preschedule') this.renderFlatTable('preschedule', this.data.preschedules, [{label:'일자', idx:1, fixed:true, width:'10%'}, {label:'상태', idx:3, fixed:true, width:'10%'}, {label:'내용', idx:2}, {label:'비고', idx:4}]);
+    if (viewName === 'preschedule') this.renderFlatTable('preschedule', this.data.preschedules, [{label:'일자', idx:1, fixed:true, width:'10%'}, {label:'상태', idx:3, fixed:true, width:'5%'}, {label:'내용', idx:2}, {label:'비고', idx:4}]);
     else if (viewName === 'student') this.renderFlatTable('student', this.data.students, [{label:'학생명', idx:1, fixed:true, width:'10%'}, {label:'센터', idx:2}, {label:'학교', idx:3}, {label:'학년', idx:4}, {label:'학부모 연락처', idx:5}, {label:'학생 연락처', idx:6}, {label:'비고', idx:7}]);
     else if (viewName === 'instructor') this.renderFlatTable('instructor', this.data.instructors, [{label:'강사명', idx:1, fixed:true, width:'10%'}, {label:'영역', idx:2}, {label:'과목', idx:3}, {label:'연락처', idx:4}, {label:'지메일', idx:5}, {label:'비고', idx:6}]);
     else if (viewName === 'curriculum') this.renderCurriculumPivot('curriculum');
@@ -398,8 +398,264 @@ const app = {
   },
 
   sortTable: function(type, colIdx, iconEl) {
-    const isAsc = this.sortState[type + colIdx] === 'asc';
-    this.sortState[type + colIdx] = isAsc ? 'desc' : 'asc';
+    if (this.sortState[type] && this.sortState[type].colIdx === colIdx) {
+      this.sortState[type].asc = !this.sortState[type].asc;
+    } else {
+      this.sortState[type] = { colIdx, asc: true };
+    }
+    const isAsc = this.sortState[type].asc;
+    document.querySelectorAll(`.sort-icon-${type}`).forEach(el => el.innerText = '↕');
+    iconEl.innerText = isAsc ? '▲' : '▼';
+    
+    let dataArray;
+    if (type === 'preschedule') dataArray = this.data.preschedules;
+    else if (type === 'student') dataArray = this.data.students;
+    else if (type === 'instructor') dataArray = this.data.instructors;
+    else return;
+
+    dataArray.sort((a, b) => {
+      let v1 = a[colIdx+1] || ''; let v2 = b[colIdx+1] || '';
+      if(typeof v1 === 'string') v1 = v1.toLowerCase();
+      if(typeof v2 === 'string') v2 = v2.toLowerCase();
+      if (v1 < v2) return isAsc ? 1 : -1;
+      if (v1 > v2) return isAsc ? -1 : 1;
+      return 0;
+    });
+    this.renderView(type);
+  },
+
+  renderFlatTable: function(type, dataArray, cols) {
+    const tbody = document.getElementById(`tbody-${type}`);
+    if (!tbody) return;
+    const thead = tbody.previousElementSibling;
+    if(thead && thead.querySelector('tr')) {
+      let ths = '';
+      cols.forEach((c, i) => {
+        const label = typeof c === 'object' ? c.label : c;
+        const colIdx = typeof c === 'object' ? (c.idx !== undefined ? c.idx : i+1) : i+1;
+        const widthStr = (typeof c === 'object' && c.width) ? `width:${c.width};` : '';
+        const fixedClass = (typeof c === 'object' && c.fixed) ? 'fixed-col label-col-header' : '';
+        const savedHeader = this.uiSettings['header_view-' + type + '_' + colIdx] || label;
+        ths += `<th class="${fixedClass}" style="${widthStr}"><div contenteditable="true" onblur="app.onHeaderBlur(this, 'view-' + type, ${colIdx})" style="display:inline-block; min-width:30px; min-height:20px; outline:none;">${savedHeader}</div></th>`;
+      });
+      thead.querySelector('tr').innerHTML = ths;
+    }
+
+    let html = '';
+    dataArray.forEach(row => {
+      const id = row[0]; html += `<tr data-id="${id}">`;
+      for(let i=0; i<cols.length; i++) {
+        const c = cols[i];
+        const label = typeof c === 'object' ? c.label : c;
+        const colIdx = typeof c === 'object' ? (c.idx !== undefined ? c.idx : i+1) : i+1;
+        const isFixed = typeof c === 'object' && c.fixed;
+        const cellClassStr = isFixed ? 'class="label-col"' : '';
+        const val = row[colIdx] || '';
+        const cellKey = `bg_flat_${type}_${id}_${colIdx}`;
+        const bgStyle = this.uiSettings[cellKey] ? `background-color:${this.uiSettings[cellKey]};` : '';
+        
+        if (label === '일자') {
+          html += `<td data-col-idx="${colIdx}" data-cell-key="${cellKey}" ${cellClassStr} contenteditable="true" onblur="app.onFlatCellBlur('${type}', this)" placeholder="날짜 선택" style="text-align:center; ${bgStyle}">${val}</td>`;
+        } else if (label === '상태') {
+          const isDone = val === '완료';
+          const statusTxt = isDone ? '🟢 완료' : '🟡 진행 중';
+          const txtColor = isDone ? '#10b981' : '#f59e0b';
+          html += `<td data-col-idx="${colIdx}" data-cell-key="${cellKey}" class="status-cell ${isFixed ? 'label-col' : ''}" style="text-align:center; ${bgStyle}"><div style="color:${txtColor}; font-weight:bold; cursor:pointer;" onclick="app.toggleStatus(this, '${type}', ${colIdx})">${statusTxt}</div></td>`;
+        } else {
+          let extraEvents = `onkeydown="app.onKeyDown(event, this)"`;
+          let displayVal = val;
+          let placeholder = (label === '학생명' || label === '강사명') ? 'placeholder="이름 입력"' : '';
+          
+          if ((type === 'student' && (colIdx === 5 || colIdx === 6)) || (type === 'instructor' && colIdx === 4)) {
+            extraEvents = `onfocus="app.handlePhoneFocus(this)" onkeydown="app.handlePhoneKeydown(event, this)"`;
+            placeholder = 'placeholder="숫자 11자리 입력"';
+          }
+          html += `<td ${cellClassStr} data-cell-key="${cellKey}" contenteditable="true" data-col-idx="${colIdx}" ${placeholder} onblur="app.onFlatCellBlur('${type}', this)" style="${bgStyle}" ${extraEvents}>${displayVal}</td>`;
+        }
+      }
+      html += `</tr>`;
+    });
+    tbody.innerHTML = html;
+    tbody.querySelectorAll('tr').forEach(tr => this.bindRowEvents(tr, type));
+    this.initResizers();
+  },
+
+  initResizers: function() {
+    document.querySelectorAll('.excel-table').forEach(table => {
+      const fixedThs = table.querySelectorAll('th.fixed-col');
+      const dynThs = table.querySelectorAll('th:not(.fixed-col)');
+      if (dynThs.length === 0) return;
+      
+      let fixedTotalPct = 0;
+      fixedThs.forEach(th => {
+        let w = th.style.width;
+        if (w && w.includes('%')) fixedTotalPct += parseFloat(w);
+        else fixedTotalPct += 10;
+      });
+      
+      const expectedDynTotal = 100 - fixedTotalPct;
+      let currentDynTotal = 0;
+      let dynWidths = [];
+      
+      dynThs.forEach((th, i) => {
+        const dynIdx = Array.from(th.parentNode.children).indexOf(th);
+        const dynId = th.closest('.view-section').id + '-col-' + dynIdx;
+        let w = this.uiSettings[dynId];
+        let val = (w && w.includes('%')) ? parseFloat(w) : (expectedDynTotal / dynThs.length);
+        dynWidths.push(val);
+        currentDynTotal += val;
+      });
+      
+      if (Math.abs(currentDynTotal - expectedDynTotal) > 0.1) {
+        const scale = expectedDynTotal / currentDynTotal;
+        dynThs.forEach((th, i) => {
+          const newPct = dynWidths[i] * scale;
+          th.style.width = newPct + '%';
+        });
+      } else {
+        dynThs.forEach((th, i) => {
+          th.style.width = dynWidths[i] + '%';
+        });
+      }
+    });
+
+    document.querySelectorAll('.excel-table th:not(.fixed-col)').forEach((th) => {
+      if (!th.querySelector('.resizer')) {
+        const resizer = document.createElement('div');
+        resizer.className = 'resizer'; th.appendChild(resizer);
+        let x = 0, tableEl = null;
+        const idx = Array.from(th.parentNode.children).indexOf(th);
+        const id = th.closest('.view-section').id + '-col-' + idx;
+        
+        const mouseMoveHandler = (e) => { 
+          const tableWidth = tableEl.getBoundingClientRect().width;
+          let deltaPx = e.clientX - x;
+          let deltaPct = (deltaPx / tableWidth) * 100;
+          
+          const startPct = parseFloat(th.getAttribute('data-start-pct'));
+          const allThs = Array.from(tableEl.querySelectorAll('th:not(.fixed-col)'));
+          const myIdx = allThs.indexOf(th);
+          const rightThs = allThs.slice(myIdx + 1);
+          
+          if (rightThs.length === 0) return;
+          
+          const totalRightPct = rightThs.reduce((sum, col) => sum + parseFloat(col.getAttribute('data-start-pct')), 0);
+          const MIN_PCT = 3;
+          let newPct = startPct + deltaPct;
+          
+          if (newPct < MIN_PCT) {
+            newPct = MIN_PCT;
+            deltaPct = newPct - startPct;
+          }
+          
+          const maxSteal = totalRightPct - (rightThs.length * MIN_PCT);
+          if (deltaPct > maxSteal) {
+            deltaPct = maxSteal;
+            newPct = startPct + deltaPct;
+          }
+          
+          th.style.width = `${newPct}%`;
+          
+          rightThs.forEach(col => {
+            const startRightPct = parseFloat(col.getAttribute('data-start-pct'));
+            const stealAmount = (startRightPct / totalRightPct) * deltaPct;
+            col.style.width = `${startRightPct - stealAmount}%`;
+          });
+          
+          if (!this.resizeTooltip) {
+            this.resizeTooltip = document.createElement('div');
+            this.resizeTooltip.className = 'resize-tooltip';
+            this.resizeTooltip.style.cssText = 'position: fixed; background: rgba(0,0,0,0.8); color: #06b6d4; padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: 600; pointer-events: none; z-index: 9999; box-shadow: 0 2px 10px rgba(0,0,0,0.5); border: 1px solid rgba(6,182,212,0.3); transition: none;';
+            document.body.appendChild(this.resizeTooltip);
+          }
+          this.resizeTooltip.style.left = (e.clientX + 15) + 'px';
+          this.resizeTooltip.style.top = (e.clientY - 30) + 'px';
+          this.resizeTooltip.innerText = Math.round(newPct) + '%';
+        };
+        const mouseUpHandler = () => {
+          document.removeEventListener('mousemove', mouseMoveHandler);
+          document.removeEventListener('mouseup', mouseUpHandler);
+          resizer.classList.remove('resizing');
+          if (this.resizeTooltip) {
+            this.resizeTooltip.remove();
+            this.resizeTooltip = null;
+          }
+          Array.from(tableEl.querySelectorAll('th:not(.fixed-col)')).forEach(col => {
+            if (col.style.width && col.style.width.includes('%')) {
+               const i = Array.from(col.parentNode.children).indexOf(col);
+               const dynId = col.closest('.view-section').id + '-col-' + i;
+               this.silentSave('saveUISettings', { key: dynId, value: col.style.width });
+               this.uiSettings[dynId] = col.style.width;
+            }
+          });
+        };
+        resizer.addEventListener('mousedown', (e) => {
+          x = e.clientX; 
+          tableEl = th.closest('.excel-table');
+          const tableWidth = tableEl.getBoundingClientRect().width;
+          
+          Array.from(tableEl.querySelectorAll('th:not(.fixed-col)')).forEach(col => {
+            const currentW = col.getBoundingClientRect().width;
+            const pct = (currentW / tableWidth) * 100;
+            col.setAttribute('data-start-pct', pct);
+            col.style.width = `${pct}%`;
+          });
+          
+          document.addEventListener('mousemove', mouseMoveHandler);
+          document.addEventListener('mouseup', mouseUpHandler);
+          resizer.classList.add('resizing');
+        });
+        resizer.addEventListener('dblclick', (e) => {
+          const table = th.closest('.excel-table');
+          const allFixedThs = table.querySelectorAll('th.fixed-col');
+          const allDynamicThs = table.querySelectorAll('th:not(.fixed-col)');
+          
+          let fixedTotalPct = 0;
+          allFixedThs.forEach(() => fixedTotalPct += 10);
+          
+          const remainingPct = 100 - fixedTotalPct;
+          const targetPct = remainingPct / (allDynamicThs.length || 1);
+          
+          allDynamicThs.forEach(dynTh => {
+            dynTh.style.width = `${targetPct}%`;
+            const dynIdx = Array.from(dynTh.parentNode.children).indexOf(dynTh);
+            const dynId = dynTh.closest('.view-section').id + '-col-' + dynIdx;
+            this.silentSave('saveUISettings', { key: dynId, value: `${targetPct}%` });
+            this.uiSettings[dynId] = `${targetPct}%`;
+          });
+          
+          const tooltip = document.createElement('div');
+          tooltip.className = 'resize-tooltip';
+          tooltip.style.cssText = 'position: fixed; background: rgba(16,185,129,0.9); color: white; padding: 6px 12px; border-radius: 4px; font-size: 13px; font-weight: bold; pointer-events: none; z-index: 9999; box-shadow: 0 4px 15px rgba(0,0,0,0.3);';
+          tooltip.innerText = `모든 열 너비 일괄 적용 완료!`;
+          tooltip.style.left = (e.clientX + 15) + 'px';
+          tooltip.style.top = (e.clientY - 30) + 'px';
+          document.body.appendChild(tooltip);
+          setTimeout(() => tooltip.remove(), 1500);
+        });
+      }
+      // Add right-click for column deletion
+      if (th.getAttribute('data-colname') && !th.hasAttribute('data-ctx-bound')) {
+        th.setAttribute('data-ctx-bound', 'true');
+        th.addEventListener('contextmenu', (e) => {
+          e.preventDefault();
+          this.ctxTargetColName = th.getAttribute('data-colname');
+          let tType = 'timetable';
+          if (th.closest('#view-curriculum')) tType = 'curriculum';
+          else if (th.closest('#view-curriculum-science')) tType = 'curriculum_science';
+          this.ctxTargetType = tType;
+          this.showContextMenu(e.pageX, e.pageY, 'col');
+        });
+      }
+    });
+  },
+
+  renderFlatTable: function(type, dataArray, cols) {
+    const tbody = document.getElementById(`tbody-${type}`);
+    if (!tbody) return;
+    const thead = tbody.previousElementSibling;
+    if(thead && thead.querySelector('tr')) {
+      let ths = '';
     iconEl.innerText = isAsc ? '▲' : '▼';
     
     let dataArray;
@@ -616,14 +872,16 @@ const app = {
         const isFixed = typeof c === 'object' && c.fixed;
         const cellClassStr = isFixed ? 'class="label-col"' : '';
         const val = row[colIdx] || '';
+        const cellKey = `bg_flat_${type}_${id}_${colIdx}`;
+        const bgStyle = this.uiSettings[cellKey] ? `background-color:${this.uiSettings[cellKey]};` : '';
         
         if (label === '일자') {
-          html += `<td data-col-idx="${colIdx}" ${cellClassStr} contenteditable="true" onblur="app.onFlatCellBlur('${type}', this)" placeholder="날짜 선택" style="text-align:center;">${val}</td>`;
+          html += `<td data-col-idx="${colIdx}" data-cell-key="${cellKey}" ${cellClassStr} contenteditable="true" onblur="app.onFlatCellBlur('${type}', this)" placeholder="날짜 선택" style="text-align:center; ${bgStyle}">${val}</td>`;
         } else if (label === '상태') {
           const isDone = val === '완료';
-          const statusTxt = isDone ? '완료' : '진행 중';
-          const btnClass = isDone ? 'status-done' : 'status-progress';
-          html += `<td data-col-idx="${colIdx}" class="status-cell ${isFixed ? 'label-col' : ''}" style="text-align:center;"><button class="status-btn ${btnClass}" onclick="app.toggleStatus(this, '${type}', ${colIdx})">${statusTxt}</button></td>`;
+          const statusTxt = isDone ? '🟢 완료' : '🟡 진행 중';
+          const txtColor = isDone ? '#10b981' : '#f59e0b';
+          html += `<td data-col-idx="${colIdx}" data-cell-key="${cellKey}" class="status-cell ${isFixed ? 'label-col' : ''}" style="text-align:center; ${bgStyle}"><div style="color:${txtColor}; font-weight:bold; cursor:pointer;" onclick="app.toggleStatus(this, '${type}', ${colIdx})">${statusTxt}</div></td>`;
         } else {
           let extraEvents = `onkeydown="app.onKeyDown(event, this)"`;
           let displayVal = val;
@@ -633,7 +891,7 @@ const app = {
             extraEvents = `onfocus="app.handlePhoneFocus(this)" onkeydown="app.handlePhoneKeydown(event, this)"`;
             placeholder = 'placeholder="숫자 11자리 입력"';
           }
-          html += `<td ${cellClassStr} contenteditable="true" data-col-idx="${colIdx}" ${placeholder} onblur="app.onFlatCellBlur('${type}', this)" ${extraEvents}>${displayVal}</td>`;
+          html += `<td ${cellClassStr} data-cell-key="${cellKey}" contenteditable="true" data-col-idx="${colIdx}" ${placeholder} onblur="app.onFlatCellBlur('${type}', this)" style="${bgStyle}" ${extraEvents}>${displayVal}</td>`;
         }
       }
       html += `</tr>`;
@@ -693,7 +951,7 @@ const app = {
     let dataArray, upsertAction, keys;
     if (type === 'preschedule') { dataArray = this.data.preschedules; upsertAction = 'upsertPreSchedule'; keys = ['date', 'content', 'status', 'note']; }
     else if (type === 'student') { dataArray = this.data.students; upsertAction = 'upsertStudent'; keys = ['name', 'center', 'school', 'grade', 'parentPhone', 'studentPhone', 'note']; }
-    else if (type === 'instructor') { dataArray = this.data.instructors; upsertAction = 'upsertInstructor'; keys = ['instructorName', 'subject', 'subSubject', 'phone', 'email', 'note']; } // 시트컬럼: 강사명, 영역, 과목, 연락처, 지메일, 비고
+    else if (type === 'instructor') { dataArray = this.data.instructors; upsertAction = 'upsertInstructor'; keys = ['instructorName', 'subject', 'subSubject', 'phone', 'email', 'note']; } 
 
     const colIdx = parseInt(cell.getAttribute('data-col-idx'));
     
@@ -862,8 +1120,7 @@ const app = {
     const dataArr = isSci ? this.data.curriculums_science : this.data.curriculums;
 
     let weekHeader = this.uiSettings['header_' + viewId + '_0'] || '주차';
-    let headHtml = `<thead><tr><th class="label-col-header fixed-col" style="width:10%;"><div contenteditable="true" onblur="app.onHeaderBlur(this, '${viewId}', 0)" style="display:inline-block; min-width:30px; min-height:20px; outline:none;">${weekHeader}</div></th>`;
-    headHtml += `<th class="label-col-header fixed-col" style="width:10%;">회차</th>`;
+    let headHtml = `<thead><tr><th class="label-col-header fixed-col" style="width:10%;"><div contenteditable="true" onblur="app.onHeaderBlur(this, '${viewId}', 0)" style="display:inline-block; min-width:30px; min-height:20px; outline:none;">${weekHeader}</div></th><th class="label-col-header fixed-col" style="width:5%;">회차</th>`;
     dynCols.forEach((sub, i) => {
       const dynHeader = this.uiSettings['header_' + viewId + '_' + (i+1)] || sub;
       headHtml += `<th data-colname="${sub}"><div contenteditable="true" onblur="app.onHeaderBlur(this, '${viewId}', ${i+1})" style="display:inline-block; min-width:30px; min-height:20px; outline:none;">${dynHeader}</div></th>`;
@@ -873,11 +1130,10 @@ const app = {
     const weeks = Array.from(new Set(dataArr.map(r => r[1]).filter(Boolean)));
 
     weeks.forEach(week => {
+      const savedSess = this.uiSettings['curr_sess_' + type + '_' + week] || '';
       headHtml += `<tr data-week="${week}">
-      <td class="label-col" style="font-weight:bold; text-align:center;" contenteditable="true" onblur="app.updatePivotRowLabel('${type}', '${week}', this.innerText.trim())">${week}</td>`;
-      const firstRow = dataArr.find(r => r[1] === week);
-      const hoicha = firstRow ? (firstRow[4] || '') : '';
-      headHtml += `<td class="label-col" style="text-align:center;" contenteditable="true" data-id="${firstRow ? firstRow[0] : ''}" data-week="${week}" data-sub="hoicha" onblur="app.onCurriculumHoichaBlur(this, '${type}')">${hoicha}</td>`;
+      <td class="label-col" style="font-weight:bold; text-align:center;" contenteditable="true" onblur="app.updatePivotRowLabel('${type}', '${week}', this.innerText.trim())">${week}</td>
+      <td class="label-col" style="font-weight:bold; text-align:center;" contenteditable="true" onblur="app.silentSave('saveUISettings', {key: 'curr_sess_${type}_${week}', value: this.innerText.trim()}); app.uiSettings['curr_sess_${type}_${week}'] = this.innerText.trim();">${savedSess}</td>`;
       dynCols.forEach(sub => {
         const row = dataArr.find(r => r[1] === week && r[2] === sub);
         const content = row ? row[3] : '';
@@ -907,26 +1163,6 @@ const app = {
     
     this.apiPost(action, { id: rowObj[0], week, subject: sub, content: newValue }).then(res => {
       if(res.success && res.id) { rowObj[0] = res.id; cell.setAttribute('data-id', res.id); }
-    });
-  },
-
-  onCurriculumHoichaBlur: function(cell, type) {
-    let newValue = cell.innerText.trim();
-    const week = cell.getAttribute('data-week');
-    const isSci = type === 'curriculum_science';
-    const dataArr = isSci ? this.data.curriculums_science : this.data.curriculums;
-    const action = isSci ? 'upsertCurriculumScience' : 'upsertCurriculum';
-
-    // 해당 주차의 모든 행에 note 필드를 업데이트하여 회차 저장
-    const rows = dataArr.filter(r => r[1] === week);
-    if (rows.length === 0) return;
-    
-    rows.forEach(r => r[4] = newValue);
-    
-    // 첫 번째 행만 서버로 업데이트해서 저장 (편의상)
-    const firstRow = rows[0];
-    this.apiPost(action, { id: firstRow[0], week, subject: firstRow[2], content: firstRow[3], note: newValue }).then(res => {
-      if(res.success && res.id) { firstRow[0] = res.id; cell.setAttribute('data-id', res.id); }
     });
   },
 
@@ -973,7 +1209,7 @@ const app = {
 
   renderTimetablePivot: function() {
     const table = document.querySelector('#view-timetable .excel-table');
-    let headHtml = `<thead><tr><th class="label-col-header fixed-col" style="width:10%;">일자</th><th class="label-col-header fixed-col" style="width:10%;">회차</th><th class="label-col-header fixed-col" style="width:10%;">시작 시간</th><th class="label-col-header fixed-col" style="width:10%;">종료 시간</th>`;
+    let headHtml = `<thead><tr><th class="label-col-header fixed-col" style="width:10%;">일자</th><th class="label-col-header fixed-col" style="width:5%;">주차</th><th class="label-col-header fixed-col" style="width:5%;">회차</th><th class="label-col-header fixed-col" style="width:6%;">시작 시간</th><th class="label-col-header fixed-col" style="width:6%;">종료 시간</th>`;
     this.dynamicCols.timetable.forEach(cls => {
       headHtml += `<th data-colname="${cls}" onclick="app.editTimetableClassName('${cls}')" style="cursor:pointer;" title="클릭하여 반 이름 수정">${cls}</th>`;
     });
@@ -985,25 +1221,27 @@ const app = {
       const [date, type, start, end] = grp.split('|');
       const isHoliday = (type === '휴일');
       const isTmpDate = date.startsWith('tmp-');
-      const displayDate = isTmpDate ? '' : date;
+      const displayDate = isTmpDate ? '' : (this.uiSettings['tt_fmt_date_' + grp] || date);
       
       const idsForGrp = this.data.timetables.filter(r => r[1] === date && r[2] === type && r[3] === start && r[4] === end).map(r => r[0]).join(',');
+      const savedWeek = this.uiSettings['tt_week_' + grp] || '';
+      const savedSess = this.uiSettings['tt_sess_' + grp] || '';
       
       headHtml += `<tr data-ids="${idsForGrp}" data-grp="${grp}">
-        <td class="fixed-col label-col" contenteditable="true" onblur="app.updatePivotRowDate(this, this.innerText.trim())" placeholder="날짜 선택" style="text-align:center;"><span class="drag-handle"></span>${displayDate}</td>`;
+        <td class="fixed-col label-col tt-date-cell" data-cell-key="bg_tt_date_${grp}" contenteditable="true" onblur="app.updatePivotRowDate(this, this.innerText.trim())" placeholder="날짜 선택" style="text-align:center; ${this.uiSettings['bg_tt_date_'+grp]?('background-color:'+this.uiSettings['bg_tt_date_'+grp]+';'):''}"><span class="drag-handle"></span>${displayDate}</td>
+        <td class="fixed-col label-col tt-week-cell" data-cell-key="bg_tt_week_${grp}" contenteditable="true" onblur="app.silentSave('saveUISettings', {key: 'tt_week_${grp}', value: this.innerText.trim()}); app.uiSettings['tt_week_${grp}'] = this.innerText.trim();" style="text-align:center; ${this.uiSettings['bg_tt_week_'+grp]?('background-color:'+this.uiSettings['bg_tt_week_'+grp]+';'):''}">${savedWeek}</td>
+        <td class="fixed-col label-col tt-sess-cell" data-cell-key="bg_tt_sess_${grp}" contenteditable="true" onblur="app.silentSave('saveUISettings', {key: 'tt_sess_${grp}', value: this.innerText.trim()}); app.uiSettings['tt_sess_${grp}'] = this.innerText.trim();" style="text-align:center; ${this.uiSettings['bg_tt_sess_'+grp]?('background-color:'+this.uiSettings['bg_tt_sess_'+grp]+';'):''}">${savedSess}</td>`;
       
-      const firstRow = this.data.timetables.find(r => r[1] === date && r[2] === type && r[3] === start && r[4] === end);
-      const hoicha = firstRow ? (firstRow[8] || '') : '';
-      headHtml += `<td class="fixed-col label-col" style="text-align:center;" contenteditable="true" onblur="app.updateTimetableHoicha(this, '${grp}')">${hoicha}</td>`;
-
       if (isHoliday) {
         const holidayRow = this.data.timetables.find(r => r[1] === date && r[2] === '휴일');
         const holidayNote = holidayRow ? (holidayRow[8] || '') : '';
         headHtml += `<td colspan="2" class="fixed-col label-col" style="text-align:center; color:var(--text-muted); font-style:italic;">🏖️ 휴일</td>`;
         headHtml += `<td colspan="${this.dynamicCols.timetable.length}" class="timetable-cell" data-id="${holidayRow?holidayRow[0]:''}" data-date="${date}" contenteditable="true" onblur="app.onTimetableHolidayBlur(this)" style="text-align:center; background:rgba(255,255,255,0.05); color:var(--text-muted); font-style:italic;">${holidayNote || '휴일/특이사항 입력'}</td>`;
       } else {
-        headHtml += `<td class="fixed-col label-col"><input type="text" value="${start}" onblur="app.updatePivotRowTime(this, 'start', this.value)" placeholder="00:00" style="width:100%; background:transparent; border:none; color:inherit; text-align:center; outline:none; font-family:inherit; font-size:inherit; line-height:1; padding:0; margin:0;"></td>
-        <td class="fixed-col label-col"><input type="text" value="${end}" onblur="app.updatePivotRowTime(this, 'end', this.value)" placeholder="00:00" style="width:100%; background:transparent; border:none; color:inherit; text-align:center; outline:none; font-family:inherit; font-size:inherit; line-height:1; padding:0; margin:0;"></td>`;
+        const fmtStart = this.uiSettings['tt_fmt_start_' + grp] || start;
+        const fmtEnd = this.uiSettings['tt_fmt_end_' + grp] || end;
+        headHtml += `<td class="fixed-col label-col tt-time-cell" data-time-type="start" data-cell-key="bg_tt_start_${grp}" contenteditable="true" onblur="app.updatePivotRowTime(this, 'start', this.innerText.trim())" placeholder="00:00" style="text-align:center; ${this.uiSettings['bg_tt_start_'+grp]?('background-color:'+this.uiSettings['bg_tt_start_'+grp]+';'):''}">${fmtStart}</td>
+        <td class="fixed-col label-col tt-time-cell" data-time-type="end" data-cell-key="bg_tt_end_${grp}" contenteditable="true" onblur="app.updatePivotRowTime(this, 'end', this.innerText.trim())" placeholder="00:00" style="text-align:center; ${this.uiSettings['bg_tt_end_'+grp]?('background-color:'+this.uiSettings['bg_tt_end_'+grp]+';'):''}">${fmtEnd}</td>`;
         this.dynamicCols.timetable.forEach(cls => {
           const row = this.data.timetables.find(r => r[1] === date && r[2] === type && r[3] === start && r[4] === end && r[5] === cls);
           let displayStr = row && (row[6] || row[7]) ? `${row[6]||''}${row[7]?'('+row[7]+')':''}` : '';
@@ -1019,7 +1257,8 @@ const app = {
     headHtml += `</tbody>`; table.innerHTML = headHtml;
     table.querySelectorAll('tbody tr').forEach(tr => this.bindRowEvents(tr, 'timetable'));
     this.initResizers();
-  },
+    app.initFlatpickr(); // 초기화
+  }
 
   updatePivotRowDate: async function(el, newDate) {
     if(!newDate) return;
@@ -1070,26 +1309,6 @@ const app = {
         app.renderView('timetable');
       }
     }
-  },
-
-  updateTimetableHoicha: function(cell, grp) {
-    let newValue = cell.innerText.trim();
-    const [date, type, start, end] = grp.split('|');
-    const rows = this.data.timetables.filter(r => r[1] === date && r[2] === type && r[3] === start && r[4] === end);
-    if (rows.length === 0) return;
-    
-    let isChanged = false;
-    rows.forEach(r => { if(r[8] !== newValue) { r[8] = newValue; isChanged = true; } });
-    if (!isChanged) return;
-
-    const payloadArray = rows.map(r => ({ id: r[0], date: r[1], type: r[2], start: r[3], end: r[4], className: r[5], subject: r[6], instructor: r[7], note: r[8] }));
-    this.apiPost('upsertMultipleTimetables', { payloadArray }).then(res => {
-      if (res && res.success) {
-         if (res.returnedIds) rows.forEach(r => { if (res.returnedIds[r[0]]) r[0] = res.returnedIds[r[0]]; });
-      } else {
-         app.showToast('회차 저장 실패');
-      }
-    });
   },
 
   updatePivotRowType: function(oldGrp, newType) {
@@ -1501,15 +1720,19 @@ const app = {
     this.hideContextMenu();
     if (!this.ctxTargetCell) return;
     const td = this.ctxTargetCell;
-    const cellKey = td.getAttribute('data-cell-key');
-    if (cellKey) {
-      const finalColor = color === 'transparent' ? '' : color;
-      td.style.backgroundColor = finalColor;
-      this.silentSave('saveUISettings', { key: cellKey, value: finalColor });
-      this.uiSettings[cellKey] = finalColor;
-    } else {
-      app.showToast('배경색을 적용할 수 없는 셀입니다.', true);
+    if (td.tagName.toLowerCase() === 'th') {
+      app.showToast('제목 행은 배경색을 변경할 수 없습니다.', true);
+      return;
     }
+    let cellKey = td.getAttribute('data-cell-key');
+    if (!cellKey) {
+      cellKey = 'bg_custom_' + Math.random().toString(36).substr(2, 9);
+      td.setAttribute('data-cell-key', cellKey);
+    }
+    const finalColor = color === 'transparent' ? '' : color;
+    td.style.backgroundColor = finalColor;
+    this.silentSave('saveUISettings', { key: cellKey, value: finalColor });
+    this.uiSettings[cellKey] = finalColor;
   },
   execCmd: function(cmd, e, val = null) {
     e.preventDefault(); // Prevent losing focus
