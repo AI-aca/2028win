@@ -630,3 +630,5 @@ span.flatpickr-weekday {
 .flatpickr-day { font-size: 12px !important; }
 
 .header-actions .btn { font-size: 14px !important; }
+
+select.form-control option { background-color: #1e293b; color: #f8fafc; }

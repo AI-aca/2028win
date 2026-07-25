@@ -449,7 +449,7 @@ const app = {
       } else if (viewId === 'view-student') {
         headerActions.innerHTML = `<button class="btn btn-primary" onclick="app.addRow('student')">+ 학생 추가</button>`;
       } else if (viewId === 'view-instructor') {
-        headerActions.innerHTML = `<button class="btn btn-primary" onclick="app.addRow('instructor')">+ 강사 추가</button>`;
+        headerActions.innerHTML = `<button class="btn btn-primary" onclick="app.addRow('instructor')">+ 강사 추가</button> <button class="btn btn-primary" style="background:#8b5cf6;" onclick="app.openSubjectManagerModal()">+ 과목 관리</button>`;
       } else {
         headerActions.innerHTML = '';
       }
@@ -1114,7 +1114,12 @@ const app = {
         <td class="fixed-col label-col" style="left:26%; text-align:center; cursor:pointer;" onclick="app.openTimePicker(this, 'end')" title="클릭하여 시간 선택">${end || '00:00'}</td>`;
         this.dynamicCols.timetable.forEach(cls => {
           const row = this.data.timetables.find(r => r[1] === date && r[2] === type && r[3] === start && r[4] === end && r[5] === cls);
-          let displayStr = row && (row[6] || row[7]) ? `${row[6]||''}${row[7]?'('+row[7]+')':''}` : '';
+          let subject = row && row[6] ? row[6] : '';
+          if (subject) {
+            const matchedSub = this.managedSubjects.find(s => s.name === subject);
+            if (matchedSub && matchedSub.emoji) subject = matchedSub.emoji + ' ' + subject;
+          }
+          let displayStr = row && (subject || row[7]) ? `${subject}${row[7]?'('+row[7]+')':''}` : '';
           displayStr = displayStr.trim();
           const id = row ? row[0] : '';
           let bgStyle = 'cursor:pointer;';
