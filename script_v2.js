@@ -286,6 +286,22 @@ const app = {
     
     this.uiSettings = res.uiSettings || {};
     
+    if (!this.uiSettings.managed_subjects) {
+      this.uiSettings.managed_subjects = JSON.stringify([
+        { name: '기하', category: '수학', emoji: '📐' },
+        { name: '조합', category: '수학', emoji: '🎲' },
+        { name: '대수', category: '수학', emoji: '🧮' },
+        { name: '정수', category: '수학', emoji: '🔢' },
+        { name: '기타(수학)', category: '수학', emoji: '➕' },
+        { name: '물리', category: '과학', emoji: '🍎' },
+        { name: '화학', category: '과학', emoji: '🧪' },
+        { name: '생명과학', category: '과학', emoji: '🧬' },
+        { name: '지구과학', category: '과학', emoji: '🌍' },
+        { name: '기타(과학)', category: '과학', emoji: '🔬' }
+      ]);
+    }
+    this.managedSubjects = JSON.parse(this.uiSettings.managed_subjects);
+    
     this.extractDynamicCols();
     this.renderAllViews();
     this.hideLoading();
@@ -1296,6 +1312,55 @@ const app = {
     });
   },
 
+  
+  openSubjectManagerModal: function() {
+    this.renderSubjectManagerList();
+    document.getElementById('subject-manager-modal').classList.remove('hidden');
+  },
+  renderSubjectManagerList: function() {
+    const container = document.getElementById('subject-list-container');
+    if (!container) return;
+    let html = '';
+    this.managedSubjects.forEach((sub, idx) => {
+      html += `<div style="display:flex; align-items:center; background:rgba(255,255,255,0.1); padding:5px 10px; border-radius:20px; font-size:13px;">
+        ${sub.emoji} ${sub.name} <span style="font-size:10px; margin-left:5px; opacity:0.6;">(${sub.category})</span>
+        <button style="background:transparent; border:none; color:#ff6b6b; margin-left:8px; cursor:pointer; font-weight:bold;" onclick="app.removeSubject(${idx})">✖</button>
+      </div>`;
+    });
+    container.innerHTML = html;
+  },
+  addNewSubject: function() {
+    const name = document.getElementById('new-subject-name').value.trim();
+    const category = document.getElementById('new-subject-category').value;
+    if (!name) return alert('과목명을 입력하세요.');
+    if (this.managedSubjects.find(s => s.name === name)) return alert('이미 존재하는 과목명입니다.');
+    
+    // 자동 이모지 매핑 로직 (추론)
+    let emoji = '📌';
+    if (name.includes('물리')) emoji = '🍎';
+    else if (name.includes('화학')) emoji = '🧪';
+    else if (name.includes('생명') || name.includes('생물')) emoji = '🧬';
+    else if (name.includes('지구')) emoji = '🌍';
+    else if (name.includes('기하')) emoji = '📐';
+    else if (name.includes('조합') || name.includes('확통')) emoji = '🎲';
+    else if (name.includes('대수')) emoji = '🧮';
+    else if (name.includes('정수')) emoji = '🔢';
+    else if (category === '수학') emoji = '📘';
+    else if (category === '과학') emoji = '🔬';
+
+    this.managedSubjects.push({ name, category, emoji });
+    this.silentSave('managed_subjects', JSON.stringify(this.managedSubjects));
+    document.getElementById('new-subject-name').value = '';
+    this.renderSubjectManagerList();
+  },
+  removeSubject: function(idx) {
+    if(confirm(this.managedSubjects[idx].name + ' 과목을 리스트에서 삭제하시겠습니까?\n(이미 등록된 데이터의 이름이 바뀌진 않습니다)')) {
+      this.managedSubjects.splice(idx, 1);
+      this.silentSave('managed_subjects', JSON.stringify(this.managedSubjects));
+      this.renderSubjectManagerList();
+    }
+  },
+
   openTimetableEditor: function(cell) {
     const id = cell.getAttribute('data-id');
     const date = cell.getAttribute('data-date');
@@ -1325,7 +1390,7 @@ const app = {
       const div = document.createElement('div'); div.innerHTML = val;
       return div.innerText.trim();
     }).filter(Boolean)));
-    const subjects = Array.from(new Set([...this.data.curriculums.map(r => r[2]), ...this.data.curriculums_science.map(r => r[2]), ...this.data.instructors.map(r => r[2])].filter(Boolean)));
+    const subjects = this.managedSubjects.map(s => s.name);
 
     const optStyle = 'background:#1e293b; color:#f8fafc;';
     let instructorOpts = `<option value="" style="${optStyle}">-- 강사 선택 --</option>` + instructors.map(i => `<option value="${i}" style="${optStyle}" ${instructor===i?'selected':''}>${i}</option>`).join('');
@@ -1433,9 +1498,20 @@ const app = {
   },
 
   addColumn: function(type) {
-    const title = (type === 'curriculum' || type === 'curriculum_science') ? '새 과목(열) 추가' : '새 반이름(열) 추가';
+    const isCurriculum = (type === 'curriculum' || type === 'curriculum_science');
+    const title = isCurriculum ? '새 과목(열) 추가' : '새 반이름(열) 추가';
     document.getElementById('generic-modal-title').innerText = title;
-    document.getElementById('generic-modal-body').innerHTML = `<div class="form-group"><label>${(type === 'curriculum' || type === 'curriculum_science') ? '과목명' : '반이름'}</label><input type="text" id="new-col-input" class="form-control"></div>`;
+    
+    if (isCurriculum) {
+      const isSci = type === 'curriculum_science';
+      const category = isSci ? '과학' : '수학';
+      const filteredSubjects = this.managedSubjects.filter(s => s.category === category);
+      let optionsHtml = filteredSubjects.map(s => `<option value="${s.name}">${s.emoji} ${s.name}</option>`).join('');
+      document.getElementById('generic-modal-body').innerHTML = `<div class="form-group"><label>과목 선택 (${category})</label><select id="new-col-input" class="form-control">${optionsHtml}</select></div>`;
+    } else {
+      document.getElementById('generic-modal-body').innerHTML = `<div class="form-group"><label>반이름</label><input type="text" id="new-col-input" class="form-control"></div>`;
+    }
+    
     document.getElementById('modal-container').classList.remove('hidden'); document.getElementById('generic-modal').classList.remove('hidden');
     this.currentModalAction = async () => {
       const val = document.getElementById('new-col-input').value.trim();
