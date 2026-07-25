@@ -23,7 +23,7 @@
         <input type="password" id="login-password" placeholder="비밀번호를 입력하세요" required>
         <button type="submit" id="login-btn">접속하기</button>
       </form>
-      <p id="login-error" class="hidden text-danger" style="margin-top:15px; font-size:14px; text-align:center;">비밀번호가 일치하지 않습니다.</p>
+      <p id="login-error" class="hidden text-danger" style="margin-top:15px; font-size:13px; text-align:center;">비밀번호가 일치하지 않습니다.</p>
     </div>
   </div>
 
@@ -75,7 +75,7 @@
         <h1 id="pageTitle" style="margin:0;">대시보드</h1>
         
         <div id="sync-status-indicator" style="position:absolute; left:50%; transform:translateX(-50%); display:flex; align-items:center; gap:8px; padding:6px 16px; border-radius:20px; font-size:13px; font-weight:600; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); color:var(--text-muted); transition:all 0.3s ease; pointer-events:none; z-index:100;">
-          <span class="sync-icon" style="font-size:14px;">✓</span>
+          <span class="sync-icon" style="font-size:13px;">✓</span>
           <span class="sync-text">모든 변경사항 저장됨</span>
         </div>
 
@@ -85,9 +85,9 @@
       <div class="content-wrapper">
         <div id="view-dashboard" class="view-section active data-view">
           <div class="glass-panel text-center" style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 30px; padding: 30px 30px 34px 30px;">
-            <h2 style="font-size: 18px; font-weight: 600; color: var(--secondary); margin: 0; line-height: 1;">환영합니다!</h2>
+            <h2 style="font-size: 16px; font-weight: 600; color: var(--secondary); margin: 0; line-height: 1;">환영합니다!</h2>
             <img src="main_logo.png?v=4" alt="와이즈만 송도센터" style="max-width: 250px; width: 100%; height: auto; margin: 0; border-radius: 8px;">
-            <p class="empty-msg" style="font-size: 14px; margin: 0; padding: 0; line-height: 1;">좌측 메뉴에서 항목을 선택해 주세요.</p>
+            <p class="empty-msg" style="font-size: 13px; margin: 0; padding: 0; line-height: 1;">좌측 메뉴에서 항목을 선택해 주세요.</p>
           </div>
         </div>
 
@@ -184,13 +184,13 @@
       <li class="menu-separator"></li>
       <li class="text-danger" onclick="app.ctxDeleteRow()">행 삭제</li>
       <li class="menu-separator"></li>
-      <li style="padding: 4px 15px; font-size: 11px; color: var(--text-muted); pointer-events: none;">셀 배경색</li>
+      <li style="padding: 4px 15px; font-size: 13px; color: var(--text-muted); pointer-events: none;">셀 배경색</li>
       <li style="display: flex; gap: 6px; padding: 6px 15px;">
         <div onclick="app.setCellBgColor('rgba(59, 130, 246, 0.2)')" style="width: 20px; height: 20px; border-radius: 4px; background: rgba(59, 130, 246, 0.5); border: 1px solid rgba(59, 130, 246, 1); cursor: pointer;" title="Deep Blue"></div>
         <div onclick="app.setCellBgColor('rgba(16, 185, 129, 0.2)')" style="width: 20px; height: 20px; border-radius: 4px; background: rgba(16, 185, 129, 0.5); border: 1px solid rgba(16, 185, 129, 1); cursor: pointer;" title="Deep Green"></div>
         <div onclick="app.setCellBgColor('rgba(239, 68, 68, 0.2)')" style="width: 20px; height: 20px; border-radius: 4px; background: rgba(239, 68, 68, 0.5); border: 1px solid rgba(239, 68, 68, 1); cursor: pointer;" title="Deep Red"></div>
         <div onclick="app.setCellBgColor('rgba(168, 85, 247, 0.2)')" style="width: 20px; height: 20px; border-radius: 4px; background: rgba(168, 85, 247, 0.5); border: 1px solid rgba(168, 85, 247, 1); cursor: pointer;" title="Deep Purple"></div>
-        <div onclick="app.setCellBgColor('transparent')" style="width: 20px; height: 20px; border-radius: 4px; background: transparent; border: 1px dashed var(--text-muted); cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 14px; color: var(--text-muted);" title="초기화">✕</div>
+        <div onclick="app.setCellBgColor('transparent')" style="width: 20px; height: 20px; border-radius: 4px; background: transparent; border: 1px dashed var(--text-muted); cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 13px; color: var(--text-muted);" title="초기화">✕</div>
       </li>
     </ul>
     <ul id="ctx-menu-col" class="hidden">
@@ -206,37 +206,43 @@
   <script src="script_v2.js?v=1784972040958"></script>
 
   <!-- 과목 관리 모달 -->
-  <div id="subject-manager-modal" class="hidden glass-panel" style="position:fixed; top:50%; left:50%; transform:translate(-50%, -50%); z-index:10000; padding:20px; border-radius:12px; width:600px; box-shadow:0 10px 30px rgba(0,0,0,0.5); display:flex; flex-direction:column; gap:15px; border:1px solid var(--border-glass);">
-    <h3 style="margin:0; font-size:16px; color:var(--primary); text-align:center;">중앙 과목 리스트 관리</h3>
-    <div style="font-size:12px; color:var(--text-muted); text-align:center; line-height:1.4;">
-      여기에 등록된 과목만 진도계획표나 시간표 모달에서 선택할 수 있으며, 이모지는 자동 추천됩니다.
-    </div>
-    
-    <div style="display:flex; flex-direction:row; gap:20px;">
-      <!-- 좌측 폼 영역 -->
-      <div style="flex:1; display:flex; flex-direction:column; gap:10px;">
-        <div style="font-size:13px; font-weight:bold; color:var(--text-main); margin-bottom:5px;">새 과목 등록</div>
-        <div style="display:flex; gap:10px;">
-          <select id="new-subject-category" class="form-control" style="width:100px;">
-            <option value="수학">수학</option>
-            <option value="과학">과학</option>
-          </select>
-          <input type="text" id="new-subject-name" class="form-control" placeholder="과목명 (예: 심화물리)" style="flex:1;">
-        </div>
-        <button class="btn btn-primary" onclick="app.addNewSubject()" style="width:100%;">새 과목 등록하기</button>
+  <div id="subject-manager-modal" class="modal-overlay hidden">
+    <div class="modal-content" style="width:600px; max-width:90%;">
+      <div class="modal-header">
+        <h3>중앙 과목 리스트 관리</h3>
+        <button class="close-btn" onclick="document.getElementById('subject-manager-modal').classList.add('hidden')">✕</button>
       </div>
-
-      <!-- 우측 리스트 영역 -->
-      <div style="flex:1; display:flex; flex-direction:column; border-left:1px solid rgba(255,255,255,0.1); padding-left:20px;">
-        <div style="font-size:13px; font-weight:bold; color:var(--text-main); margin-bottom:10px;">등록된 과목 리스트</div>
-        <div id="subject-list-container" style="display:flex; flex-direction:column; gap:5px; max-height:200px; overflow-y:auto; padding-right:5px;">
-          <!-- JS 렌더링 -->
+      <div class="modal-body" style="display:flex; flex-direction:column; gap:15px;">
+        <div style="font-size:13px; color:var(--text-muted); text-align:center; line-height:1.4;">
+          여기에 등록된 과목만 진도계획표나 시간표 모달에서 선택할 수 있으며, 이모지는 자동 추천됩니다.
+        </div>
+        
+        <div style="display:flex; flex-direction:row; gap:20px;">
+          <!-- 좌측 폼 영역 -->
+          <div style="flex:1; display:flex; flex-direction:column; gap:10px;">
+            <div style="font-size:13px; font-weight:bold; color:var(--text-main); margin-bottom:5px;">새 과목 등록</div>
+            <div style="display:flex; gap:10px;">
+              <select id="new-subject-category" class="form-control" style="width:100px;">
+                <option value="수학">수학</option>
+                <option value="과학">과학</option>
+              </select>
+              <input type="text" id="new-subject-name" class="form-control" placeholder="과목명 (예: 심화물리)" style="flex:1;">
+            </div>
+            <button class="btn btn-primary" onclick="app.addNewSubject()" style="width:100%;">새 과목 등록하기</button>
+          </div>
+    
+          <!-- 우측 리스트 영역 -->
+          <div style="flex:1; display:flex; flex-direction:column; border-left:1px solid rgba(255,255,255,0.1); padding-left:20px;">
+            <div style="font-size:13px; font-weight:bold; color:var(--text-main); margin-bottom:10px;">등록된 과목 리스트</div>
+            <div id="subject-list-container" style="display:flex; flex-direction:column; gap:5px; max-height:200px; overflow-y:auto; padding-right:5px;">
+              <!-- JS 렌더링 -->
+            </div>
+          </div>
         </div>
       </div>
-    </div>
-    
-    <div style="display:flex; justify-content:center; margin-top:5px; border-top:1px solid rgba(255,255,255,0.1); padding-top:15px;">
-      <button class="btn" onclick="document.getElementById('subject-manager-modal').classList.add('hidden')" style="width:100%; max-width:200px; background:rgba(255,255,255,0.1); color:white;">닫기</button>
+      <div class="modal-footer" style="justify-content:center;">
+        <button class="btn" onclick="document.getElementById('subject-manager-modal').classList.add('hidden')" style="width:100%; max-width:200px;">닫기</button>
+      </div>
     </div>
   </div>
 

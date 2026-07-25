@@ -16,7 +16,7 @@ const app = {
 
   openInstructorSelectModal: function(td, mode) {
     document.getElementById('generic-modal-title').innerText = mode === 'area' ? '영역 선택' : '과목 선택';
-    let defaultText = mode === 'area' ? '-- 영역 선택 --' : '-- 과목 선택 --';
+    let defaultText = mode === 'area' ? '영역 선택' : '과목 선택';
     let optsHtml = `<option value="">${defaultText}</option>`;
     if (mode === 'area') {
       optsHtml += '<option value="수학">수학</option><option value="과학">과학</option>';
@@ -432,7 +432,7 @@ const app = {
       div.style.padding = '8px 16px';
       div.style.cursor = 'pointer';
       div.style.color = '#f3f4f6';
-      div.style.fontSize = '12px';
+      div.style.fontSize = '13px';
       div.onmouseover = () => div.style.backgroundColor = '#374151';
       div.onmouseout = () => div.style.backgroundColor = 'transparent';
       div.onclick = () => {
@@ -665,7 +665,7 @@ const app = {
           if (!this.resizeTooltip) {
             this.resizeTooltip = document.createElement('div');
             this.resizeTooltip.className = 'resize-tooltip';
-            this.resizeTooltip.style.cssText = 'position: fixed; background: rgba(0,0,0,0.8); color: #06b6d4; padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: 600; pointer-events: none; z-index: 9999; box-shadow: 0 2px 10px rgba(0,0,0,0.5); border: 1px solid rgba(6,182,212,0.3); transition: none;';
+            this.resizeTooltip.style.cssText = 'position: fixed; background: rgba(0,0,0,0.8); color: #06b6d4; padding: 4px 8px; border-radius: 4px; font-size: 13px; font-weight: 600; pointer-events: none; z-index: 9999; box-shadow: 0 2px 10px rgba(0,0,0,0.5); border: 1px solid rgba(6,182,212,0.3); transition: none;';
             document.body.appendChild(this.resizeTooltip);
           }
           this.resizeTooltip.style.left = (e.clientX + 15) + 'px';
@@ -781,13 +781,15 @@ const app = {
         const val = row[colIdx] || '';
         
         if (label === '일자') {
-          html += `<td data-col-idx="${colIdx}" ${cellClassStr} style="${leftStr}" data-cell-key="tt_fmt_date_${type}_${id}"><div contenteditable="true" onblur="app.onFlatCellBlur('${type}', this)" style="display:inline-block; outline:none; min-width:40px;">${val || '-- 날짜 선택 --'}</div> <span class="date-picker-icon" onclick="app.openDatePicker(this.closest('td'))" style="cursor:pointer;" title="달력 열기">📅</span></td>`;
+          const dateTxt = val || '날짜 선택';
+          const colorStyle = dateTxt.includes('날짜 선택') ? 'color:var(--text-muted);' : '';
+          html += `<td data-col-idx="${colIdx}" ${cellClassStr} style="${leftStr}" data-cell-key="tt_fmt_date_${type}_${id}"><div contenteditable="true" onblur="app.onFlatCellBlur('${type}', this)" style="display:inline-block; outline:none; min-width:40px; ${colorStyle}">${dateTxt}</div> <span class="date-picker-icon" onclick="app.openDatePicker(this.closest('td'))" style="cursor:pointer;" title="달력 열기">📅</span></td>`;
         } else if (label === '상태') {
           const isDone = val === '완료';
           const statusTxt = isDone ? '🟢 완료' : '🟡 진행 중';
           const txtColor = isDone ? '#10b981' : '#ffffff';
           const fw = isDone ? '600' : 'normal';
-          html += `<td data-col-idx="${colIdx}" class="status-cell ${isFixed ? 'fixed-col label-col' : ''}" style="text-align:center; cursor:pointer; ${leftStr}" onclick="app.toggleStatus(this.querySelector('span'), '${type}', ${colIdx})"><span style="font-weight:${fw}; color:${txtColor}; font-size:12px; user-select:none; transition:all 0.2s; padding:4px 8px; border-radius:4px;" onmouseover="this.style.backgroundColor='rgba(255,255,255,0.05)'" onmouseout="this.style.backgroundColor='transparent'">${statusTxt}</span></td>`;
+          html += `<td data-col-idx="${colIdx}" class="status-cell ${isFixed ? 'fixed-col label-col' : ''}" style="text-align:center; cursor:pointer; ${leftStr}" onclick="app.toggleStatus(this.querySelector('span'), '${type}', ${colIdx})"><span style="font-weight:${fw}; color:${txtColor}; font-size:13px; user-select:none; transition:all 0.2s; padding:4px 8px; border-radius:4px;" onmouseover="this.style.backgroundColor='rgba(255,255,255,0.05)'" onmouseout="this.style.backgroundColor='transparent'">${statusTxt}</span></td>`;
         } else if (type === 'instructor' && colIdx === 2) {
           html += `<td ${cellClassStr} data-col-idx="${colIdx}" onclick="app.openInstructorSelectModal(this, 'area')" style="cursor:pointer; text-align:center;">${val}</td>`;
         } else if (type === 'instructor' && colIdx === 3) {
@@ -1169,15 +1171,16 @@ const app = {
       const isHoliday = (type === '휴일');
       const isTmpDate = date.startsWith('tmp-');
       const displayDate = isTmpDate ? '' : date;
-      let richDate = this.uiSettings['tt_fmt_date_' + grp] || displayDate || '-- 날짜 선택 --';
+      let richDate = this.uiSettings['tt_fmt_date_' + grp] || displayDate || '날짜 선택';
       if (richDate.includes('date-picker-icon')) {
         richDate = richDate.replace(/<span class="date-picker-icon"[^>]*>.*?<\/span>/g, '').trim();
       }
       
       const idsForGrp = this.data.timetables.filter(r => r[1] === date && r[2] === type && r[3] === start && r[4] === end).map(r => r[0]).join(',');
+      const colorStyle = richDate.includes('날짜 선택') ? 'color:var(--text-muted);' : '';
       
       headHtml += `<tr data-ids="${idsForGrp}" data-grp="${grp}">
-        <td class="fixed-col label-col" style="text-align:center;" data-cell-key="tt_fmt_date_${grp}"><span class="drag-handle"></span><div contenteditable="true" style="display:inline-block; outline:none; min-width:30px;" onblur="app.updatePivotRowDate(this.closest('td'), this.innerText.trim())">${richDate}</div> <span class="date-picker-icon" onclick="app.openDatePicker(this.closest('td'))" style="cursor:pointer;" title="클릭하여 달력 선택">📅</span></td>`;
+        <td class="fixed-col label-col" style="text-align:center;" data-cell-key="tt_fmt_date_${grp}"><span class="drag-handle"></span><div contenteditable="true" style="display:inline-block; outline:none; min-width:30px; ${colorStyle}" onblur="app.updatePivotRowDate(this.closest('td'), this.innerText.trim())">${richDate}</div> <span class="date-picker-icon" onclick="app.openDatePicker(this.closest('td'))" style="cursor:pointer;" title="클릭하여 달력 선택">📅</span></td>`;
       
       const firstRow = this.data.timetables.find(r => r[1] === date && r[2] === type && r[3] === start && r[4] === end);
       const hoicha = firstRow ? (firstRow[8] || '') : '';
@@ -1188,8 +1191,8 @@ const app = {
       if (isHoliday) {
         const holidayRow = this.data.timetables.find(r => r[1] === date && r[2] === '휴일');
         const holidayNote = holidayRow ? (holidayRow[8] || '') : '';
-        headHtml += `<td colspan="3" class="fixed-col label-col" data-cell-key="tt_fmt_hol_${grp}" style="text-align:center; left:12%; color:var(--text-muted); font-style:italic;">🏖️ 휴일</td>`;
-        headHtml += `<td colspan="${this.dynamicCols.timetable.length}" class="timetable-cell" data-id="${holidayRow?holidayRow[0]:''}" data-date="${date}" contenteditable="true" onblur="app.onTimetableHolidayBlur(this)" style="text-align:center; background:rgba(255,255,255,0.05); color:var(--text-muted); font-style:italic;">${holidayNote || '휴일/특이사항 입력'}</td>`;
+        headHtml += `<td colspan="4" class="fixed-col label-col" data-cell-key="tt_fmt_hol_${grp}" style="text-align:center; left:12%; color:var(--danger);">🏖️ 휴일</td>`;
+        headHtml += `<td colspan="${this.dynamicCols.timetable.length}" class="timetable-cell" data-id="${holidayRow?holidayRow[0]:''}" data-date="${date}" contenteditable="true" onblur="app.onTimetableHolidayBlur(this)" style="text-align:center; background:rgba(255,255,255,0.05); color:var(--text-muted);">${holidayNote || '휴일/특이사항 입력'}</td>`;
       } else {
         headHtml += `<td class="fixed-col label-col" style="left:22%; white-space:nowrap; text-align:center; vertical-align:middle; font-weight:normal;" data-cell-key="tt_fmt_st_${grp}"><div contenteditable="true" onblur="app.updatePivotRowTime(this.closest('td'), 'start', this.innerText.trim())" style="display:inline-block; outline:none; min-width:30px; font-weight:normal;">${start || '00:00'}</div> <span onclick="app.openTimePicker(this.closest('td'), 'start')" style="cursor:pointer;" title="시간 선택">🕒</span></td><td class="fixed-col label-col" style="left:30%; white-space:nowrap; text-align:center; vertical-align:middle; font-weight:normal;" data-cell-key="tt_fmt_et_${grp}"><div contenteditable="true" onblur="app.updatePivotRowTime(this.closest('td'), 'end', this.innerText.trim())" style="display:inline-block; outline:none; min-width:30px; font-weight:normal;">${end || '00:00'}</div> <span onclick="app.openTimePicker(this.closest('td'), 'end')" style="cursor:pointer;" title="시간 선택">🕒</span></td>`;
         this.dynamicCols.timetable.forEach(cls => {
@@ -1421,7 +1424,7 @@ const app = {
     let html = '';
     this.managedSubjects.forEach((sub, idx) => {
       html += `<div style="display:flex; align-items:center; background:rgba(255,255,255,0.1); padding:5px 10px; border-radius:20px; font-size:13px;">
-        ${sub.emoji} ${sub.name} <span style="font-size:10px; margin-left:5px; opacity:0.6;">(${sub.category})</span>
+        ${sub.emoji} ${sub.name} <span style="font-size:13px; margin-left:5px; opacity:0.6;">(${sub.category})</span>
         <button style="background:transparent; border:none; color:#ff6b6b; margin-left:8px; cursor:pointer; font-weight:bold;" onclick="app.removeSubject(${idx})">✖</button>
       </div>`;
     });
@@ -1459,28 +1462,11 @@ const app = {
     }
   },
 
-  openTimetableEditor: function(cell) {
-    const id = cell.getAttribute('data-id');
-    const date = cell.getAttribute('data-date');
-    const start = cell.getAttribute('data-start');
-    const end = cell.getAttribute('data-end');
-    const cls = cell.getAttribute('data-cls');
-    
+  openTimetableEditor: function(td) {
+    const id = td.getAttribute('data-id'), start = td.getAttribute('data-start'), end = td.getAttribute('data-end'), cls = td.getAttribute('data-cls'), date = td.getAttribute('data-date');
     let subject = '', instructor = '';
-    const row = this.data.timetables.find(r => r[1] === date && r[2] === '수업' && r[3] === start && r[4] === end && r[5] === cls);
-    if (row) {
-      subject = row[6] || '';
-      instructor = row[7] || '';
-    }
-
-    let modal = document.getElementById('timetable-editor-modal');
-    if (!modal) {
-      modal = document.createElement('div');
-      modal.id = 'timetable-editor-modal';
-      modal.className = 'glass-panel';
-      modal.style.cssText = 'position:fixed; top:50%; left:50%; transform:translate(-50%, -50%); z-index:10000; padding:20px; border-radius:12px; width:320px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); display:flex; flex-direction:column; gap:15px; border: 1px solid var(--border-glass);';
-      document.body.appendChild(modal);
-    }
+    const rowObj = this.data.timetables.find(r => r[1] === date && r[2] === '수업' && r[3] === start && r[4] === end && r[5] === cls);
+    if(rowObj) { subject = rowObj[6]; instructor = rowObj[7]; }
 
     const instructors = Array.from(new Set(this.data.instructors.map(r => {
       let val = r[1] ? String(r[1]) : '';
@@ -1490,37 +1476,51 @@ const app = {
     }).filter(Boolean)));
     const subjects = this.managedSubjects.map(s => s.name);
 
-    let instructorOpts = `<option value="">-- 강사 선택 --</option>` + instructors.map(i => `<option value="${i}" ${instructor===i?'selected':''}>${i}</option>`).join('');
-    let subjectOpts = `<option value="">-- 과목 선택 --</option>` + this.managedSubjects.map(s => `<option value="${s.name}" ${subject===s.name?'selected':''}>${s.emoji} ${s.name}</option>`).join('');
-
-    modal.innerHTML = `
-      <h3 style="margin:0; font-size:16px; color:var(--primary); text-align:center;">${cls} 수업 편집</h3>
-      <div>
-        <label style="font-size:12px; color:var(--text-muted); margin-bottom:5px; display:block;">과목</label>
-        <select id="tt-edit-subject" class="form-control" style="width:100%;">
-          ${subjectOpts}
-        </select>
-      </div>
-      <div>
-        <label style="font-size:12px; color:var(--text-muted); margin-bottom:5px; display:block;">담당자</label>
-        <select id="tt-edit-instructor" class="form-control" style="width:100%;">
-          ${instructorOpts}
-        </select>
-      </div>
-      <div style="display:flex; gap:10px; margin-top:15px;">
-        <button class="btn" style="flex:1; background:rgba(255,255,255,0.1);" onclick="document.getElementById('timetable-editor-overlay').remove(); document.getElementById('timetable-editor-modal').remove();">취소</button>
-        <button class="btn btn-primary" style="flex:1;" onclick="app.saveTimetableEditor('${id}', '${date}', '${start}', '${end}', '${cls}')">저장</button>
-      </div>
-    `;
+    let instructorOptsStr = `<option value="">강사 선택</option>` + instructors.map(i => `<option value="${i}" ${instructor===i?'selected':''}>${i}</option>`).join('');
+    let subjectOptsStr = `<option value="">과목 선택</option>` + this.managedSubjects.map(s => `<option value="${s.name}" ${subject===s.name?'selected':''}>${s.emoji} ${s.name}</option>`).join('');
 
     let overlay = document.getElementById('timetable-editor-overlay');
     if (!overlay) {
       overlay = document.createElement('div');
       overlay.id = 'timetable-editor-overlay';
-      overlay.style.cssText = 'position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.6); z-index:9999; backdrop-filter:blur(3px); cursor:pointer;';
-      overlay.onclick = () => { overlay.remove(); modal.remove(); };
+      overlay.className = 'modal-overlay';
+      overlay.onclick = (e) => { if(e.target === overlay) { overlay.remove(); } };
       document.body.appendChild(overlay);
     }
+
+    let modal = document.getElementById('timetable-editor-modal');
+    if (!modal) {
+      modal = document.createElement('div');
+      modal.id = 'timetable-editor-modal';
+      modal.className = 'modal-content';
+      modal.style.cssText = 'width: 320px; max-width: 90%; display: flex; flex-direction: column; gap: 0;';
+      overlay.appendChild(modal);
+    }
+
+    modal.innerHTML = `
+      <div class="modal-header">
+        <h3 style="margin:0; font-size:16px; color:var(--primary); text-align:center;">${cls} 수업 편집</h3>
+        <button class="close-btn" onclick="document.getElementById('timetable-editor-overlay').remove();">✕</button>
+      </div>
+      <div class="modal-body" style="display:flex; flex-direction:column; gap:15px;">
+        <div>
+          <label style="font-size:13px; color:var(--text-muted); margin-bottom:5px; display:block;">과목</label>
+          <select id="tt-edit-subject" class="form-control" style="width:100%;">
+            ${subjectOptsStr}
+          </select>
+        </div>
+        <div>
+          <label style="font-size:13px; color:var(--text-muted); margin-bottom:5px; display:block;">담당자</label>
+          <select id="tt-edit-instructor" class="form-control" style="width:100%;">
+            ${instructorOptsStr}
+          </select>
+        </div>
+      </div>
+      <div class="modal-footer" style="display:flex; gap:10px;">
+        <button class="btn" style="flex:1; background:rgba(255,255,255,0.1);" onclick="document.getElementById('timetable-editor-overlay').remove();">취소</button>
+        <button class="btn btn-primary" style="flex:1;" onclick="app.saveTimetableEditor('${id}', '${date}', '${start}', '${end}', '${cls}')">저장</button>
+      </div>
+    `;
   },
 
   saveTimetableEditor: async function(id, date, start, end, cls) {
@@ -1615,7 +1615,7 @@ const app = {
       const isSci = type === 'curriculum_science';
       const category = isSci ? '과학' : '수학';
       const filteredSubjects = this.managedSubjects.filter(s => s.category === category);
-      let optionsHtml = '<option value="">-- 과목 선택 --</option>' + filteredSubjects.map(s => `<option value="${s.name}">${s.emoji} ${s.name}</option>`).join('');
+      let optionsHtml = '<option value="">과목 선택</option>' + filteredSubjects.map(s => `<option value="${s.name}">${s.emoji} ${s.name}</option>`).join('');
       document.getElementById('generic-modal-body').innerHTML = `<div class="form-group"><label>과목 선택 (${category})</label><select id="new-col-input" class="form-control">${optionsHtml}</select></div>`;
     } else {
       document.getElementById('generic-modal-body').innerHTML = `<div class="form-group"><label>반이름</label><input type="text" id="new-col-input" class="form-control"></div>`;
