@@ -42,6 +42,19 @@ const app = {
       }
     }, true);
 
+    document.addEventListener('dblclick', (e) => {
+      const td = e.target.closest('td');
+      if (!td) return;
+      const key = td.getAttribute('data-cell-key') || '';
+      if (key.includes('bg_tt_date_')) {
+        app.openDatePicker(td);
+      } else if (key.includes('bg_tt_start_')) {
+        app.openTimePicker(td, 'start');
+      } else if (key.includes('bg_tt_end_')) {
+        app.openTimePicker(td, 'end');
+      }
+    });
+
     document.addEventListener('selectionchange', () => {
       const sel = window.getSelection();
       if (!sel.rangeCount || sel.isCollapsed) { this.hideToolbar(); return; }
