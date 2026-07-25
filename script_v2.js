@@ -1076,7 +1076,7 @@ const app = {
       const idsForGrp = this.data.timetables.filter(r => r[1] === date && r[2] === type && r[3] === start && r[4] === end).map(r => r[0]).join(',');
       
       headHtml += `<tr data-ids="${idsForGrp}" data-grp="${grp}">
-        <td class="fixed-col label-col" contenteditable="true" onblur="app.updatePivotRowDate(this, this.innerText.trim())" placeholder="날짜 선택" style="text-align:center;"><span class="drag-handle"></span>${displayDate}</td>`;
+        <td class="fixed-col label-col" style="text-align:center; cursor:pointer;" onclick="app.openDatePicker(this)" title="클릭하여 달력 선택" data-cell-key="tt_fmt_date_${grp}"><span class="drag-handle"></span>${displayDate}</td>`;
       
       const firstRow = this.data.timetables.find(r => r[1] === date && r[2] === type && r[3] === start && r[4] === end);
       const hoicha = firstRow ? (firstRow[8] || '') : '';
@@ -1088,8 +1088,8 @@ const app = {
         headHtml += `<td colspan="2" class="fixed-col label-col" style="text-align:center; left:10%; color:var(--text-muted); font-style:italic;">🏖️ 휴일</td>`;
         headHtml += `<td colspan="${this.dynamicCols.timetable.length}" class="timetable-cell" data-id="${holidayRow?holidayRow[0]:''}" data-date="${date}" contenteditable="true" onblur="app.onTimetableHolidayBlur(this)" style="text-align:center; background:rgba(255,255,255,0.05); color:var(--text-muted); font-style:italic;">${holidayNote || '휴일/특이사항 입력'}</td>`;
       } else {
-        headHtml += `<td class="fixed-col label-col" style="left:15%;"><input type="text" value="${start}" onblur="app.updatePivotRowTime(this, 'start', this.value)" placeholder="00:00" style="width:100%; background:transparent; border:none; color:inherit; text-align:center; outline:none; font-family:inherit; font-size:inherit; line-height:1; padding:0; margin:0;"></td>
-        <td class="fixed-col label-col" style="left:21%;"><input type="text" value="${end}" onblur="app.updatePivotRowTime(this, 'end', this.value)" placeholder="00:00" style="width:100%; background:transparent; border:none; color:inherit; text-align:center; outline:none; font-family:inherit; font-size:inherit; line-height:1; padding:0; margin:0;"></td>`;
+        headHtml += `<td class="fixed-col label-col" style="left:15%; text-align:center; cursor:pointer;" onclick="app.openTimePicker(this, 'start')" title="클릭하여 시간 선택">${start || '00:00'}</td>
+        <td class="fixed-col label-col" style="left:21%; text-align:center; cursor:pointer;" onclick="app.openTimePicker(this, 'end')" title="클릭하여 시간 선택">${end || '00:00'}</td>`;
         this.dynamicCols.timetable.forEach(cls => {
           const row = this.data.timetables.find(r => r[1] === date && r[2] === type && r[3] === start && r[4] === end && r[5] === cls);
           let displayStr = row && (row[6] || row[7]) ? `${row[6]||''}${row[7]?'('+row[7]+')':''}` : '';
@@ -1097,7 +1097,7 @@ const app = {
           const id = row ? row[0] : '';
           let bgStyle = 'cursor:pointer;';
           if (id && this.uiSettings['cell_bg_' + id]) bgStyle += ` background-color:${this.uiSettings['cell_bg_' + id]};`;
-          headHtml += `<td class="timetable-cell" data-id="${id}" data-start="${start}" data-end="${end}" data-cls="${cls}" data-date="${date}" onclick="app.openTimetableEditor(this)" style="${bgStyle}">${displayStr}</td>`;
+          headHtml += `<td class="timetable-cell" data-id="${id}" data-cell-key="cell_bg_${id}" data-start="${start}" data-end="${end}" data-cls="${cls}" data-date="${date}" onclick="app.openTimetableEditor(this)" style="${bgStyle}">${displayStr}</td>`;
         });
       }
       headHtml += `</tr>`;
