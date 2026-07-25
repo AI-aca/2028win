@@ -221,7 +221,7 @@ body {
   word-break: keep-all;
   overflow-wrap: break-word;
   border: 1px solid rgba(255,255,255,0.15);
-  padding: 4px 8px;
+  padding: 6px 10px;
   text-align: center;
   vertical-align: middle;
 }
@@ -638,4 +638,4 @@ span.flatpickr-weekday {
 select.form-control option { background-color: #1e293b; color: #f8fafc; }
 
 
-.excel-table td, .excel-table th, .modal-content, .btn, .status-cell span, .flatpickr-calendar, .flatpickr-day, .form-control { font-size: 13px !important; }
+
