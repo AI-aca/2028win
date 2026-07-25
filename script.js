@@ -621,9 +621,9 @@ const app = {
           html += `<td data-col-idx="${colIdx}" ${cellClassStr} contenteditable="true" onblur="app.onFlatCellBlur('${type}', this)" placeholder="날짜 선택" style="text-align:center;">${val}</td>`;
         } else if (label === '상태') {
           const isDone = val === '완료';
-          const statusTxt = isDone ? '완료' : '진행 중';
-          const btnClass = isDone ? 'status-done' : 'status-progress';
-          html += `<td data-col-idx="${colIdx}" class="status-cell ${isFixed ? 'label-col' : ''}" style="text-align:center;"><button class="status-btn ${btnClass}" onclick="app.toggleStatus(this, '${type}', ${colIdx})">${statusTxt}</button></td>`;
+          const statusTxt = isDone ? '🟢 완료' : '🟡 진행 중';
+          const txtColor = isDone ? '#10b981' : '#f59e0b';
+          html += `<td data-col-idx="${colIdx}" class="status-cell ${isFixed ? 'label-col' : ''}" style="text-align:center; cursor:pointer;" onclick="app.toggleStatus(this.querySelector('span'), '${type}', ${colIdx})"><span style="font-weight:600; color:${txtColor}; font-size:14px; user-select:none; transition:all 0.2s; padding:4px 8px; border-radius:4px;" onmouseover="this.style.backgroundColor='rgba(255,255,255,0.05)'" onmouseout="this.style.backgroundColor='transparent'">${statusTxt}</span></td>`;
         } else {
           let extraEvents = `onkeydown="app.onKeyDown(event, this)"`;
           let displayVal = val;
