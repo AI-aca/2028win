@@ -50,18 +50,6 @@ const app = {
 
   init: function() {
     this.bindEvents();
-    setTimeout(() => {
-      let needsCleanup = false;
-      const payloadArray = [];
-      app.data.timetables.forEach(r => {
-        let changed = false;
-        if(r[1] && r[1].includes('<')) { r[1] = r[1].replace(/<[^>]*>?/gm, '').trim(); changed = true; }
-        if(r[3] && r[3].includes('<')) { r[3] = r[3].replace(/<[^>]*>?/gm, '').trim(); changed = true; }
-        if(r[4] && r[4].includes('<')) { r[4] = r[4].replace(/<[^>]*>?/gm, '').trim(); changed = true; }
-        if (changed) { needsCleanup = true; payloadArray.push({id: r[0], date: r[1], type: r[2], start: r[3], end: r[4], className: r[5], subject: r[6], instructor: r[7], note: r[8]}); }
-      });
-      if(needsCleanup && payloadArray.length > 0) app.apiPost('upsertMultipleTimetables', { payloadArray }).then(() => console.log('Timetable DB Cleaned'));
-    }, 2000);
     window.addEventListener('beforeunload', (e) => {
       if (this.pendingRequests > 0) {
         e.preventDefault();
@@ -184,8 +172,6 @@ const app = {
     }
   },
 
-  apiQueue: Promise.resolve(),
-
   apiPost: async function(action, payloadData) {
     this.pendingRequests++;
     this.updateSyncStatus();
@@ -222,28 +208,47 @@ const app = {
           else if (sn === '강사관리') delTable = 'instructors';
           
           if (action === 'deleteData') {
+            if (payloadData.id === '' || (typeof payloadData.id === 'string' && payloadData.id.startsWith('f-'))) return { success: true };
             const { error } = await supabaseClient.from(delTable).delete().eq('id', payloadData.id);
             if (error) throw error;
           } else {
-            const { error } = await supabaseClient.from(delTable).delete().in('id', payloadData.ids);
-            if (error) throw error;
+            const validIds = payloadData.ids.filter(id => id && !(typeof id === 'string' && id.startsWith('f-')));
+            if (validIds.length > 0) {
+              const { error } = await supabaseClient.from(delTable).delete().in('id', validIds);
+              if (error) throw error;
+            }
           }
           return { success: true };
       }
 
       if (table) {
         if (action.includes('Multiple')) {
-          const arrData = payloadData.payloadArray.map(obj => {
+          const mappingInfo = [];
+          const arrData = payloadData.payloadArray.map((obj, index) => {
             let lowerObj = {};
             for (let k in obj) {
               if (['action', 'authpass', 'payloadarray', 'insertindex', 'regtime'].includes(k.toLowerCase())) continue;
               lowerObj[k.toLowerCase()] = obj[k];
             }
-            if (lowerObj.id === '' || (typeof lowerObj.id === 'string' && lowerObj.id.startsWith('f-'))) delete lowerObj.id;
+            mappingInfo.push({ originalId: lowerObj.id, isNew: false });
+            if (lowerObj.id === '' || (typeof lowerObj.id === 'string' && lowerObj.id.startsWith('f-'))) {
+              mappingInfo[index].isNew = true;
+              delete lowerObj.id;
+            }
             return lowerObj;
           });
-          const { error } = await supabaseClient.from(table).upsert(arrData);
+          const { data: returnData, error } = await supabaseClient.from(table).upsert(arrData).select();
           if (error) throw error;
+          
+          let returnedIds = {};
+          if (returnData && returnData.length === arrData.length) {
+            for (let i = 0; i < arrData.length; i++) {
+              if (mappingInfo[i].isNew && returnData[i].id) {
+                returnedIds[mappingInfo[i].originalId] = returnData[i].id;
+              }
+            }
+          }
+          return { success: true, returnedIds };
         } else {
           let lowerData = {};
           for (let k in data) {
@@ -251,8 +256,12 @@ const app = {
             lowerData[k.toLowerCase()] = data[k];
           }
           if (lowerData.id === '' || (typeof lowerData.id === 'string' && lowerData.id.startsWith('f-'))) delete lowerData.id;
-          const { error } = await supabaseClient.from(table).upsert(lowerData);
+          const { data: returnData, error } = await supabaseClient.from(table).upsert(lowerData).select();
           if (error) throw error;
+          
+          if (returnData && returnData.length > 0 && returnData[0].id) {
+            return { success: true, id: returnData[0].id };
+          }
         }
         return { success: true, id: data.id };
       }
@@ -949,7 +958,7 @@ const app = {
 
       let upsertAction = type === 'preschedule' ? 'upsertPreSchedule' : (type === 'student' ? 'upsertStudent' : 'upsertInstructor');
       let keys = type === 'preschedule' ? ['date', 'content', 'status', 'note'] : (type === 'student' ? ['center', 'name', 'school', 'grade', 'parentPhone', 'studentPhone', 'note'] : ['instructorName', 'subject', 'subSubject', 'phone', 'email', 'note']);
-      let payload = { id: newId, insertIndex: actualInsertIndex };
+      let payload = { id: newId };
       for(let i=0; i<keys.length; i++) payload[keys[i]] = '';
       this.apiPost(upsertAction, payload).then(res => {
         if(res.success && res.id) { 
@@ -994,7 +1003,7 @@ const app = {
       });
       this.renderView(type);
 
-      const payloadArray = tasks.map(t => ({ id: t.rowObj[0], insertIndex: t.payloadInsertIdx, week: nextWeek, subject: t.sub, content: '', note: '' }));
+      const payloadArray = tasks.map(t => ({ id: t.rowObj[0], week: nextWeek, subject: t.sub, content: '', note: '' }));
       this.apiPost(action, { payloadArray }).then(res => {
         if (res && res.success) {
           if (res.returnedIds) dataArr.forEach(r => { if (res.returnedIds[r[0]]) r[0] = res.returnedIds[r[0]]; });
@@ -1027,7 +1036,7 @@ const app = {
       });
       this.renderView(type);
       
-      const payloadArray = tasks.map(t => ({ id: t.rowObj[0], insertIndex: t.payloadInsertIdx, date: tmpDate, type: '수업', start: nextStart, end: nextEnd, className: t.cls, subject: '', instructor: '', note: '' }));
+      const payloadArray = tasks.map(t => ({ id: t.rowObj[0], date: tmpDate, type: '수업', start: nextStart, end: nextEnd, className: t.cls, subject: '', instructor: '', note: '' }));
       this.apiPost('upsertMultipleTimetables', { payloadArray }).then(res => {
         if (res && res.success && res.returnedIds) {
           this.data.timetables.forEach(r => { if (res.returnedIds[r[0]]) r[0] = res.returnedIds[r[0]]; });
@@ -1397,7 +1406,7 @@ const app = {
       c.setAttribute('data-end', newEnd);
     });
 
-    const payloadArray = rowsToSave.map(r => ({ id: r[0], date: r[1], type: r[2], start: r[3], end: r[4], className: r[5], subject: r[6], instructor: r[7], note: r[8], regtime: r[9] }));
+    const payloadArray = rowsToSave.map(r => ({ id: r[0], date: r[1], type: r[2], start: r[3], end: r[4], className: r[5], subject: r[6], instructor: r[7], note: r[8] }));
     try {
       const res = await this.apiPost('upsertMultipleTimetables', { payloadArray });
       if (res && res.success) {
@@ -1568,7 +1577,7 @@ const app = {
     }
 
     try {
-      const res = await this.apiPost('upsertTimetable', { id: rowObj[0], date: rowObj[1], type: rowObj[2], start: rowObj[3], end: rowObj[4], className: rowObj[5], subject: rowObj[6], instructor: rowObj[7], note: rowObj[8], regtime: rowObj[9] });
+      const res = await this.apiPost('upsertTimetable', { id: rowObj[0], date: rowObj[1], type: rowObj[2], start: rowObj[3], end: rowObj[4], className: rowObj[5], subject: rowObj[6], instructor: rowObj[7], note: rowObj[8] });
       if(res && res.success && res.id) { rowObj[0] = res.id; }
       else {
         if (isNew) { this.data.timetables.pop(); } 
@@ -1737,13 +1746,6 @@ const app = {
 
   closeModal: function() { document.getElementById('modal-container').classList.add('hidden'); document.getElementById('generic-modal').classList.add('hidden'); },
   saveModalData: function() { if(typeof this.currentModalAction === 'function') this.currentModalAction(); },
-
-  onHeaderBlur: function(el, viewId, colKey) {
-    const newText = el.innerText.trim();
-    const key = 'header_' + viewId + '_' + colKey;
-    this.uiSettings[key] = newText;
-    this.silentSave('saveUISettings', { key: key, value: newText });
-  },
 
   silentSave: function(action, payload) {
     return this.apiPost(action, payload).then(res => {
