@@ -300,7 +300,11 @@ const app = {
 
   openDatePicker: function(td) {
     const input = document.createElement('input');
-    input.style.display = 'none';
+    input.style.position = 'absolute';
+    input.style.opacity = '0';
+    const rect = td.getBoundingClientRect();
+    input.style.left = rect.left + 'px';
+    input.style.top = (rect.top + window.scrollY) + 'px';
     document.body.appendChild(input);
     const fp = flatpickr(input, {
       locale: "ko",
@@ -357,7 +361,7 @@ const app = {
       div.style.padding = '8px 16px';
       div.style.cursor = 'pointer';
       div.style.color = '#f3f4f6';
-      div.style.fontSize = '14px';
+      div.style.fontSize = '12px';
       div.onmouseover = () => div.style.backgroundColor = '#374151';
       div.onmouseout = () => div.style.backgroundColor = 'transparent';
       div.onclick = () => {
@@ -442,7 +446,7 @@ const app = {
   },
 
   renderView: function(viewName) {
-    if (viewName === 'preschedule') this.renderFlatTable('preschedule', this.data.preschedules, [{label:'일자', idx:1, fixed:true, width:'10%', left:'0'}, {label:'상태', idx:3, fixed:true, width:'6%', left:'10%'}, {label:'내용', idx:2}, {label:'비고', idx:4}]);
+    if (viewName === 'preschedule') this.renderFlatTable('preschedule', this.data.preschedules, [{label:'일자', idx:1, fixed:true, width:'10%', left:'0'}, {label:'상태', idx:3, fixed:true, width:'10%', left:'10%'}, {label:'내용', idx:2}, {label:'비고', idx:4}]);
     else if (viewName === 'student') this.renderFlatTable('student', this.data.students, [{label:'학생명', idx:1, fixed:true, width:'6%', left:'0'}, {label:'센터', idx:2}, {label:'학교', idx:3}, {label:'학년', idx:4}, {label:'학부모 연락처', idx:5}, {label:'학생 연락처', idx:6}, {label:'비고', idx:7}]);
     else if (viewName === 'instructor') this.renderFlatTable('instructor', this.data.instructors, [{label:'강사명', idx:1, fixed:true, width:'6%', left:'0'}, {label:'영역', idx:2}, {label:'과목', idx:3}, {label:'연락처', idx:4}, {label:'지메일', idx:5}, {label:'비고', idx:6}]);
     else if (viewName === 'curriculum') this.renderCurriculumPivot('curriculum');
@@ -957,14 +961,13 @@ const app = {
     });
     headHtml += `</tr></thead><tbody id="tbody-${isSci ? 'curriculum-science' : 'curriculum'}">`;
 
-    const weeks = Array.from(new Set(dataArr.map(r => r[1]).filter(Boolean)));
-
-    weeks.forEach(week => {
+    const grps = Array.from(new Set(dataArr.map(r => r[1] + '|' + (r[4] || '')).filter(g => g !== '|')));
+    grps.forEach(grp => {
+      const [week, hoicha] = grp.split('|');
       headHtml += `<tr data-week="${week}">
-      <td class="fixed-col label-col" style="font-weight:bold; text-align:center; left:0;" contenteditable="true" onblur="app.updatePivotRowLabel('${type}', '${week}', this.innerText.trim())">${week}</td>`;
-      const firstRow = dataArr.find(r => r[1] === week);
-      const hoicha = firstRow ? (firstRow[4] || '') : '';
-      headHtml += `<td class="fixed-col label-col" style="text-align:center; left:5%;" contenteditable="true" data-id="${firstRow ? firstRow[0] : ''}" data-week="${week}" data-sub="hoicha" onblur="app.onCurriculumHoichaBlur(this, '${type}')">${hoicha}</td>`;
+      <td class="fixed-col label-col" style="font-weight:bold; text-align:center; left:0;" contenteditable="true" onblur="app.updatePivotRowLabel('${type}', '${week}', '${hoicha}', this.innerText.trim())">${week}</td>`;
+      const firstRow = dataArr.find(r => r[1] === week && (r[4] || '') === hoicha);
+      headHtml += `<td class="fixed-col label-col" style="text-align:center; left:5%;" contenteditable="true" data-id="${firstRow ? firstRow[0] : ''}" data-week="${week}" data-sub="hoicha" onblur="app.onCurriculumHoichaBlur(this, '${type}', '${week}', '${hoicha}')">${hoicha}</td>`;
       dynCols.forEach(sub => {
         const row = dataArr.find(r => r[1] === week && r[2] === sub);
         const content = row ? row[3] : '';
@@ -997,23 +1000,22 @@ const app = {
     });
   },
 
-  onCurriculumHoichaBlur: function(cell, type) {
+  onCurriculumHoichaBlur: function(cell, type, oldWeek, oldHoicha) {
     let newValue = this.getCleanHTML(cell);
     newValue = newValue.replace(/<span class="drag-handle">.*?<\/span>/g, '').trim();
-    const week = cell.getAttribute('data-week');
     const isSci = type === 'curriculum_science';
     const dataArr = isSci ? this.data.curriculums_science : this.data.curriculums;
     const action = isSci ? 'upsertCurriculumScience' : 'upsertCurriculum';
 
     // 해당 주차의 모든 행에 note 필드를 업데이트하여 회차 저장
-    const rows = dataArr.filter(r => r[1] === week);
+    const rows = dataArr.filter(r => r[1] === oldWeek && (r[4] || '') === oldHoicha);
     if (rows.length === 0) return;
     
     rows.forEach(r => r[4] = newValue);
     
     // 첫 번째 행만 서버로 업데이트해서 저장 (편의상)
     const firstRow = rows[0];
-    this.apiPost(action, { id: firstRow[0], week, subject: firstRow[2], content: firstRow[3], note: newValue }).then(res => {
+    this.apiPost(action, { id: firstRow[0], week: oldWeek, subject: firstRow[2], content: firstRow[3], note: newValue }).then(res => {
       if(res.success && res.id) { firstRow[0] = res.id; cell.setAttribute('data-id', res.id); }
     });
   },
@@ -1323,7 +1325,7 @@ const app = {
       const div = document.createElement('div'); div.innerHTML = val;
       return div.innerText.trim();
     }).filter(Boolean)));
-    const subjects = Array.from(new Set([...this.data.curriculums.map(r => r[2]), ...this.data.instructors.map(r => r[2])].filter(Boolean)));
+    const subjects = Array.from(new Set([...this.data.curriculums.map(r => r[2]), ...this.data.curriculums_science.map(r => r[2]), ...this.data.instructors.map(r => r[2])].filter(Boolean)));
 
     const optStyle = 'background:#1e293b; color:#f8fafc;';
     let instructorOpts = `<option value="" style="${optStyle}">-- 강사 선택 --</option>` + instructors.map(i => `<option value="${i}" style="${optStyle}" ${instructor===i?'selected':''}>${i}</option>`).join('');
@@ -1401,7 +1403,7 @@ const app = {
     this.renderView('timetable');
   },
 
-  updatePivotRowLabel: async function(type, oldLabel, newLabel) {
+  updatePivotRowLabel: async function(type, oldLabel, oldHoicha, newLabel) {
     newLabel = newLabel.replace(/<span class="drag-handle">.*?<\/span>/g, '').trim();
     if(!newLabel || oldLabel === newLabel) return;
     if(type === 'curriculum' || type === 'curriculum_science') {
@@ -1411,10 +1413,10 @@ const app = {
       const payloadArray = [];
       const rollbackData = [];
       dataArr.forEach(r => {
-        if(r[1] === oldLabel) { 
+        if(r[1] === oldLabel && (r[4] || '') === oldHoicha) { 
           rollbackData.push({ row: r, oldWeek: r[1] });
           r[1] = newLabel; 
-          payloadArray.push({id: r[0], week: newLabel, subject: r[2], content: r[3], note: ''});
+          payloadArray.push({id: r[0], week: newLabel, subject: r[2], content: r[3], hoicha: r[4]});
         }
       });
       if (payloadArray.length > 0) {

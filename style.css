@@ -625,3 +625,6 @@ span.flatpickr-weekday {
   background: var(--primary);
   color: #fff;
 }
+
+.flatpickr-calendar { font-size: 12px !important; }
+.flatpickr-day { font-size: 12px !important; }
