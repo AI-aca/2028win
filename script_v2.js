@@ -232,7 +232,12 @@ const app = {
           const { error } = await supabaseClient.from(table).upsert(arrData);
           if (error) throw error;
         } else {
-          const { error } = await supabaseClient.from(table).upsert(data);
+          let lowerData = {};
+          for (let k in data) {
+            if (['action', 'authpass', 'payloadarray'].includes(k.toLowerCase())) continue;
+            lowerData[k.toLowerCase()] = data[k];
+          }
+          const { error } = await supabaseClient.from(table).upsert(lowerData);
           if (error) throw error;
         }
         return { success: true, id: data.id };
