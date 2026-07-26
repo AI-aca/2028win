@@ -318,8 +318,14 @@ const app = {
       return c;
     }));
     this.data.preschedules = cleanDate(res['사전준비일정'] || []);
-    this.data.curriculums = cleanDate(res['수업진도계획'] || []);
-    this.data.curriculums_science = cleanDate(res['과학진도계획'] || []);
+    const sortByWeekNum = (a, b) => {
+      const numA = parseInt((a[1] || '').replace(/\D/g, ''), 10) || 0;
+      const numB = parseInt((b[1] || '').replace(/\D/g, ''), 10) || 0;
+      if (numA !== numB) return numA - numB;
+      return (a[1] || '').localeCompare(b[1] || '');
+    };
+    this.data.curriculums = cleanDate(res['수업진도계획'] || []).sort(sortByWeekNum);
+    this.data.curriculums_science = cleanDate(res['과학진도계획'] || []).sort(sortByWeekNum);
     
     let ttData = cleanDate(res['시간표'] || []);
     ttData.forEach(r => {
