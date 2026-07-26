@@ -398,6 +398,7 @@ const app = {
         const div = td.querySelector('div[contenteditable="true"]');
         if (div) {
           div.innerText = formatted;
+          div.style.removeProperty('color');
         } else {
           td.innerHTML = formatted;
         }
