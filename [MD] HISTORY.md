@@ -242,3 +242,7 @@
 - index.html: 대시보드 제목 우측에 토글 UI(과목별 보기/학급별 보기) 추가
 - script_v2.js: curriculumState 추가 및 extractDynamicCols, renderCurriculumPivot, addRow, addColumn 로직 전면 개편
 - Supabase DB에 class_name 컬럼 추가 요구됨
+
+## 2026-07-27 (15) - 고정 열(fixed-col) 배경색 UI 버그 수정
+- style.css: 고정 열 배경색을 일반 셀의 투명도 렌더링 색상(#0d1324)과 일치시킴
+- style.css: 셀 배경색 커스텀 지정 시 화면 전환 후 풀려버리는 현상 해결 (!important 제거)

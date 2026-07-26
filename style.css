@@ -323,10 +323,10 @@ body {
   z-index: 2;
 }
 .excel-table th.fixed-col {
-  background: #1e293b !important;
+  background: #1e293b;
 }
 .excel-table td.label-col {
-  background: #0f172a !important; /* 일반 셀과 동일한 앱 배경색 */
+  background: #0d1324;
 }
 .excel-table th.fixed-col {
   z-index: 3 !important;
