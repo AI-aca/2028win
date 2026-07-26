@@ -1775,7 +1775,7 @@ const app = {
   },
 
   saveTimetableEditor: async function(id, date, start, end, cls) {
-    const modal = document.getElementById('timetable-editor-modal');
+    const modal = document.getElementById('timetable-editor-modal') || document.getElementById('timetable-editor-overlay');
     if(!modal) return;
     const subject = modal.querySelector('#tt-edit-subject').value;
     const instructor = modal.querySelector('#tt-edit-instructor').value;
