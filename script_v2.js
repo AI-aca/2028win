@@ -1812,9 +1812,9 @@ const app = {
 
     const overlay = document.getElementById('timetable-editor-overlay');
     if(overlay) overlay.remove();
-    modal.remove();
+    if(modal) modal.remove();
     
-    this.renderView('timetable');
+    this.renderView(this.currentView.replace('view-', ''));
   },
 
   updatePivotRowLabel: async function(type, oldLabel, oldHoicha, newLabel) {
