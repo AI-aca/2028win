@@ -674,8 +674,11 @@ const app = {
     let html = cell.innerHTML;
     // 엔터(div)를 br로 변환하여 줄바꿈 유지
     html = html.replace(new RegExp('<div>', 'gi'), '<br>').replace(new RegExp('</div>', 'gi'), '');
-    // 색상, 굵기 등 안전한 태그만 남기고 전부 삭제
-    html = html.replace(/<\/?(?!(span|div|font|b|i|u|br)\b)[^>]*>/gi, '');
+    // 색상, 굵기 등 안전한 태그만 남기고 전부 삭제 (닫는 태그 보존)
+    html = html.replace(/<\/?([a-z0-9]+)\b[^>]*>/gi, function(match, tagName) {
+      const allowed = ['span', 'div', 'font', 'b', 'i', 'u', 'br'];
+      return allowed.includes(tagName.toLowerCase()) ? match : '';
+    });
     // 딜리미터 충돌 방지
     let val = html.replace(/\|/g, '／');
     val = val.trim();
@@ -1225,9 +1228,9 @@ const app = {
       const logicalGrp = week + '|' + hoicha;
       if (processedGrps.has(logicalGrp)) return;
       processedGrps.add(logicalGrp);
-      const richWeek = this.uiSettings['curr_wk_' + type + '_' + week] || week;
+      const richWeek = this.uiSettings['curr_wk_' + type + '_' + hoicha + '_' + week] || week;
       headHtml += `<tr data-week="${week}">
-      <td class="fixed-col label-col" data-cell-key="tt_fmt_curr_wk_${logicalGrp}" style="font-weight:bold; text-align:center; left:0;" contenteditable="true" onblur="app.updatePivotRowLabel('${type}', '${week}', '${hoicha}', app.getCleanHTML(this))">${richWeek}</td>`;
+      <td class="fixed-col label-col" data-cell-key="tt_fmt_curr_wk_${logicalGrp}" style="font-weight:bold; text-align:center; left:0;" contenteditable="true" onblur="app.updatePivotRowLabel('${type}', '${week}', '${hoicha}', this.innerText.trim())">${richWeek}</td>`;
       const firstRow = dataArr.find(r => r[1] === week && (r[4] || '') === hoicha);
       headHtml += `<td class="fixed-col label-col" data-cell-key="tt_fmt_curr_hc_${logicalGrp}" style="text-align:center; left:5%;" contenteditable="true" data-id="${firstRow ? firstRow[0] : ''}" data-week="${week}" data-sub="hoicha" onblur="app.onCurriculumHoichaBlur(this, '${type}', '${week}', '${hoicha}')">${hoicha}</td>`;
       dynCols.forEach(sub => {
@@ -1865,8 +1868,8 @@ const app = {
   updatePivotRowLabel: async function(type, oldLabel, oldHoicha, newLabel) {
     try {
       let cellHtml = app.getCleanHTML(window.event ? window.event.target : document.querySelector(':focus'));
-      app.silentSave('saveUISettings', { key: 'curr_wk_' + type + '_' + newLabel, value: cellHtml });
-      app.uiSettings['curr_wk_' + type + '_' + newLabel] = cellHtml;
+      app.silentSave('saveUISettings', { key: 'curr_wk_' + type + '_' + oldHoicha + '_' + newLabel, value: cellHtml });
+      app.uiSettings['curr_wk_' + type + '_' + oldHoicha + '_' + newLabel] = cellHtml;
     } catch (e) {}
     newLabel = newLabel.trim();
     if(!newLabel || oldLabel === newLabel) return;

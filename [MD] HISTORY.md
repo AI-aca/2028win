@@ -183,3 +183,11 @@
   - 관련된 모든 이벤트 함수(updateTimetableWeek, updateTimetableHoicha, onCurriculumBlur 등 8곳) 내의 innerText 구문을 pp.getCleanHTML()로 전면 교체하여 사용자 서식(HTML 태그)이 100% 보존되도록 픽스 완료.
 - **Git Tracking 복구**:
   - .gitignore 내 *.md 정책에 의해 배제되던 [MD] 접두사 파일들을 추적하도록 ![MD]*.md 예외 룰 추가 후 깃 커밋 진행.
+
+## 2026-07-27 (3) - 텍스트 서식(색상/굵기) 전역 버그 및 진도계획 키 오염 수정
+- **서식 저장 실패 원인 제거 (script_v2.js / getCleanHTML)**:
+  - 기존 정규식(</?...)의 백트래킹 취약점으로 인해 </font> 등 닫는 태그가 모조리 삭제되어 렌더링이 깨지는 치명적 결함 발견.
+  - 정규식을 태그 추출 및 허용 리스트(whitelist) 검증 콜백 방식으로 전면 교체하여 닫는 태그 보존 및 XSS 방어 논리 완벽 구축.
+- **진도계획 1차/2차 키 중복 오염 해결 (script_v2.js)**:
+  - 진도계획 주차 색상 변경 시 hoicha 식별자가 누락되어 [1차], [2차]가 똑같이 칠해지던 버그 수정.
+  - UI Settings 키 생성 시 hoicha를 포함시키고, updatePivotRowLabel로 전달되는 값을 HTML에서 원문(innerText)으로 복원하여 DB와 UI 설정의 분리 설계 원칙 복구.
