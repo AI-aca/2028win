@@ -575,11 +575,16 @@ const app = {
 
   bindEvents: function() {
     document.addEventListener('paste', (e) => {
-      const td = e.target.closest('td[contenteditable="true"]');
-      if (td) {
+      const editable = e.target.closest('[contenteditable="true"]');
+      if (editable) {
         e.preventDefault();
-        const text = (e.clipboardData || window.clipboardData).getData('text/plain');
-        document.execCommand('insertText', false, text);
+        let text = (e.clipboardData || window.clipboardData).getData('text/plain');
+        text = text.replace(/\u200B/g, ''); // 혹시 모를 ZWS 제거
+        const selection = window.getSelection();
+        if (!selection.rangeCount) return;
+        selection.deleteFromDocument();
+        selection.getRangeAt(0).insertNode(document.createTextNode(text));
+        selection.collapseToEnd();
       }
     });
 
@@ -1473,18 +1478,18 @@ const app = {
     app.silentSave('saveUISettings', { key: 'tt_fmt_date_' + newGrp, value: richText });
     app.uiSettings['tt_fmt_date_' + newGrp] = richText;
     
-    if (app.uiSettings['tt_week_' + oldGrp] !== undefined && oldGrp !== newGrp) {
-      app.uiSettings['tt_week_' + newGrp] = app.uiSettings['tt_week_' + oldGrp];
-      app.silentSave('saveUISettings', { key: 'tt_week_' + newGrp, value: app.uiSettings['tt_week_' + newGrp] });
+    if (oldGrp !== newGrp) {
+      if (app.uiSettings['tt_week_' + oldGrp] !== undefined) {
+        app.uiSettings['tt_week_' + newGrp] = app.uiSettings['tt_week_' + oldGrp];
+        app.silentSave('saveUISettings', { key: 'tt_week_' + newGrp, value: app.uiSettings['tt_week_' + newGrp] });
+      }
+      if (app.uiSettings['tt_fmt_tthc_' + oldGrp] !== undefined) {
+        app.uiSettings['tt_fmt_tthc_' + newGrp] = app.uiSettings['tt_fmt_tthc_' + oldGrp];
+        app.silentSave('saveUISettings', { key: 'tt_fmt_tthc_' + newGrp, value: app.uiSettings['tt_fmt_tthc_' + newGrp] });
+      }
     }
     
     if (oldDate === newDate) return;
-    
-    let uniqueDate = newDate;
-    while (this.data.timetables.some(r => r[1] === uniqueDate && r[2] === oldType && String(r[3]) === String(oldStart) && String(r[4]) === String(oldEnd) && r[1] !== oldDate)) {
-      uniqueDate += '\u200B';
-    }
-    newDate = uniqueDate;
 
     const payloadArray = [];
     const rowsToSave = [];
@@ -1600,13 +1605,19 @@ const app = {
     
     const newGrp = [oldDate, oldType, newStart, newEnd].join('|');
     
-    if (app.uiSettings['tt_fmt_date_' + oldGrp] !== undefined && oldGrp !== newGrp) {
-      app.uiSettings['tt_fmt_date_' + newGrp] = app.uiSettings['tt_fmt_date_' + oldGrp];
-      app.silentSave('saveUISettings', { key: 'tt_fmt_date_' + newGrp, value: app.uiSettings['tt_fmt_date_' + newGrp] });
-    }
-    if (app.uiSettings['tt_week_' + oldGrp] !== undefined && oldGrp !== newGrp) {
-      app.uiSettings['tt_week_' + newGrp] = app.uiSettings['tt_week_' + oldGrp];
-      app.silentSave('saveUISettings', { key: 'tt_week_' + newGrp, value: app.uiSettings['tt_week_' + newGrp] });
+    if (oldGrp !== newGrp) {
+      if (app.uiSettings['tt_fmt_date_' + oldGrp] !== undefined) {
+        app.uiSettings['tt_fmt_date_' + newGrp] = app.uiSettings['tt_fmt_date_' + oldGrp];
+        app.silentSave('saveUISettings', { key: 'tt_fmt_date_' + newGrp, value: app.uiSettings['tt_fmt_date_' + newGrp] });
+      }
+      if (app.uiSettings['tt_week_' + oldGrp] !== undefined) {
+        app.uiSettings['tt_week_' + newGrp] = app.uiSettings['tt_week_' + oldGrp];
+        app.silentSave('saveUISettings', { key: 'tt_week_' + newGrp, value: app.uiSettings['tt_week_' + newGrp] });
+      }
+      if (app.uiSettings['tt_fmt_tthc_' + oldGrp] !== undefined) {
+        app.uiSettings['tt_fmt_tthc_' + newGrp] = app.uiSettings['tt_fmt_tthc_' + oldGrp];
+        app.silentSave('saveUISettings', { key: 'tt_fmt_tthc_' + newGrp, value: app.uiSettings['tt_fmt_tthc_' + newGrp] });
+      }
     }
 
     const rowsToSave = [];
@@ -1910,12 +1921,6 @@ const app = {
       const payloadArray = [];
       const rollbackData = [];
       
-      let uniqueWeek = newLabel;
-      while (dataArr.some(r => r[1] === uniqueWeek && r[1] !== oldLabel)) {
-        uniqueWeek += '\u200B';
-      }
-      newLabel = uniqueWeek;
-
       dataArr.forEach(r => {
         if(r[1] === oldLabel && (r[4] || '') === oldHoicha) { 
           rollbackData.push({ row: r, oldWeek: r[1] });
