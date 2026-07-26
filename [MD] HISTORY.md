@@ -256,3 +256,6 @@
 ## 2026-07-27 (18) - 휴일 UI 병합 버그 및 고정열 배경색 수정
 - script_v2.js: 시간표 휴일(isHoliday) 시 [주차] 열까지 덮어버리던 버그 수정(colspan=2 축소)
 - style.css: 고정열 배경색을 투명 셀 배경과 가장 비슷한 #172133 으로 미세조정
+
+## 2026-07-27 (19) - 백엔드 데이터베이스 컬럼명 매핑 버그 수정
+- script_v2.js: apiPost 함수 내에서 start->start_time, end->end_time, classname->class_name 자동 변환 로직 추가
