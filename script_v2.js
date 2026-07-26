@@ -1349,9 +1349,11 @@ const app = {
       
       if (isSummary) { 
         const days = ['월요일', '화요일', '수요일', '목요일', '금요일', '토요일', '일요일'];
-        const idxA = days.indexOf(cleanA) !== -1 ? days.indexOf(cleanA) : 99;
-        const idxB = days.indexOf(cleanB) !== -1 ? days.indexOf(cleanB) : 99;
-        if (idxA !== idxB) return idxA - idxB;
+        const idxA = days.findIndex(d => cleanA.includes(d));
+        const idxB = days.findIndex(d => cleanB.includes(d));
+        const finalIdxA = idxA !== -1 ? idxA : 99;
+        const finalIdxB = idxB !== -1 ? idxB : 99;
+        if (finalIdxA !== finalIdxB) return finalIdxA - finalIdxB;
       } else { 
         if (cleanA !== cleanB) {
           if (cleanA.startsWith('tmp-') && !cleanB.startsWith('tmp-')) return 1;
