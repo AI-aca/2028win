@@ -1586,12 +1586,8 @@ const app = {
       
       if (isHoliday) {
         const holidayNote = firstRow[8] || ''; // note column for holiday reason
-        if (!isSummary) {
-          const weekVal = this.uiSettings['tt_week_' + grp] || '';
-          headHtml += `<td class="fixed-col label-col" data-bg-key="cell_bg_ttwk_${grp}" data-cell-key="tt_fmt_ttwk_${grp}" style="text-align:center; left:12%; ${this.uiSettings['cell_bg_ttwk_' + grp] ? 'background-color:' + this.uiSettings['cell_bg_ttwk_' + grp] + ' !important;' : ''}" contenteditable="true" onblur="app.updateTimetableWeek(this, '${grp}')">${weekVal}</td>`;
-        }
-        const colspanSize = 2; // Start and End time
-        headHtml += `<td colspan="${colspanSize}" class="fixed-col label-col" data-bg-key="cell_bg_hol_${grp}" data-cell-key="tt_fmt_hol_${grp}" style="text-align:center; left:${startLeft}; color:var(--danger); ${this.uiSettings['cell_bg_hol_' + grp] ? 'background-color:' + this.uiSettings['cell_bg_hol_' + grp] + ' !important;' : ''}">🏖️ 휴일</td>`;
+        const colspanSize = isSummary ? 2 : 3;
+        headHtml += `<td colspan="${colspanSize}" class="fixed-col label-col" data-bg-key="cell_bg_hol_${grp}" data-cell-key="tt_fmt_hol_${grp}" style="text-align:center; left:12%; color:var(--danger); ${this.uiSettings['cell_bg_hol_' + grp] ? 'background-color:' + this.uiSettings['cell_bg_hol_' + grp] + ' !important;' : ''}">🏖️ 휴일</td>`;
         headHtml += `<td colspan="${this.dynamicCols.timetable.length}" class="timetable-cell" data-id="${firstRow?firstRow[0]:''}" data-date="${date}" contenteditable="true" onblur="app.onTimetableHolidayBlur(this)" style="text-align:center; background:rgba(255,255,255,0.05); color:var(--text-muted);">${holidayNote || '휴일/특이사항 입력'}</td>`;
       } else {
         const weekVal = this.uiSettings['tt_week_' + grp] || '';
