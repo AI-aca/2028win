@@ -10,6 +10,7 @@ const app = {
   currentView: 'view-dashboard',
   data: { preschedules: [], curriculums: [], curriculums_science: [], timetables: [], students: [], instructors: [] },
   dynamicCols: { curriculum: [], curriculum_science: [], timetable: [] },
+  curriculumState: { mode: 'subject', filterValue: '' },
   uiSettings: {},
   ctxTargetRow: null, ctxTargetType: null,
   sortState: {},
@@ -295,8 +296,8 @@ const app = {
 
       const res = {
         '사전준비일정': (preRes.data || []).map(r => [r.id, r.date, r.content, r.status, r.note]),
-        '수업진도계획': (curRes.data || []).map(r => [r.id, r.week, r.subject, r.content, r.note]),
-        '과학진도계획': (curSciRes.data || []).map(r => [r.id, r.week, r.subject, r.content, r.note]),
+        '수업진도계획': (curRes.data || []).map(r => [r.id, r.week, r.subject, r.content, r.note, r.class_name || '전체']),
+        '과학진도계획': (curSciRes.data || []).map(r => [r.id, r.week, r.subject, r.content, r.note, r.class_name || '전체']),
         '시간표': (ttRes.data || []).map(r => [r.id, r.date, r.type, r.start, r.end, r.classname, r.subject, r.instructor, r.note, r.regtime]),
         '학생관리': (stuRes.data || []).map(r => [r.id, r.name, r.center, r.school, r.grade, r.parentphone, r.studentphone, r.note, r.class_name, r.pre_score]),
         '강사관리': (insRes.data || []).map(r => [r.id, r.instructorname, r.subject, r.subsubject, r.phone, r.email, r.note]),
@@ -419,15 +420,26 @@ const app = {
       return 0;
     };
     
-    const mathSubjects = (this.managedSubjects || []).filter(s => s.category === '수학').map(s => s.name);
-    const sciSubjects = (this.managedSubjects || []).filter(s => s.category === '과학').map(s => s.name);
     const mClasses = this.managedClasses || [];
-
-    const curDataCols = this.data.curriculums.map(r => r[2]).filter(x => x);
-    this.dynamicCols.curriculum = Array.from(new Set([...mathSubjects, ...curDataCols])).sort(sortByManaged);
     
-    const sciDataCols = this.data.curriculums_science.map(r => r[2]).filter(x => x);
-    this.dynamicCols.curriculum_science = Array.from(new Set([...sciSubjects, ...sciDataCols])).sort(sortByManaged);
+    const mode = this.curriculumState.mode;
+    
+    if (mode === 'subject') {
+      const curDataCols = this.data.curriculums.map(r => r[5]).filter(x => x && x !== '전체');
+      this.dynamicCols.curriculum = Array.from(new Set([...mClasses, ...curDataCols])).sort(sortByManagedClass);
+      
+      const sciDataCols = this.data.curriculums_science.map(r => r[5]).filter(x => x && x !== '전체');
+      this.dynamicCols.curriculum_science = Array.from(new Set([...mClasses, ...sciDataCols])).sort(sortByManagedClass);
+    } else {
+      const mathSubjects = (this.managedSubjects || []).filter(s => s.category === '수학').map(s => s.name);
+      const sciSubjects = (this.managedSubjects || []).filter(s => s.category === '과학').map(s => s.name);
+      
+      const curDataCols = this.data.curriculums.map(r => r[2]).filter(x => x);
+      this.dynamicCols.curriculum = Array.from(new Set([...mathSubjects, ...curDataCols])).sort(sortByManaged);
+      
+      const sciDataCols = this.data.curriculums_science.map(r => r[2]).filter(x => x);
+      this.dynamicCols.curriculum_science = Array.from(new Set([...sciSubjects, ...sciDataCols])).sort(sortByManaged);
+    }
     
     const ttDataCols = this.data.timetables.map(r => r[5]).filter(x => x && x !== '전체');
     this.dynamicCols.timetable = Array.from(new Set([...mClasses, ...ttDataCols])).sort(sortByManagedClass);
@@ -698,10 +710,75 @@ const app = {
         headerActions.innerHTML = `<button class="btn btn-primary" onclick="app.addRow('student')">+ 학생 추가</button> <button class="btn btn-primary" onclick="app.openClassManagerModal()">+ 학급 관리</button>`;
       } else if (viewId === 'view-instructor') {
         headerActions.innerHTML = `<button class="btn btn-primary" onclick="app.addRow('instructor')">+ 강사 추가</button> <button class="btn btn-primary" onclick="app.openSubjectManagerModal()">+ 과목 관리</button>`;
+        headerActions.innerHTML = `<button class="btn btn-primary" onclick="app.addRow('instructor')">+ 강사 추가</button> <button class="btn btn-primary" onclick="app.openSubjectManagerModal()">+ 과목 관리</button>`;
       } else {
         headerActions.innerHTML = '';
       }
+      
+      const currControls = document.getElementById('curriculum-controls');
+      if (currControls) {
+        if (viewId === 'view-curriculum' || viewId === 'view-curriculum-science') {
+          currControls.classList.remove('hidden');
+          app.updateCurriculumFilterDropdown();
+        } else {
+          currControls.classList.add('hidden');
+        }
+      }
     }
+  },
+
+  updateCurriculumFilterDropdown: function() {
+    const sel = document.getElementById('curriculum-filter-select');
+    if (!sel) return;
+    const mode = this.curriculumState.mode;
+    let opts = [];
+    let currentVal = this.curriculumState.filterValue;
+
+    if (mode === 'subject') {
+      const isMath = this.currentView === 'view-curriculum';
+      const category = isMath ? '수학' : '과학';
+      opts = this.managedSubjects.filter(s => s.category === category).map(s => s.name);
+    } else {
+      opts = this.managedClasses.map(c => c);
+    }
+    
+    if (opts.length === 0) {
+      sel.innerHTML = `<option value="">데이터 없음</option>`;
+      this.curriculumState.filterValue = '';
+      return;
+    }
+    
+    if (!opts.includes(currentVal)) {
+      currentVal = opts[0];
+      this.curriculumState.filterValue = currentVal;
+    }
+    
+    sel.innerHTML = opts.map(o => {
+      let emoji = '';
+      if (mode === 'subject') {
+        const matched = this.managedSubjects.find(s => s.name === o);
+        if (matched && matched.emoji) emoji = matched.emoji + ' ';
+      }
+      return `<option value="${o}" style="background:#1a1a2e;" ${o === currentVal ? 'selected' : ''}>${emoji}${o}</option>`;
+    }).join('');
+    
+    this.extractDynamicCols();
+  },
+
+  onCurriculumModeChange: function() {
+    const sel = document.getElementById('curriculum-mode-select');
+    if (!sel) return;
+    this.curriculumState.mode = sel.value;
+    this.updateCurriculumFilterDropdown();
+    this.renderAllViews();
+  },
+  
+  onCurriculumFilterChange: function() {
+    const sel = document.getElementById('curriculum-filter-select');
+    if (!sel) return;
+    this.curriculumState.filterValue = sel.value;
+    this.extractDynamicCols();
+    this.renderAllViews();
   },
 
   renderAllViews: function() {
@@ -1167,9 +1244,14 @@ const app = {
       let i = 0;
       const tasks = [];
       const groupId = 'g-' + Date.now().toString(36) + Math.random().toString(36).substr(2, 3);
-      dynCols.forEach(sub => {
+      dynCols.forEach(colVal => {
+        const mode = app.curriculumState.mode;
+        const filterVal = app.curriculumState.filterValue;
+        let sub = mode === 'class' ? colVal : filterVal;
+        let cls = mode === 'subject' ? colVal : filterVal;
+        
         const newId = 'f-' + Date.now().toString(36) + '-' + Math.random().toString(36).substr(2, 5);
-        const rowObj = [newId, nextWeek, sub, '', groupId];
+        const rowObj = [newId, nextWeek, sub, '', groupId, cls];
         rowObj.groupId = groupId;
         if (insertIndex >= 0) {
           dataArr.splice(actualInsertIndex + i, 0, rowObj);
@@ -1177,12 +1259,12 @@ const app = {
           dataArr.push(rowObj);
         }
         const payloadInsertIdx = insertIndex >= 0 ? actualInsertIndex + i : -1;
-        tasks.push({ rowObj, sub, payloadInsertIdx });
+        tasks.push({ rowObj, sub, cls, payloadInsertIdx });
         i++;
       });
       this.renderView(type);
 
-      const payloadArray = tasks.map(t => ({ id: t.rowObj[0], week: nextWeek, subject: t.sub, content: '', note: groupId }));
+      const payloadArray = tasks.map(t => ({ id: t.rowObj[0], week: nextWeek, subject: t.sub, class_name: t.cls, content: '', note: groupId }));
       this.apiPost(action, { payloadArray }).then(res => {
         if (res && res.success) {
           if (res.returnedIds) dataArr.forEach(r => { if (res.returnedIds[r[0]]) r[0] = res.returnedIds[r[0]]; });
@@ -1254,13 +1336,15 @@ const app = {
 
     let weekHeader = this.uiSettings['header_' + viewId + '_0'] || '주차';
     let headHtml = `<thead><tr><th class="label-col-header fixed-col" style="width:5%; left:0;"><div onblur="app.onHeaderBlur(this, '${viewId}', '0')" style="display:inline-block; min-width:30px; min-height:20px; outline:none;">${weekHeader}</div></th>`;
-    dynCols.forEach((sub, i) => {
-      const matchedSub = this.managedSubjects.find(s => s.name === sub);
-      let dynHeader = this.uiSettings['header_' + viewId + '_' + sub] || sub;
-      if (matchedSub && matchedSub.emoji && !dynHeader.includes(matchedSub.emoji)) {
-        dynHeader = matchedSub.emoji + ' ' + dynHeader;
+    dynCols.forEach((colVal, i) => {
+      let dynHeader = this.uiSettings['header_' + viewId + '_' + colVal] || colVal;
+      if (this.curriculumState.mode === 'class') {
+        const matchedSub = this.managedSubjects.find(s => s.name === colVal);
+        if (matchedSub && matchedSub.emoji && !dynHeader.includes(matchedSub.emoji)) {
+          dynHeader = matchedSub.emoji + ' ' + dynHeader;
+        }
       }
-      headHtml += `<th data-colname="${sub}"><div onblur="app.onHeaderBlur(this, '${viewId}', '${sub}')" style="display:inline-block; min-width:30px; min-height:20px; outline:none;">${dynHeader}</div></th>`;
+      headHtml += `<th data-colname="${colVal}"><div onblur="app.onHeaderBlur(this, '${viewId}', '${colVal}')" style="display:inline-block; min-width:30px; min-height:20px; outline:none;">${dynHeader}</div></th>`;
     });
     headHtml += `</tr></thead><tbody id="tbody-${isSci ? 'curriculum-science' : 'curriculum'}">`;
 
@@ -1290,12 +1374,18 @@ const app = {
       headHtml += `<tr data-week="${week}" data-grp="${grp}" data-ids="${idsForGrp}">
       <td class="fixed-col label-col" data-bg-key="cell_bg_wk_${grp}" data-cell-key="tt_fmt_curr_wk_${grp}" style="font-weight:bold; text-align:center; left:0; ${this.uiSettings['cell_bg_wk_' + grp] ? 'background-color:' + this.uiSettings['cell_bg_wk_' + grp] + ';' : ''}" contenteditable="true" onblur="app.updatePivotRowLabel('${type}', '${week}', this.innerText.trim(), '${grp}')">${richWeek}</td>`;
       
-      dynCols.forEach(sub => {
-        const row = dataArr.find(r => r.groupId === grp && r[2] === sub);
+      dynCols.forEach(colVal => {
+        const mode = app.curriculumState.mode;
+        const filterVal = app.curriculumState.filterValue;
+        
+        let sub = mode === 'class' ? colVal : filterVal;
+        let cls = mode === 'subject' ? colVal : filterVal;
+        
+        const row = dataArr.find(r => r.groupId === grp && r[2] === sub && r[5] === cls);
         const content = row ? row[3] : '';
         const id = row ? row[0] : '';
         let bgStyle = id && this.uiSettings['cell_bg_' + id] ? `background-color:${this.uiSettings['cell_bg_' + id]};` : '';
-        headHtml += `<td contenteditable="true" data-cell-key="cell_bg_${id}" data-id="${id}" data-week="${week}" data-sub="${sub}" data-grp="${grp}" onblur="app.onCurriculumBlur(this, '${type}')" onkeydown="app.onKeyDown(event, this)" style="${bgStyle}">${content}</td>`;
+        headHtml += `<td contenteditable="true" data-cell-key="cell_bg_${id}" data-id="${id}" data-week="${week}" data-sub="${sub}" data-cls="${cls}" data-grp="${grp}" onblur="app.onCurriculumBlur(this, '${type}')" onkeydown="app.onKeyDown(event, this)" style="${bgStyle}">${content}</td>`;
       });
       headHtml += `</tr>`;
     });
@@ -1308,23 +1398,23 @@ const app = {
     let newValue = app.getCleanHTML(cell);
     newValue = newValue.trim();
     if(newValue === '<br>') newValue = '';
-    const id = cell.getAttribute('data-id'), week = cell.getAttribute('data-week'), sub = cell.getAttribute('data-sub'), grp = cell.getAttribute('data-grp');
+    const id = cell.getAttribute('data-id'), week = cell.getAttribute('data-week'), sub = cell.getAttribute('data-sub'), cls = cell.getAttribute('data-cls'), grp = cell.getAttribute('data-grp');
     const isSci = type === 'curriculum_science';
     const dataArr = isSci ? this.data.curriculums_science : this.data.curriculums;
     const action = isSci ? 'upsertCurriculumScience' : 'upsertCurriculum';
 
-    let rowObj = dataArr.find(r => (id && r[0] === id) || (r.groupId === grp && r[2] === sub));
+    let rowObj = dataArr.find(r => (id && r[0] === id) || (r.groupId === grp && r[2] === sub && r[5] === cls));
     if (rowObj) { 
       if (rowObj[3] === newValue) return; 
       rowObj[3] = newValue; 
     } else { 
       if (!newValue) return; 
-      rowObj = ['', week, sub, newValue, grp];
+      rowObj = ['', week, sub, newValue, grp, cls];
       rowObj.groupId = grp;
       dataArr.push(rowObj); 
     }
     
-    this.apiPost(action, { id: rowObj[0], week: rowObj[1], subject: sub, content: newValue, note: rowObj.groupId }).then(res => {
+    this.apiPost(action, { id: rowObj[0], week: rowObj[1], subject: sub, content: newValue, note: rowObj.groupId, class_name: cls }).then(res => {
       if(res.success && res.id) { rowObj[0] = res.id; cell.setAttribute('data-id', res.id); }
     });
   },
@@ -1935,15 +2025,28 @@ const app = {
 
   addColumn: function(type) {
     const isCurriculum = (type === 'curriculum' || type === 'curriculum_science');
-    const title = isCurriculum ? '새 과목(열) 추가' : '새 반이름(열) 추가';
+    let title = '새 반이름(열) 추가';
+    if (isCurriculum) {
+       if (app.curriculumState.mode === 'class') title = '새 과목(열) 추가';
+       else title = '새 학급(열) 추가';
+    }
     document.getElementById('generic-modal-title').innerText = title;
     
     if (isCurriculum) {
-      const isSci = type === 'curriculum_science';
-      const category = isSci ? '과학' : '수학';
-      const filteredSubjects = this.managedSubjects.filter(s => s.category === category);
-      let optionsHtml = '<option value="">과목 선택</option>' + filteredSubjects.map(s => `<option value="${s.name}">${s.emoji} ${s.name}</option>`).join('');
-      document.getElementById('generic-modal-body').innerHTML = `<div class="form-group"><label>과목 선택 (${category})</label><select id="new-col-input" class="form-control">${optionsHtml}</select></div>`;
+      if (app.curriculumState.mode === 'class') {
+        const isSci = type === 'curriculum_science';
+        const category = isSci ? '과학' : '수학';
+        const filteredSubjects = this.managedSubjects.filter(s => s.category === category);
+        let optionsHtml = '<option value="">과목 선택</option>' + filteredSubjects.map(s => `<option value="${s.name}">${s.emoji} ${s.name}</option>`).join('');
+        document.getElementById('generic-modal-body').innerHTML = `<div class="form-group"><label>과목 선택 (${category})</label><select id="new-col-input" class="form-control">${optionsHtml}</select></div>`;
+      } else {
+        if ((this.managedClasses || []).length > 0) {
+          let optionsHtml = '<option value="">학급 선택</option>' + this.managedClasses.map(c => `<option value="${c}">${c}</option>`).join('');
+          document.getElementById('generic-modal-body').innerHTML = `<div class="form-group"><label>학급 선택</label><select id="new-col-input" class="form-control">${optionsHtml}</select></div>`;
+        } else {
+          document.getElementById('generic-modal-body').innerHTML = `<div class="form-group"><label>학급</label><input type="text" id="new-col-input" class="form-control" placeholder="학급 관리를 통해 반을 등록해주세요" readonly></div>`;
+        }
+      }
     } else {
       if ((this.managedClasses || []).length > 0) {
         let optionsHtml = '<option value="">학급 선택</option>' + this.managedClasses.map(c => `<option value="${c}">${c}</option>`).join('');
@@ -1964,15 +2067,21 @@ const app = {
             const action = isSci ? 'upsertCurriculumScience' : 'upsertCurriculum';
 
             if(dynCols.includes(val)) {
-              return app.showToast('이미 표에 존재하는 과목입니다.', true);
+              return app.showToast(app.curriculumState.mode === 'class' ? '이미 표에 존재하는 과목입니다.' : '이미 표에 존재하는 학급입니다.', true);
             }
             dynCols.push(val);
             const week = dataArr.length > 0 ? dataArr[0][1] : '1주차';
             const newId = 'f-' + Date.now().toString(36) + '-' + Math.random().toString(36).substr(2, 5);
-            const rowObj = [newId, week, val, '', ''];
+            const groupId = 'g-' + Date.now().toString(36) + Math.random().toString(36).substr(2, 3);
+            
+            let sub = app.curriculumState.mode === 'class' ? val : app.curriculumState.filterValue;
+            let cls = app.curriculumState.mode === 'subject' ? val : app.curriculumState.filterValue;
+
+            const rowObj = [newId, week, sub, '', groupId, cls];
+            rowObj.groupId = groupId;
             dataArr.push(rowObj);
             try {
-              const res = await this.apiPost(action, { id: newId, week, subject: val, content: '', note: '' });
+              const res = await this.apiPost(action, { id: newId, week, subject: sub, content: '', note: groupId, class_name: cls });
               if(res && res.success) rowObj[0] = res.id;
               else throw new Error(res ? res.message : '알 수 없는 에러');
             } catch(e) {

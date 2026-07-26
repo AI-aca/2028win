@@ -237,3 +237,8 @@
   - 과목명 텍스트 부분은 눈에 잘 띄도록 굵게(Bold, 700) 처리함.
   - **동적 차수(N차) 자동 부여 로직 추가**: 상세 화면(isSummary=false)에서 렌더링할 때, 각 학급(열)별로 과목의 출현 횟수를 누적 카운트(subjectOrderMap)하여, 과목 1차, 과목 2차 형식으로 차수가 자동으로 꼬리표처럼 붙도록 구현함.
 - **검증**: 상세 화면 렌더링 시 학급별 누적 차수 계산 정상 동작 및 UI 출력 확인. node --check 통과.
+
+## 2026-07-27 (14) - 진도계획 3차원(과목/학급) 토글 듀얼 뷰 기능 구현
+- index.html: 대시보드 제목 우측에 토글 UI(과목별 보기/학급별 보기) 추가
+- script_v2.js: curriculumState 추가 및 extractDynamicCols, renderCurriculumPivot, addRow, addColumn 로직 전면 개편
+- Supabase DB에 class_name 컬럼 추가 요구됨
