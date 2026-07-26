@@ -273,3 +273,6 @@
 ## 2026-07-27 (23) - 로그인 화면 폰트 크기 조정
 - style.css: 로그인 제목 28px, 부제목 16px로 변경 (글자 크기 예외 적용)
 - index.html: PC 권장 문구 13px로 조정
+
+## 2026-07-27 (24) - 고정열(label-col) 배경색 이질감 완벽 제거
+- style.css: .label-col의 ackground: rgba(255, 255, 255, 0.05) !important;를 	ransparent !important;로 변경하여 일반 셀과 색상을 완벽하게 100% 동일하게 일치시킴
