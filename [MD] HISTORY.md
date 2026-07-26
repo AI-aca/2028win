@@ -174,3 +174,12 @@
 ## 2026-07-27 (DOM 이벤트 바인딩 미스매치 완벽 수술)
 - **[DOM-이벤트 미스매치 핫픽스]**: `openDatePicker`가 달력을 띄운 후 날짜를 선택했을 때, 플랫 테이블(`preschedule` 등)과 피벗 테이블을 구분하지 않고 무조건 피벗 전용 저장 함수(`updatePivotRowDate`)를 호출하여 `TypeError: Cannot read properties of null (reading 'split')` 에러로 앱이 터지며 저장이 증발하던 버그를 완벽히 해결 (플랫 테이블일 경우 `onFlatCellBlur`를 타도록 로직 분기 픽스).
 - **[잠재적 치명 오류 방어]**: 시간표 시간 수정 로직(`updatePivotRowTime`)에서 과거 버전의 잔재인 `el.value = newTimeStr`로 텍스트를 주입하려던 끔찍한 핫코딩을 적발하여, 새 HTML 구조(`div[contenteditable]`)에 맞춰 `.innerText`로 정상 주입되도록 완벽히 수술 완료.\n
+
+## 2026-07-27 (2) - QA 룰 업데이트 및 서식(텍스트 색상) 저장 버그 완벽 패치
+- **QA 에이전트 전역 룰 추가 ([MD] PROJECT RULES.md)**:
+  - 사용자님의 뼈아픈 조언을 적극 수용하여 QA 에이전트의 검증 단계에 백틱/괄호 문법 검사 및 DOM-Event 논리 미스매치 교차 검사 항목을 명시적으로 추가하여 총 4단계 무결성 검사 시스템 확립.
+- **서식 저장 버그 픽스 (script_v2.js)**:
+  - 주차, 회차 등 피벗 테이블 및 시간표에서 사용자가 텍스트 툴바(색상 변환, 굵게 등)를 이용해 꾸민 서식이 저장(onblur) 시 innerText에 의해 날아가던 버그 발견.
+  - 관련된 모든 이벤트 함수(updateTimetableWeek, updateTimetableHoicha, onCurriculumBlur 등 8곳) 내의 innerText 구문을 pp.getCleanHTML()로 전면 교체하여 사용자 서식(HTML 태그)이 100% 보존되도록 픽스 완료.
+- **Git Tracking 복구**:
+  - .gitignore 내 *.md 정책에 의해 배제되던 [MD] 접두사 파일들을 추적하도록 ![MD]*.md 예외 룰 추가 후 깃 커밋 진행.

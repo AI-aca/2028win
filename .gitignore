@@ -4,3 +4,4 @@ scratch/
 .env
 
 *.md
+![MD]*.md
