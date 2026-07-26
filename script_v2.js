@@ -441,11 +441,17 @@ const app = {
       div.style.padding = '8px 16px';
       div.style.cursor = 'pointer';
       div.style.color = '#f3f4f6';
-      div.style.fontSize = '13px';
+      div.style.fontSize = '14px';
+      div.style.fontWeight = '500';
       div.onmouseover = () => div.style.backgroundColor = '#374151';
       div.onmouseout = () => div.style.backgroundColor = 'transparent';
       div.onclick = () => {
-        td.innerHTML = t;
+        const textDiv = td.querySelector('div[contenteditable="true"]');
+        if (textDiv) {
+          textDiv.innerText = t;
+        } else {
+          td.innerHTML = t;
+        }
         if(app.updatePivotRowTime) app.updatePivotRowTime(td, field, t);
         dropdown.classList.add('hidden');
       };
