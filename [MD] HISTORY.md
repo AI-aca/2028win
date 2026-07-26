@@ -259,3 +259,6 @@
 
 ## 2026-07-27 (19) - 백엔드 데이터베이스 컬럼명 매핑 버그 수정
 - script_v2.js: apiPost 함수 내에서 start->start_time, end->end_time, classname->class_name 자동 변환 로직 추가
+
+## 2026-07-27 (20) - 좁은 창에서 표 찌그러짐 방지
+- style.css: .excel-table에 min-width 900px를 부여하여, 좁은 창이나 반반 화면에서 열이 찌그러지지 않고 정상적으로 가로 스크롤바가 생기도록 수정

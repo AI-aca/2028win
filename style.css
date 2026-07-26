@@ -271,6 +271,7 @@ body {
 .excel-table {
   table-layout: fixed;
   width: 100%;
+  min-width: 900px;
   border-collapse: collapse;
   font-size: 14px;
 }
