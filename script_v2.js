@@ -1164,7 +1164,7 @@ const app = {
           if (td) td.setAttribute('data-id', res.id);
         }
       });
-      this.renderView('timetable');
+      this.renderView(app.currentView.replace('view-', ''));
     }
   },
 
@@ -1310,7 +1310,7 @@ const app = {
       const idx = this.dynamicCols.timetable.indexOf(oldName);
       if (idx !== -1) this.dynamicCols.timetable[idx] = newName;
       
-      this.renderView('timetable');
+      this.renderView(app.currentView.replace('view-', ''));
       this.closeModal();
     };
   },
@@ -1335,7 +1335,7 @@ const app = {
     headHtml += `<th class="label-col-header fixed-col" style="width:8%; left:${startLeft};">시작 시간</th><th class="label-col-header fixed-col" style="width:8%; left:${endLeft};">종료 시간</th>`;
     
     this.dynamicCols.timetable.forEach(cls => {
-      headHtml += `<th data-colname="${cls}" onclick="app.editTimetableClassName('${cls}')" style="cursor:pointer;" title="클릭하여 반 이름 수정">${cls}</th>`;
+      headHtml += `<th data-colname="${cls}">${cls}</th>`;
     });
     headHtml += `</tr></thead><tbody id="${tbodyId}">`;
 
@@ -1472,11 +1472,11 @@ const app = {
           tr.setAttribute('data-ids', newIds);
         } else {
           rollbackData.forEach(rb => { rb.row[1] = rb.oldDate; });
-          app.renderView('timetable');
+          app.renderView(app.currentView.replace('view-', ''));
         }
       } catch(e) {
         rollbackData.forEach(rb => { rb.row[1] = rb.oldDate; });
-        app.renderView('timetable');
+        app.renderView(app.currentView.replace('view-', ''));
       }
     }
   },
@@ -1532,7 +1532,7 @@ const app = {
         });
       }
     });
-    this.renderView('timetable');
+    this.renderView(app.currentView.replace('view-', ''));
   },
 
   updatePivotRowTime: async function(el, type, newTimeStr) {
