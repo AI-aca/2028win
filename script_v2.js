@@ -1228,7 +1228,7 @@ const app = {
       const logicalGrp = week + '|' + hoicha;
       if (processedGrps.has(logicalGrp)) return;
       processedGrps.add(logicalGrp);
-      const richWeek = this.uiSettings['curr_wk_' + type + '_' + hoicha + '_' + week] || week;
+      const richWeek = this.uiSettings['curr_wk_' + type + '_' + app.currentTerm + '_' + week] || week;
       headHtml += `<tr data-week="${week}">
       <td class="fixed-col label-col" data-cell-key="tt_fmt_curr_wk_${logicalGrp}" style="font-weight:bold; text-align:center; left:0;" contenteditable="true" onblur="app.updatePivotRowLabel('${type}', '${week}', '${hoicha}', this.innerText.trim())">${richWeek}</td>`;
       const firstRow = dataArr.find(r => r[1] === week && (r[4] || '') === hoicha);
@@ -1868,8 +1868,8 @@ const app = {
   updatePivotRowLabel: async function(type, oldLabel, oldHoicha, newLabel) {
     try {
       let cellHtml = app.getCleanHTML(window.event ? window.event.target : document.querySelector(':focus'));
-      app.silentSave('saveUISettings', { key: 'curr_wk_' + type + '_' + oldHoicha + '_' + newLabel, value: cellHtml });
-      app.uiSettings['curr_wk_' + type + '_' + oldHoicha + '_' + newLabel] = cellHtml;
+      app.silentSave('saveUISettings', { key: 'curr_wk_' + type + '_' + app.currentTerm + '_' + newLabel, value: cellHtml });
+      app.uiSettings['curr_wk_' + type + '_' + app.currentTerm + '_' + newLabel] = cellHtml;
     } catch (e) {}
     newLabel = newLabel.trim();
     if(!newLabel || oldLabel === newLabel) return;

@@ -191,3 +191,8 @@
 - **진도계획 1차/2차 키 중복 오염 해결 (script_v2.js)**:
   - 진도계획 주차 색상 변경 시 hoicha 식별자가 누락되어 [1차], [2차]가 똑같이 칠해지던 버그 수정.
   - UI Settings 키 생성 시 hoicha를 포함시키고, updatePivotRowLabel로 전달되는 값을 HTML에서 원문(innerText)으로 복원하여 DB와 UI 설정의 분리 설계 원칙 복구.
+
+## 2026-07-27 (4) - 진도계획 식별자 꼬임 2차 완벽 픽스 (app.currentTerm 적용)
+- **[1차] / [2차] 분리 기준 버그 수정 (script_v2.js)**:
+  - 진도계획 주차 서식을 저장하는 uiSettings 키 값에 hoicha 대신 실제 차수를 완벽히 구별하는 pp.currentTerm 변수를 직접 포함(curr_wk_curriculum__1주차)하도록 수정.
+  - 이로써 [1차] 탭에서 주차 색상을 변경해도 [2차] 탭으로 오염되지 않고 완벽하게 독립적으로 저장 및 렌더링되도록 100% 분리 완료.
