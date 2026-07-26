@@ -1461,6 +1461,8 @@ const app = {
       return sA.localeCompare(sB);
     });
 
+    const subjectOrderMap = {};
+
     rowGroups.forEach(grp => {
       const groupRows = targetData.filter(r => r.groupId === grp);
       const firstRow = groupRows[0];
@@ -1500,12 +1502,28 @@ const app = {
         this.dynamicCols.timetable.forEach(cls => {
           const row = groupRows.find(r => r[5] === cls);
           let subject = row && row[6] ? row[6] : '';
-          if (subject) {
-            const matchedSub = this.managedSubjects.find(s => s.name === subject);
-            if (matchedSub && matchedSub.emoji) subject = matchedSub.emoji + ' ' + subject;
+          
+          let displayStr = '';
+          if (subject || (row && row[7])) {
+            let orderSuffix = '';
+            if (!isSummary && subject) {
+              if (!subjectOrderMap[cls]) subjectOrderMap[cls] = {};
+              if (!subjectOrderMap[cls][subject]) subjectOrderMap[cls][subject] = 0;
+              subjectOrderMap[cls][subject]++;
+              orderSuffix = ` ${subjectOrderMap[cls][subject]}차`;
+            }
+
+            let iconSubject = subject;
+            if (subject) {
+              const matchedSub = this.managedSubjects.find(s => s.name === subject);
+              if (matchedSub && matchedSub.emoji) iconSubject = matchedSub.emoji + ' ' + subject;
+            }
+            
+            let subjPart = iconSubject ? `<strong style="font-weight:700;">${iconSubject}${orderSuffix}</strong>` : '';
+            let instPart = (row && row[7]) ? ` <span style="opacity:0.85;">[${row[7]}]</span>` : '';
+            displayStr = `${subjPart}${instPart}`.trim();
           }
-          let displayStr = row && (subject || row[7]) ? `${subject}${row[7]?'('+row[7]+')':''}` : '';
-          displayStr = displayStr.trim();
+          
           const id = row ? row[0] : '';
           let bgStyle = 'cursor:pointer;';
           if (id && this.uiSettings['cell_bg_' + id]) bgStyle += ` background-color:${this.uiSettings['cell_bg_' + id]};`;
