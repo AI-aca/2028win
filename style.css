@@ -602,7 +602,7 @@ span.flatpickr-weekday {
 }
 
 .login-title {
-  font-size: 16px;
+  font-size: 28px;
   font-weight: 700;
   color: #ffffff;
   margin-bottom: 10px;
@@ -613,7 +613,7 @@ span.flatpickr-weekday {
 }
 
 .login-subtitle {
-  font-size: 14px;
+  font-size: 16px;
   color: var(--text-gray);
   margin-bottom: 30px;
   font-weight: 600;
