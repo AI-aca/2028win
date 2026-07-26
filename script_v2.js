@@ -1119,9 +1119,10 @@ const app = {
       
       let i = 0;
       const tasks = [];
+      const rowType = (type === 'timetable_summary' || type === 'timetable-summary') ? '요약' : '수업';
       this.dynamicCols.timetable.forEach(cls => {
         const newId = 'f-' + Date.now().toString(36) + '-' + Math.random().toString(36).substr(2, 5);
-        const rowObj = [newId, tmpDate, '수업', nextStart, nextEnd, cls, '', '', '', ''];
+        const rowObj = [newId, tmpDate, rowType, nextStart, nextEnd, cls, '', '', '', ''];
         if (insertIndex >= 0) {
           this.data.timetables.splice(actualInsertIndex + i, 0, rowObj);
         } else {
@@ -1133,7 +1134,7 @@ const app = {
       });
       this.renderView(type);
       
-      const payloadArray = tasks.map(t => ({ id: t.rowObj[0], date: tmpDate, type: '수업', start: nextStart, end: nextEnd, className: t.cls, subject: '', instructor: '', note: '' }));
+      const payloadArray = tasks.map(t => ({ id: t.rowObj[0], date: tmpDate, type: rowType, start: nextStart, end: nextEnd, className: t.cls, subject: '', instructor: '', note: '' }));
       this.apiPost('upsertMultipleTimetables', { payloadArray }).then(res => {
         if (res && res.success && res.returnedIds) {
           this.data.timetables.forEach(r => { if (res.returnedIds[r[0]]) r[0] = res.returnedIds[r[0]]; });
@@ -1301,35 +1302,37 @@ const app = {
     const table = document.querySelector(tableId);
     if (!table) return;
     
+    const targetData = isSummary ? this.data.timetables.filter(r => r[2] === '요약') : this.data.timetables.filter(r => r[2] !== '요약');
+    
     let headHtml = `<thead><tr><th class="label-col-header fixed-col" style="width:12%; left:0;">${isSummary ? '요일' : '일자'}</th><th class="label-col-header fixed-col" style="width:5%; left:12%;">주차</th><th class="label-col-header fixed-col" style="width:5%; left:17%;">회차</th><th class="label-col-header fixed-col" style="width:8%; left:22%;">시작 시간</th><th class="label-col-header fixed-col" style="width:8%; left:30%;">종료 시간</th>`;
     this.dynamicCols.timetable.forEach(cls => {
       headHtml += `<th data-colname="${cls}" onclick="app.editTimetableClassName('${cls}')" style="cursor:pointer;" title="클릭하여 반 이름 수정">${cls}</th>`;
     });
     headHtml += `</tr></thead><tbody id="${tbodyId}">`;
 
-    const rowGroups = Array.from(new Set(this.data.timetables.map(r => r[1] + '|' + r[2] + '|' + r[3] + '|' + r[4]).filter(t => t !== '|||')));
+    const rowGroups = Array.from(new Set(targetData.map(r => r[1] + '|' + r[2] + '|' + r[3] + '|' + r[4]).filter(t => t !== '|||')));
 
     rowGroups.forEach(grp => {
       const [date, type, start, end] = grp.split('|');
       const isHoliday = (type === '휴일');
       const isTmpDate = date.startsWith('tmp-');
       const displayDate = isTmpDate ? '' : date;
-      let richDate = this.uiSettings['tt_fmt_date_' + grp] || displayDate || '날짜 선택';
+      let richDate = this.uiSettings['tt_fmt_date_' + grp] || displayDate || (isSummary ? '요일 선택' : '날짜 선택');
       if (richDate.includes('date-picker-icon')) {
         richDate = richDate.replace(/<span class="date-picker-icon"[^>]*>.*?<\/span>/g, '').trim();
       }
-      if (richDate === '-- 날짜 선택 --') richDate = '날짜 선택';
+      if (richDate === '-- 날짜 선택 --') richDate = isSummary ? '요일 선택' : '날짜 선택';
       
-      const idsForGrp = this.data.timetables.filter(r => r[1] === date && r[2] === type && r[3] === start && r[4] === end).map(r => r[0]).join(',');
-      const colorStyle = richDate.includes('날짜 선택') ? 'color:var(--text-muted);' : '';
+      const idsForGrp = targetData.filter(r => r[1] === date && r[2] === type && r[3] === start && r[4] === end).map(r => r[0]).join(',');
+      const colorStyle = (richDate.includes('날짜 선택') || richDate.includes('요일 선택')) ? 'color:var(--text-muted);' : '';
       
       headHtml += `<tr data-ids="${idsForGrp}" data-grp="${grp}">
         <td class="fixed-col label-col" style="text-align:center;" data-cell-key="tt_fmt_date_${grp}"><span class="drag-handle"></span><div contenteditable="true" style="display:inline-block; outline:none; min-width:30px; ${colorStyle}" onblur="app.updatePivotRowDate(this.closest('td'), this.innerText.trim())">${richDate}</div> <span class="date-picker-icon" onclick="${isSummary ? "app.openDayPicker(this.closest('td'))" : "app.openDatePicker(this.closest('td'))"}" style="cursor:pointer;" title="클릭하여 ${isSummary ? '요일' : '달력'} 선택">📅</span></td>`;
       
-      const firstRow = this.data.timetables.find(r => r[1] === date && r[2] === type && r[3] === start && r[4] === end);
+      const firstRow = targetData.find(r => r[1] === date && r[2] === type && r[3] === start && r[4] === end);
 
       if (isHoliday) {
-        const holidayRow = this.data.timetables.find(r => r[1] === date && r[2] === '휴일');
+        const holidayRow = targetData.find(r => r[1] === date && r[2] === '휴일');
         const holidayNote = holidayRow ? (holidayRow[8] || '') : '';
         headHtml += `<td colspan="4" class="fixed-col label-col" data-cell-key="tt_fmt_hol_${grp}" style="text-align:center; left:12%; color:var(--danger);">🏖️ 휴일</td>`;
         headHtml += `<td colspan="${this.dynamicCols.timetable.length}" class="timetable-cell" data-id="${holidayRow?holidayRow[0]:''}" data-date="${date}" contenteditable="true" onblur="app.onTimetableHolidayBlur(this)" style="text-align:center; background:rgba(255,255,255,0.05); color:var(--text-muted);">${holidayNote || '휴일/특이사항 입력'}</td>`;
@@ -1340,7 +1343,7 @@ const app = {
         headHtml += `<td class="fixed-col label-col" data-cell-key="tt_fmt_tthc_${grp}" style="text-align:center; left:17%;" contenteditable="true" onblur="app.updateTimetableHoicha(this, '${grp}')">${hoicha}</td>`;
         headHtml += `<td class="fixed-col label-col" style="left:22%; white-space:nowrap; text-align:center; vertical-align:middle; font-weight:normal;" data-cell-key="tt_fmt_st_${grp}"><div contenteditable="true" onblur="app.updatePivotRowTime(this.closest('td'), 'start', this.innerText.trim())" style="display:inline-block; outline:none; min-width:30px; font-weight:normal;">${start || '00:00'}</div> <span onclick="app.openTimePicker(this.closest('td'), 'start')" style="cursor:pointer;" title="시간 선택">🕒</span></td><td class="fixed-col label-col" style="left:30%; white-space:nowrap; text-align:center; vertical-align:middle; font-weight:normal;" data-cell-key="tt_fmt_et_${grp}"><div contenteditable="true" onblur="app.updatePivotRowTime(this.closest('td'), 'end', this.innerText.trim())" style="display:inline-block; outline:none; min-width:30px; font-weight:normal;">${end || '00:00'}</div> <span onclick="app.openTimePicker(this.closest('td'), 'end')" style="cursor:pointer;" title="시간 선택">🕒</span></td>`;
         this.dynamicCols.timetable.forEach(cls => {
-          const row = this.data.timetables.find(r => r[1] === date && r[2] === type && r[3] === start && r[4] === end && r[5] === cls);
+          const row = targetData.find(r => r[1] === date && r[2] === type && r[3] === start && r[4] === end && r[5] === cls);
           let subject = row && row[6] ? row[6] : '';
           if (subject) {
             const matchedSub = this.managedSubjects.find(s => s.name === subject);
@@ -1863,7 +1866,7 @@ const app = {
         if (ids.length > 0) this.silentSave('deleteMultipleData', { sheetName, ids: ids });
       }
       this.renderView(type);
-    } else if(type === 'timetable') {
+    } else if(type === 'timetable' || type === 'timetable_summary' || type === 'timetable-summary') {
       this.dynamicCols.timetable = this.dynamicCols.timetable.filter(c => c !== colName);
       const toDelete = this.data.timetables.filter(r => r[5] === colName);
       this.data.timetables = this.data.timetables.filter(r => r[5] !== colName);
@@ -2003,7 +2006,7 @@ const app = {
         if (ids.length > 0) this.silentSave('deleteMultipleData', { sheetName, ids: ids });
       }
       this.renderView(type);
-    } else if (type === 'timetable') {
+    } else if (type === 'timetable' || type === 'timetable_summary' || type === 'timetable-summary') {
       if(!confirm("이 줄에 입력된 모든 데이터가 삭제됩니다. 정말 삭제하시겠습니까?")) return;
       const grp = this.ctxTargetRow.getAttribute('data-grp');
       if (grp) {
@@ -2028,7 +2031,7 @@ const app = {
     if (['preschedule', 'student', 'instructor'].includes(type) && targetRow && targetRow.parentElement) {
       insertIndex = Array.from(targetRow.parentElement.children).indexOf(targetRow);
       if (pos === 'below') insertIndex += 1;
-    } else if (type === 'timetable' && targetRow) {
+    } else if ((type === 'timetable' || type === 'timetable_summary' || type === 'timetable-summary') && targetRow) {
       const grp = targetRow.getAttribute('data-grp');
       if (grp) {
         const [date, tType, start, end] = grp.split('|');
