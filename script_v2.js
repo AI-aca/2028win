@@ -1116,20 +1116,30 @@ const app = {
   onCurriculumHoichaBlur: function(cell, type, oldWeek, oldHoicha) {
     let newValue = cell.innerText.trim();
     newValue = newValue.replace(/<span class="drag-handle">.*?<\/span>/g, '').trim();
+    if (newValue === (oldHoicha || '')) return;
+
     const isSci = type === 'curriculum_science';
     const dataArr = isSci ? this.data.curriculums_science : this.data.curriculums;
-    const action = isSci ? 'upsertCurriculumScience' : 'upsertCurriculum';
+    const action = isSci ? 'upsertMultipleCurriculumSciences' : 'upsertMultipleCurriculums';
 
     // 해당 주차의 모든 행에 note 필드를 업데이트하여 회차 저장
     const rows = dataArr.filter(r => r[1] === oldWeek && (r[4] || '') === oldHoicha);
     if (rows.length === 0) return;
     
-    rows.forEach(r => r[4] = newValue);
+    const payloadArray = [];
+    rows.forEach(r => {
+      r[4] = newValue;
+      payloadArray.push({ id: r[0], week: r[1], subject: r[2], content: r[3], note: newValue });
+    });
     
-    // 첫 번째 행만 서버로 업데이트해서 저장 (편의상)
-    const firstRow = rows[0];
-    this.apiPost(action, { id: firstRow[0], week: oldWeek, subject: firstRow[2], content: firstRow[3], note: newValue }).then(res => {
-      if(res.success && res.id) { firstRow[0] = res.id; cell.setAttribute('data-id', res.id); }
+    // 전체 행을 서버로 업데이트
+    this.apiPost(action, { payloadArray }).then(res => {
+      if(res && res.success && res.returnedIds) {
+        rows.forEach(r => { if (res.returnedIds[r[0]]) r[0] = res.returnedIds[r[0]]; });
+        if (res.returnedIds[rows[0][0]]) {
+          cell.setAttribute('data-id', res.returnedIds[rows[0][0]]);
+        }
+      }
     });
   },
 
@@ -1251,6 +1261,12 @@ const app = {
     
     if (oldDate === newDate) return;
     
+    let uniqueDate = newDate;
+    while (this.data.timetables.some(r => r[1] === uniqueDate && r[2] === oldType && String(r[3]) === String(oldStart) && String(r[4]) === String(oldEnd) && r[1] !== oldDate)) {
+      uniqueDate += '\u200B';
+    }
+    newDate = uniqueDate;
+
     const payloadArray = [];
     const rowsToSave = [];
     const rollbackData = [];
@@ -1323,6 +1339,13 @@ const app = {
     if(!newType) return;
     const [oldDate, oldTType, oldStart, oldEnd] = oldGrp.split('|');
     if (oldTType === newType) return;
+    
+    let uniqueType = newType;
+    while (this.data.timetables.some(r => r[1] === oldDate && r[2] === uniqueType && String(r[3]) === String(oldStart) && String(r[4]) === String(oldEnd) && r[2] !== oldTType)) {
+      uniqueType += '\u200B';
+    }
+    newType = uniqueType;
+
     this.data.timetables.forEach(r => {
       if (r[1] === oldDate && r[2] === oldTType && r[3] === oldStart && r[4] === oldEnd) {
         r[2] = newType;
