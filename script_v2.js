@@ -982,21 +982,24 @@ const app = {
         const leftStr = (typeof c === 'object' && c.left) ? `left:${c.left};`: '';
         const cellClassStr = isFixed ? `class="fixed-col label-col" style="${leftStr}"` : '';
         const val = row[colIdx] || '';
+        const bgKey = `cell_bg_${type}_${id}_${colIdx}`;
+        let bgStyle = this.uiSettings[bgKey] ? `background-color:${this.uiSettings[bgKey]};` : '';
+        const combinedStyle = [leftStr, bgStyle].filter(Boolean).join(' ');
         
         if (label === '일자') {
           const dateTxt = val || '날짜 선택';
           const colorStyle = dateTxt.includes('날짜 선택') ? 'color:var(--text-muted);' : '';
-          html += `<td data-col-idx="${colIdx}" ${cellClassStr} style="${leftStr}" data-cell-key="tt_fmt_date_${type}_${id}"><div contenteditable="true" onblur="app.onFlatCellBlur('${type}', this)" style="display:inline-block; outline:none; min-width:40px; ${colorStyle}">${dateTxt}</div> <span class="date-picker-icon" onclick="app.openDatePicker(this.closest('td'))" style="cursor:pointer;" title="달력 열기">📅</span></td>`;
+          html += `<td data-col-idx="${colIdx}" ${cellClassStr} style="${combinedStyle}" data-bg-key="${bgKey}" data-cell-key="tt_fmt_date_${type}_${id}"><div contenteditable="true" onblur="app.onFlatCellBlur('${type}', this)" style="display:inline-block; outline:none; min-width:40px; ${colorStyle}">${dateTxt}</div> <span class="date-picker-icon" onclick="app.openDatePicker(this.closest('td'))" style="cursor:pointer;" title="달력 열기">📅</span></td>`;
         } else if (label === '상태') {
           const isDone = val === '완료';
           const statusTxt = isDone ? '🟢 완료' : '🟡 진행 중';
           const txtColor = isDone ? '#10b981' : '#ffffff';
           const fw = isDone ? '600' : 'normal';
-          html += `<td data-col-idx="${colIdx}" class="status-cell ${isFixed ? 'fixed-col label-col' : ''}" style="text-align:center; cursor:pointer; ${leftStr}" onclick="app.toggleStatus(this.querySelector('span'), '${type}', ${colIdx})"><span style="font-weight:${fw}; color:${txtColor}; font-size:13px; user-select:none; transition:all 0.2s; padding:4px 8px; border-radius:4px;" onmouseover="this.style.backgroundColor='rgba(255,255,255,0.05)'" onmouseout="this.style.backgroundColor='transparent'">${statusTxt}</span></td>`;
+          html += `<td data-col-idx="${colIdx}" class="status-cell ${isFixed ? 'fixed-col label-col' : ''}" style="text-align:center; cursor:pointer; ${combinedStyle}" data-bg-key="${bgKey}" onclick="app.toggleStatus(this.querySelector('span'), '${type}', ${colIdx})"><span style="font-weight:${fw}; color:${txtColor}; font-size:13px; user-select:none; transition:all 0.2s; padding:4px 8px; border-radius:4px;" onmouseover="this.style.backgroundColor='rgba(255,255,255,0.05)'" onmouseout="this.style.backgroundColor='transparent'">${statusTxt}</span></td>`;
         } else if (type === 'student' && colIdx === 8) {
-          html += `<td ${cellClassStr} data-col-idx="${colIdx}" onclick="app.openClassSelectModal(this)" style="cursor:pointer; text-align:center;">${val}</td>`;
+          html += `<td ${cellClassStr} data-col-idx="${colIdx}" data-bg-key="${bgKey}" style="cursor:pointer; text-align:center; ${combinedStyle}" onclick="app.openClassSelectModal(this)">${val}</td>`;
         } else if (type === 'instructor' && colIdx === 2) {
-          html += `<td ${cellClassStr} data-col-idx="${colIdx}" onclick="app.openInstructorSelectModal(this, 'area')" style="cursor:pointer; text-align:center;">${val}</td>`;
+          html += `<td ${cellClassStr} data-col-idx="${colIdx}" data-bg-key="${bgKey}" style="cursor:pointer; text-align:center; ${combinedStyle}" onclick="app.openInstructorSelectModal(this, 'area')">${val}</td>`;
         } else if (type === 'instructor' && colIdx === 3) {
           let displayVal = val;
           if (val && app.managedSubjects && Array.isArray(app.managedSubjects)) {
@@ -1005,7 +1008,7 @@ const app = {
               displayVal = `${matchedSub.emoji} ${val}`;
             }
           }
-          html += `<td ${cellClassStr} data-col-idx="${colIdx}" onclick="app.openInstructorSelectModal(this, 'subject')" style="cursor:pointer; text-align:center;">${displayVal}</td>`;
+          html += `<td ${cellClassStr} data-col-idx="${colIdx}" data-bg-key="${bgKey}" style="cursor:pointer; text-align:center; ${combinedStyle}" onclick="app.openInstructorSelectModal(this, 'subject')">${displayVal}</td>`;
         } else {
           let extraEvents = `onkeydown="app.onKeyDown(event, this)"`;
           let displayVal = val;
@@ -1015,7 +1018,7 @@ const app = {
             extraEvents = `onfocus="app.handlePhoneFocus(this)" onkeydown="app.handlePhoneKeydown(event, this)"`;
             placeholder = 'placeholder="숫자 11자리 입력"';
           }
-          html += `<td ${cellClassStr} contenteditable="true" data-col-idx="${colIdx}" ${placeholder} onblur="app.onFlatCellBlur('${type}', this)" ${extraEvents}>${displayVal}</td>`;
+          html += `<td ${cellClassStr} style="${combinedStyle}" data-bg-key="${bgKey}" contenteditable="true" data-col-idx="${colIdx}" ${placeholder} onblur="app.onFlatCellBlur('${type}', this)" ${extraEvents}>${displayVal}</td>`;
         }
       }
       html += `</tr>`;
