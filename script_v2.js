@@ -1942,24 +1942,28 @@ const app = {
             const dataArr = isSci ? this.data.curriculums_science : this.data.curriculums;
             const action = isSci ? 'upsertCurriculumScience' : 'upsertCurriculum';
 
-            if(!dynCols.includes(val)) {
-              dynCols.push(val);
-              const week = dataArr.length > 0 ? dataArr[0][1] : '1주차';
-              const newId = 'f-' + Date.now().toString(36) + '-' + Math.random().toString(36).substr(2, 5);
-              const rowObj = [newId, week, val, '', ''];
-              dataArr.push(rowObj);
-              try {
-                const res = await this.apiPost(action, { id: newId, week, subject: val, content: '', note: '' });
-                if(res && res.success) rowObj[0] = res.id;
-                else throw new Error(res ? res.message : '알 수 없는 에러');
-              } catch(e) {
-                app.showToast('저장 실패: ' + e.message, true);
-                dynCols.pop();
-                dataArr.pop();
-              }
+            if(dynCols.includes(val)) {
+              return app.showToast('이미 표에 존재하는 과목입니다.', true);
+            }
+            dynCols.push(val);
+            const week = dataArr.length > 0 ? dataArr[0][1] : '1주차';
+            const newId = 'f-' + Date.now().toString(36) + '-' + Math.random().toString(36).substr(2, 5);
+            const rowObj = [newId, week, val, '', ''];
+            dataArr.push(rowObj);
+            try {
+              const res = await this.apiPost(action, { id: newId, week, subject: val, content: '', note: '' });
+              if(res && res.success) rowObj[0] = res.id;
+              else throw new Error(res ? res.message : '알 수 없는 에러');
+            } catch(e) {
+              app.showToast('저장 실패: ' + e.message, true);
+              dynCols.pop();
+              dataArr.pop();
             }
         }
-        if(type === 'timetable' && !this.dynamicCols.timetable.includes(val)) {
+        if(type === 'timetable') {
+            if(this.dynamicCols.timetable.includes(val)) {
+              return app.showToast('이미 표에 존재하는 학급입니다.', true);
+            }
             this.dynamicCols.timetable.push(val);
             const rowGroups = Array.from(new Set(this.data.timetables.map(r => r.groupId).filter(Boolean)));
             const payloadArray = [];
