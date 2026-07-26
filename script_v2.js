@@ -450,6 +450,9 @@ const app = {
   },
 
   openDayPicker: function(td) {
+    if (app._dayPickerListener) {
+      document.removeEventListener('click', app._dayPickerListener);
+    }
     let dropdown = document.getElementById('day-dropdown');
     if (!dropdown) {
       dropdown = document.createElement('div');
@@ -497,12 +500,17 @@ const app = {
       if (!dropdown.contains(e.target) && e.target !== td) {
         dropdown.classList.add('hidden');
         document.removeEventListener('click', closeDropdown);
+        app._dayPickerListener = null;
       }
     };
+    app._dayPickerListener = closeDropdown;
     setTimeout(() => document.addEventListener('click', closeDropdown), 10);
   },
 
   openTimePicker: function(td, field) {
+    if (app._timePickerListener) {
+      document.removeEventListener('click', app._timePickerListener);
+    }
     let dropdown = document.getElementById('time-dropdown');
     if (!dropdown) {
       dropdown = document.createElement('div');
@@ -558,8 +566,10 @@ const app = {
       if (!dropdown.contains(e.target) && e.target !== td) {
         dropdown.classList.add('hidden');
         document.removeEventListener('click', closeDropdown);
+        app._timePickerListener = null;
       }
     };
+    app._timePickerListener = closeDropdown;
     setTimeout(() => document.addEventListener('click', closeDropdown), 10);
   },
 
@@ -1458,6 +1468,11 @@ const app = {
     app.silentSave('saveUISettings', { key: 'tt_fmt_date_' + newGrp, value: richText });
     app.uiSettings['tt_fmt_date_' + newGrp] = richText;
     
+    if (app.uiSettings['tt_week_' + oldGrp] !== undefined && oldGrp !== newGrp) {
+      app.uiSettings['tt_week_' + newGrp] = app.uiSettings['tt_week_' + oldGrp];
+      app.silentSave('saveUISettings', { key: 'tt_week_' + newGrp, value: app.uiSettings['tt_week_' + newGrp] });
+    }
+    
     if (oldDate === newDate) return;
     
     let uniqueDate = newDate;
@@ -1579,6 +1594,16 @@ const app = {
     if (newStart === oldStart && newEnd === oldEnd) return;
     
     const newGrp = [oldDate, oldType, newStart, newEnd].join('|');
+    
+    if (app.uiSettings['tt_fmt_date_' + oldGrp] !== undefined && oldGrp !== newGrp) {
+      app.uiSettings['tt_fmt_date_' + newGrp] = app.uiSettings['tt_fmt_date_' + oldGrp];
+      app.silentSave('saveUISettings', { key: 'tt_fmt_date_' + newGrp, value: app.uiSettings['tt_fmt_date_' + newGrp] });
+    }
+    if (app.uiSettings['tt_week_' + oldGrp] !== undefined && oldGrp !== newGrp) {
+      app.uiSettings['tt_week_' + newGrp] = app.uiSettings['tt_week_' + oldGrp];
+      app.silentSave('saveUISettings', { key: 'tt_week_' + newGrp, value: app.uiSettings['tt_week_' + newGrp] });
+    }
+
     const rowsToSave = [];
     const rollbackData = [];
 
