@@ -386,10 +386,20 @@ const app = {
       if (idxB !== -1) return 1;
       return 0;
     };
+    const sortByManagedClass = (a, b) => {
+      if (!this.managedClasses) return 0;
+      const idxA = this.managedClasses.indexOf(a);
+      const idxB = this.managedClasses.indexOf(b);
+      if (idxA !== -1 && idxB !== -1) return idxA - idxB;
+      if (idxA !== -1) return -1;
+      if (idxB !== -1) return 1;
+      return 0;
+    };
+    
     this.dynamicCols.curriculum = Array.from(new Set(this.data.curriculums.map(r => r[2]).filter(x => x))).sort(sortByManaged);
     this.dynamicCols.curriculum_science = Array.from(new Set(this.data.curriculums_science.map(r => r[2]).filter(x => x))).sort(sortByManaged);
     
-    this.dynamicCols.timetable = Array.from(new Set(this.data.timetables.map(r => r[5]).filter(x => x && x !== '전체')));
+    this.dynamicCols.timetable = Array.from(new Set(this.data.timetables.map(r => r[5]).filter(x => x && x !== '전체'))).sort(sortByManagedClass);
   },
 
   openDatePicker: function(td) {
@@ -1767,7 +1777,7 @@ const app = {
     modal.innerHTML = `
       <div class="modal-header">
         <h3 style="margin:0; font-size:16px; color:var(--primary); text-align:left;">${cls} 수업 편집</h3>
-        <button class="close-btn" onclick="document.getElementById('timetable-editor-overlay').remove();">&times;</button>
+        <button class="close-btn" id="tt-close-btn">&times;</button>
       </div>
       <div class="modal-body" style="display:flex; flex-direction:column; gap:15px;">
         <div class="form-group">
@@ -1784,10 +1794,16 @@ const app = {
         </div>
       </div>
       <div class="modal-footer">
-        <button class="btn" onclick="document.getElementById('timetable-editor-overlay').remove();">취소</button>
-        <button class="btn btn-primary" onclick="app.saveTimetableEditor('${id}', '${date}', '${start}', '${end}', '${cls}')">저장</button>
+        <button class="btn" id="tt-cancel-btn">취소</button>
+        <button id="tt-edit-save-btn" class="btn btn-primary">저장</button>
       </div>
     `;
+
+    document.getElementById('tt-close-btn').onclick = () => document.getElementById('timetable-editor-overlay').remove();
+    document.getElementById('tt-cancel-btn').onclick = () => document.getElementById('timetable-editor-overlay').remove();
+    document.getElementById('tt-edit-save-btn').onclick = () => {
+      app.saveTimetableEditor(id, date, start, end, cls);
+    };
   },
 
   saveTimetableEditor: async function(id, date, start, end, cls) {
@@ -1796,13 +1812,15 @@ const app = {
     const subject = modal.querySelector('#tt-edit-subject').value;
     const instructor = modal.querySelector('#tt-edit-instructor').value;
 
-    let rowObj = this.data.timetables.find(r => r[1] === date && r[2] === '수업' && r[3] === start && r[4] === end && r[5] === cls);
+    const currentType = this.currentView === 'view-timetable-summary' ? '요약' : '상세';
+
+    let rowObj = this.data.timetables.find(r => r[1] === date && r[2] === currentType && r[3] === start && r[4] === end && r[5] === cls);
     const rollbackData = {};
     let isNew = false;
     
     if (!rowObj) {
       const newId = id || 'f-' + Date.now().toString(36) + '-' + Math.random().toString(36).substr(2, 5);
-      rowObj = [newId, date, '수업', start, end, cls, subject, instructor, '', new Date().toLocaleString()];
+      rowObj = [newId, date, currentType, start, end, cls, subject, instructor, '', new Date().toLocaleString()];
       this.data.timetables.push(rowObj);
       isNew = true;
     } else {
