@@ -276,3 +276,7 @@
 
 ## 2026-07-27 (24) - 고정열(label-col) 배경색 이질감 완벽 제거
 - style.css: .label-col의 ackground: rgba(255, 255, 255, 0.05) !important;를 	ransparent !important;로 변경하여 일반 셀과 색상을 완벽하게 100% 동일하게 일치시킴
+
+## 2026-07-27 (24) - 고정열 배경색 저장(리로드) 문제 해결
+- style.css:
+  - .label-col 에 있던 background: transparent !important; 제거 (인라인 배경색 덮어쓰기 방지)

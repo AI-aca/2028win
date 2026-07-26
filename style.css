@@ -492,10 +492,6 @@ span.flatpickr-weekday {
   background: #1e293b !important;
 }
 
-.label-col {
-  background: transparent !important;
-}
-
 /* 로딩 스피너 */
 #loadingSpinner {
   position: fixed;
