@@ -1419,7 +1419,8 @@ const app = {
       headHtml += `</tr>`;
     });
     headHtml += `</tbody>`; table.innerHTML = headHtml;
-    table.querySelectorAll('tbody tr').forEach(tr => this.bindRowEvents(tr, 'timetable'));
+    const bindType = isSummary ? 'timetable_summary' : 'timetable';
+    table.querySelectorAll('tbody tr').forEach(tr => this.bindRowEvents(tr, bindType));
     this.initResizers();
   },
 
@@ -2121,6 +2122,7 @@ const app = {
         const toDelete = this.data.timetables.filter(r => r[1] === date && r[2] === tType && String(r[3]) === String(start) && r[4] === end);
         this.data.timetables = this.data.timetables.filter(r => !(r[1] === date && r[2] === tType && String(r[3]) === String(start) && r[4] === end));
         this.renderView('timetable');
+        this.renderView('timetable_summary');
         
         const ids = toDelete.map(r => r[0]).filter(Boolean);
         if (ids.length > 0) this.silentSave('deleteMultipleData', { sheetName: '시간표', ids: ids });
