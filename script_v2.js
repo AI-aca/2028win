@@ -1953,7 +1953,7 @@ const app = {
               }
             }
         }
-        this.renderView(type);
+        this.renderView(this.currentView.replace('view-', ''));
       }
       this.closeModal();
     };
@@ -1978,12 +1978,12 @@ const app = {
         const ids = toDelete.map(r => r[0]).filter(Boolean);
         if (ids.length > 0) this.silentSave('deleteMultipleData', { sheetName, ids: ids });
       }
-      this.renderView(type);
+      this.renderView(this.currentView.replace('view-', ''));
     } else if(type === 'timetable' || type === 'timetable_summary' || type === 'timetable-summary') {
       this.dynamicCols.timetable = this.dynamicCols.timetable.filter(c => c !== colName);
       const toDelete = this.data.timetables.filter(r => r[5] === colName);
       this.data.timetables = this.data.timetables.filter(r => r[5] !== colName);
-      this.renderView(type);
+      this.renderView(this.currentView.replace('view-', ''));
       const ids = toDelete.map(r => r[0]).filter(Boolean);
       if (ids.length > 0) this.silentSave('deleteMultipleData', { sheetName: '시간표', ids: ids });
     }
