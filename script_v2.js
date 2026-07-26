@@ -11,7 +11,7 @@ const app = {
   data: { preschedules: [], curriculums: [], curriculums_science: [], timetables: [], students: [], instructors: [] },
   dynamicCols: { curriculum: [], curriculum_science: [], timetable: [] },
   uiSettings: {},
-  ctxTargetRow: null, ctxTargetType: null, draggedRow: null, draggedType: null,
+  ctxTargetRow: null, ctxTargetType: null,
   sortState: {},
   pendingRequests: 0, failedRequests: 0,
 
@@ -998,7 +998,7 @@ const app = {
       newValue = input.value.trim();
     } else {
       const valHtml = this.getCleanHTML(cell);
-      newValue = valHtml.replace(/<span class="drag-handle">.*?<\/span>/g, '').trim();
+      newValue = valHtml.trim();
       if(newValue === '<br>') newValue = '';
     }
 
@@ -1228,7 +1228,7 @@ const app = {
 
   onCurriculumBlur: function(cell, type = 'curriculum') {
     let newValue = cell.innerText.trim();
-    newValue = newValue.replace(/<span class="drag-handle">.*?<\/span>/g, '').trim();
+    newValue = newValue.trim();
     if(newValue === '<br>') newValue = '';
     const id = cell.getAttribute('data-id'), week = cell.getAttribute('data-week'), sub = cell.getAttribute('data-sub');
     const isSci = type === 'curriculum_science';
@@ -1246,7 +1246,7 @@ const app = {
 
   onCurriculumHoichaBlur: function(cell, type, oldWeek, oldHoicha) {
     let newValue = cell.innerText.trim();
-    newValue = newValue.replace(/<span class="drag-handle">.*?<\/span>/g, '').trim();
+    newValue = newValue.trim();
     if (newValue === (oldHoicha || '')) return;
 
     const isSci = type === 'curriculum_science';
@@ -1381,7 +1381,7 @@ const app = {
       const colorStyle = (richDate.includes('날짜 선택') || richDate.includes('요일 선택')) ? 'color:var(--text-muted);' : '';
       
       headHtml += `<tr data-ids="${idsForGrp}" data-grp="${grp}">
-        <td class="fixed-col label-col" style="text-align:center;" data-cell-key="tt_fmt_date_${grp}"><span class="drag-handle"></span><div contenteditable="true" style="display:inline-block; outline:none; min-width:30px; ${colorStyle}" onblur="app.updatePivotRowDate(this.closest('td'), this.innerText.trim())">${richDate}</div> <span class="date-picker-icon" onclick="${isSummary ? "app.openDayPicker(this.closest('td'))" : "app.openDatePicker(this.closest('td'))"}" style="cursor:pointer;" title="클릭하여 ${isSummary ? '요일' : '달력'} 선택">📅</span></td>`;
+        <td class="fixed-col label-col" style="text-align:center;" data-cell-key="tt_fmt_date_${grp}"><div contenteditable="true" style="display:inline-block; outline:none; min-width:30px; ${colorStyle}" onblur="app.updatePivotRowDate(this.closest('td'), this.innerText.trim())">${richDate}</div> <span class="date-picker-icon" onclick="${isSummary ? "app.openDayPicker(this.closest('td'))" : "app.openDatePicker(this.closest('td'))"}" style="cursor:pointer;" title="클릭하여 ${isSummary ? '요일' : '달력'} 선택">📅</span></td>`;
       
       const firstRow = targetData.find(r => r[1] === date && r[2] === type && r[3] === start && r[4] === end);
 
@@ -1432,7 +1432,7 @@ const app = {
     
     // 서식 저장 로직 추가 (DB 키인 newDate와 별개로)
     let richText = app.getCleanHTML(el.querySelector('div[contenteditable]') || el);
-    richText = richText.replace(/<span class="drag-handle">.*?<\/span>/g, '').trim();
+    richText = richText.trim();
     const newGrp = [newDate, oldType, oldStart, oldEnd].join('|');
     app.silentSave('saveUISettings', { key: 'tt_fmt_date_' + newGrp, value: richText });
     app.uiSettings['tt_fmt_date_' + newGrp] = richText;
@@ -1483,7 +1483,7 @@ const app = {
 
   updateTimetableWeek: function(cell, grp) {
     let newValue = cell.innerText.trim();
-    newValue = newValue.replace(/<span class="drag-handle">.*?<\/span>/g, '').trim();
+    newValue = newValue.trim();
     if(newValue === '<br>') newValue = '';
     const key = 'tt_week_' + grp;
     if (this.uiSettings[key] !== newValue) {
@@ -1494,7 +1494,7 @@ const app = {
   
   updateTimetableHoicha: function(cell, grp) {
     let newValue = cell.innerText.trim();
-    newValue = newValue.replace(/<span class="drag-handle">.*?<\/span>/g, '').trim();
+    newValue = newValue.trim();
     const [date, type, start, end] = grp.split('|');
     const rows = this.data.timetables.filter(r => r[1] === date && r[2] === type && r[3] === start && r[4] === end);
     if (rows.length === 0) return;
@@ -1513,27 +1513,7 @@ const app = {
     });
   },
 
-  updatePivotRowType: function(oldGrp, newType) {
-    if(!newType) return;
-    const [oldDate, oldTType, oldStart, oldEnd] = oldGrp.split('|');
-    if (oldTType === newType) return;
-    
-    let uniqueType = newType;
-    while (this.data.timetables.some(r => r[1] === oldDate && r[2] === uniqueType && String(r[3]) === String(oldStart) && String(r[4]) === String(oldEnd) && r[2] !== oldTType)) {
-      uniqueType += '\u200B';
-    }
-    newType = uniqueType;
-
-    this.data.timetables.forEach(r => {
-      if (r[1] === oldDate && r[2] === oldTType && r[3] === oldStart && r[4] === oldEnd) {
-        r[2] = newType;
-        this.silentSave('upsertTimetable', { id: r[0], date: r[1], type: r[2], start: r[3], end: r[4], className: r[5], subject: r[6], instructor: r[7], note: r[8] }).then(res => {
-          if (res && res.success && res.id) r[0] = res.id;
-        });
-      }
-    });
-    this.renderView(app.currentView.replace('view-', ''));
-  },
+  
 
   updatePivotRowTime: async function(el, type, newTimeStr) {
     // 자동 포맷: 숫자만 추출 후 HH:MM (24시간) 변환
@@ -1615,7 +1595,7 @@ const app = {
 
   onTimetableHolidayBlur: function(cell) {
     let newValue = cell.innerText.trim();
-    newValue = newValue.replace(/<span class="drag-handle">.*?<\/span>/g, '').trim();
+    newValue = newValue.trim();
     if(newValue === '<br>') newValue = '';
     const id = cell.getAttribute('data-id'), date = cell.getAttribute('data-date');
     let rowObj = this.data.timetables.find(r => (id && r[0] === id) || (r[1] === date && r[2] === '휴일'));
@@ -1843,7 +1823,7 @@ const app = {
       app.silentSave('saveUISettings', { key: 'curr_wk_' + type + '_' + newLabel, value: cellHtml });
       app.uiSettings['curr_wk_' + type + '_' + newLabel] = cellHtml;
     } catch (e) {}
-    newLabel = newLabel.replace(/<span class="drag-handle">.*?<\/span>/g, '').trim();
+    newLabel = newLabel.trim();
     if(!newLabel || oldLabel === newLabel) return;
     if(type === 'curriculum' || type === 'curriculum_science') {
       const isSci = type === 'curriculum_science';
