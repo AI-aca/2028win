@@ -337,7 +337,7 @@ const app = {
     let curData = cleanDate(res['수업진도계획'] || []);
     curData.forEach(r => {
       let groupId = r[4];
-      if (!groupId || !groupId.startsWith('g-')) groupId = 'g-' + hashCode(r[1]);
+      if (!groupId || !groupId.startsWith('g-')) groupId = 'g-' + hashCode('cur-' + app.currentTerm + '-' + r[1]);
       r.groupId = groupId;
       r[4] = ''; // clear note for future use
     });
@@ -346,7 +346,7 @@ const app = {
     let curSciData = cleanDate(res['과학진도계획'] || []);
     curSciData.forEach(r => {
       let groupId = r[4];
-      if (!groupId || !groupId.startsWith('g-')) groupId = 'g-' + hashCode(r[1]);
+      if (!groupId || !groupId.startsWith('g-')) groupId = 'g-' + hashCode('sci-' + app.currentTerm + '-' + r[1]);
       r.groupId = groupId;
       r[4] = '';
     });
@@ -665,6 +665,9 @@ const app = {
   },
 
   switchView: function(viewId) {
+    this.closeModal();
+    const existingTT = document.getElementById('timetable-editor-overlay');
+    if (existingTT) existingTT.remove();
     const oldView = document.getElementById(this.currentView);
     if (oldView) { oldView.classList.remove('active'); oldView.classList.add('hidden'); }
     const newView = document.getElementById(viewId);
@@ -1143,7 +1146,7 @@ const app = {
         const m = w.match(/\d+/);
         if (m) maxWeek = Math.max(maxWeek, parseInt(m[0], 10));
       });
-      let nextWeek = `${maxWeek + 1}주차`;
+      let nextWeek = `${maxWeek + 1}`;
       
       let actualInsertIndex = dataArr.length;
       if (insertIndex >= 0 && insertIndex <= dataArr.length) {
