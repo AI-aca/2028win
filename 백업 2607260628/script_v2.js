@@ -6,7 +6,6 @@ const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 const app = {
   localMode: false,
-  currentTerm: 1,
   currentView: 'view-dashboard',
   data: { preschedules: [], curriculums: [], curriculums_science: [], timetables: [], students: [], instructors: [] },
   dynamicCols: { curriculum: [], curriculum_science: [], timetable: [] },
@@ -226,9 +225,6 @@ const app = {
               if (['action', 'authpass', 'payloadarray', 'insertindex', 'regtime'].includes(k.toLowerCase())) continue;
               lowerObj[k.toLowerCase()] = obj[k];
             }
-            if (['curriculums', 'curriculums_science', 'timetables', 'preschedules'].includes(table)) {
-              lowerObj.term = app.currentTerm;
-            }
             return lowerObj;
           });
           const { error } = await supabaseClient.from(table).upsert(arrData);
@@ -238,9 +234,6 @@ const app = {
           for (let k in data) {
             if (['action', 'authpass', 'payloadarray', 'insertindex', 'regtime'].includes(k.toLowerCase())) continue;
             lowerData[k.toLowerCase()] = data[k];
-          }
-          if (['curriculums', 'curriculums_science', 'timetables', 'preschedules'].includes(table)) {
-            lowerData.term = app.currentTerm;
           }
           const { error } = await supabaseClient.from(table).upsert(lowerData);
           if (error) throw error;
@@ -277,12 +270,11 @@ const app = {
   fetchInitialData: async function() {
     this.showLoading();
     try {
-      const term = this.currentTerm || 1;
       const [preRes, curRes, curSciRes, ttRes, stuRes, insRes, uiRes] = await Promise.all([
-        supabaseClient.from('preschedules').select('*').eq('term', term).order('date', { ascending: true }),
-        supabaseClient.from('curriculums').select('*').eq('term', term).order('week', { ascending: true }),
-        supabaseClient.from('curriculums_science').select('*').eq('term', term).order('week', { ascending: true }),
-        supabaseClient.from('timetables').select('*').eq('term', term).order('date', { ascending: true }).order('start', { ascending: true }),
+        supabaseClient.from('preschedules').select('*').order('date', { ascending: true }),
+        supabaseClient.from('curriculums').select('*').order('week', { ascending: true }),
+        supabaseClient.from('curriculums_science').select('*').order('week', { ascending: true }),
+        supabaseClient.from('timetables').select('*').order('date', { ascending: true }).order('start', { ascending: true }),
         supabaseClient.from('students').select('*').order('name', { ascending: true }),
         supabaseClient.from('instructors').select('*').order('instructorname', { ascending: true }),
         supabaseClient.from('ui_settings').select('*')
@@ -298,7 +290,7 @@ const app = {
         '수업진도계획': (curRes.data || []).map(r => [r.id, r.week, r.subject, r.content, r.note]),
         '과학진도계획': (curSciRes.data || []).map(r => [r.id, r.week, r.subject, r.content, r.note]),
         '시간표': (ttRes.data || []).map(r => [r.id, r.date, r.type, r.start, r.end, r.classname, r.subject, r.instructor, r.note, r.regtime]),
-        '학생관리': (stuRes.data || []).map(r => [r.id, r.name, r.center, r.school, r.grade, r.parentphone, r.studentphone, r.note, r.class_name, r.pre_score]),
+        '학생관리': (stuRes.data || []).map(r => [r.id, r.name, r.center, r.school, r.grade, r.parentphone, r.studentphone, r.note]),
         '강사관리': (insRes.data || []).map(r => [r.id, r.instructorname, r.subject, r.subsubject, r.phone, r.email, r.note]),
         'uiSettings': uiMap
       };
@@ -366,11 +358,6 @@ const app = {
     }
     this.managedSubjects = JSON.parse(this.uiSettings.managed_subjects);
     
-    if (!this.uiSettings.managed_classes) {
-      this.uiSettings.managed_classes = JSON.stringify(['A반', 'B반', 'C반']);
-    }
-    this.managedClasses = JSON.parse(this.uiSettings.managed_classes);
-    
     this.extractDynamicCols();
     this.renderAllViews();
     this.hideLoading();
@@ -429,56 +416,6 @@ const app = {
       }
     });
     fp.open();
-  },
-
-  openDayPicker: function(td) {
-    let dropdown = document.getElementById('day-dropdown');
-    if (!dropdown) {
-      dropdown = document.createElement('div');
-      dropdown.id = 'day-dropdown';
-      dropdown.style.position = 'absolute';
-      dropdown.style.backgroundColor = '#1f2937';
-      dropdown.style.border = '1px solid #374151';
-      dropdown.style.borderRadius = '8px';
-      dropdown.style.padding = '5px 0';
-      dropdown.style.zIndex = '10000';
-      dropdown.style.boxShadow = '0 10px 15px -3px rgba(0,0,0,0.5)';
-      document.body.appendChild(dropdown);
-    }
-    
-    dropdown.innerHTML = '';
-    const days = ['일요일', '월요일', '화요일', '수요일', '목요일', '금요일', '토요일'];
-    days.forEach(d => {
-      const div = document.createElement('div');
-      div.innerText = d;
-      div.style.padding = '8px 16px';
-      div.style.cursor = 'pointer';
-      div.style.color = '#f3f4f6';
-      div.style.fontSize = '14px';
-      div.onmouseover = () => div.style.backgroundColor = '#374151';
-      div.onmouseout = () => div.style.backgroundColor = 'transparent';
-      div.onclick = () => {
-        const textDiv = td.querySelector('div[contenteditable="true"]');
-        if (textDiv) textDiv.innerText = d;
-        else td.innerHTML = d;
-        if(app.updatePivotRowDate) app.updatePivotRowDate(td, d);
-        dropdown.classList.add('hidden');
-      };
-      dropdown.appendChild(div);
-    });
-    
-    const rect = td.getBoundingClientRect();
-    dropdown.style.left = `${rect.left}px`;
-    dropdown.style.top = `${rect.bottom + window.scrollY + 5}px`;
-    dropdown.classList.remove('hidden');
-    
-    const closeDropdown = (e) => {
-      if (!dropdown.contains(e.target) && e.target !== td) {
-        dropdown.classList.add('hidden');
-        document.removeEventListener('click', closeDropdown);
-      }
-    };
-    setTimeout(() => document.addEventListener('click', closeDropdown), 10);
   },
 
   openTimePicker: function(td, field) {
@@ -551,45 +488,9 @@ const app = {
         document.execCommand('insertText', false, text);
       }
     });
-
-    document.querySelectorAll('.accordion-header').forEach(header => {
-      header.addEventListener('click', (e) => {
-        const item = e.currentTarget.closest('.accordion-item');
-        item.classList.toggle('open');
-      });
-    });
-
-    document.querySelectorAll('.sub-item').forEach(item => {
-      item.addEventListener('click', async (e) => {
-        document.querySelectorAll('.single-item, .sub-item, .accordion-header').forEach(el => el.classList.remove('active'));
-        e.currentTarget.classList.add('active');
-        e.currentTarget.closest('.accordion-item').querySelector('.accordion-header').classList.add('active');
-        
-        const targetViewId = e.currentTarget.getAttribute('data-target');
-        const term = parseInt(e.currentTarget.getAttribute('data-term'), 10);
-        
-        let termChanged = false;
-        if (app.currentTerm !== term) {
-          app.currentTerm = term;
-          termChanged = true;
-        }
-
-        const parentText = e.currentTarget.closest('.accordion-item').querySelector('.text').innerText;
-        document.getElementById('pageTitle').innerText = parentText + ` [${term}차]`;
-        
-        app.switchView(targetViewId);
-        
-        if (termChanged) {
-          await app.fetchInitialData();
-        } else {
-          app.renderView(targetViewId.replace('view-', ''));
-        }
-      });
-    });
-
     document.querySelectorAll('.single-item').forEach(item => {
       item.addEventListener('click', (e) => {
-        document.querySelectorAll('.single-item, .sub-item, .accordion-header').forEach(el => el.classList.remove('active'));
+        document.querySelectorAll('.single-item').forEach(el => el.classList.remove('active'));
         e.currentTarget.classList.add('active');
         const targetViewId = e.currentTarget.getAttribute('data-target');
         document.getElementById('pageTitle').innerText = e.currentTarget.querySelector('.text').innerText;
@@ -620,12 +521,10 @@ const app = {
         headerActions.innerHTML = `<button class="btn btn-primary" onclick="app.addRow('curriculum')">+ 주차 추가</button> <button class="btn btn-primary" onclick="app.addColumn('curriculum')">+ 과목 추가</button>`;
       } else if (viewId === 'view-curriculum-science') {
         headerActions.innerHTML = `<button class="btn btn-primary" onclick="app.addRow('curriculum_science')">+ 주차 추가</button> <button class="btn btn-primary" onclick="app.addColumn('curriculum_science')">+ 과목 추가</button>`;
-      } else if (viewId === 'view-timetable-summary') {
-        headerActions.innerHTML = `<button class="btn btn-primary" onclick="app.addRow('timetable_summary')">+ 요일 추가</button> <button class="btn btn-primary" onclick="app.addColumn('timetable')">+ 학급 추가</button>`;
       } else if (viewId === 'view-timetable') {
         headerActions.innerHTML = `<button class="btn btn-primary" onclick="app.addRow('timetable')">+ 시간 추가</button> <button class="btn btn-primary" onclick="app.addRow('holiday')">+ 휴일 추가</button> <button class="btn btn-primary" onclick="app.addColumn('timetable')">+ 학급 추가</button>`;
       } else if (viewId === 'view-student') {
-        headerActions.innerHTML = `<button class="btn btn-primary" onclick="app.addRow('student')">+ 학생 추가</button> <button class="btn btn-primary" onclick="app.openClassManagerModal()">+ 학급 관리</button>`;
+        headerActions.innerHTML = `<button class="btn btn-primary" onclick="app.addRow('student')">+ 학생 추가</button>`;
       } else if (viewId === 'view-instructor') {
         headerActions.innerHTML = `<button class="btn btn-primary" onclick="app.addRow('instructor')">+ 강사 추가</button> <button class="btn btn-primary" onclick="app.openSubjectManagerModal()">+ 과목 관리</button>`;
       } else {
@@ -636,23 +535,22 @@ const app = {
 
   renderAllViews: function() {
     this.renderView('preschedule'); this.renderView('curriculum'); this.renderView('curriculum_science');
-    this.renderView('timetable'); this.renderView('timetable_summary'); this.renderView('student'); this.renderView('instructor');
+    this.renderView('timetable'); this.renderView('student'); this.renderView('instructor');
   },
 
   renderView: function(viewName) {
     if (viewName === 'preschedule') this.renderFlatTable('preschedule', this.data.preschedules, [{label:'일자', idx:1, fixed:true, width:'12%', left:'0'}, {label:'상태', idx:3, fixed:true, width:'10%', left:'12%'}, {label:'내용', idx:2}, {label:'비고', idx:4}]);
-    else if (viewName === 'student') this.renderFlatTable('student', this.data.students, [{label:'학생명', idx:1, fixed:true, width:'8%', left:'0'}, {label:'학급', idx:8}, {label:'사전 평가점수', idx:9}, {label:'센터', idx:2}, {label:'학교', idx:3}, {label:'학년', idx:4}, {label:'학부모 연락처', idx:5}, {label:'학생 연락처', idx:6}, {label:'비고', idx:7}]);
+    else if (viewName === 'student') this.renderFlatTable('student', this.data.students, [{label:'학생명', idx:1, fixed:true, width:'8%', left:'0'}, {label:'센터', idx:2}, {label:'학교', idx:3}, {label:'학년', idx:4}, {label:'학부모 연락처', idx:5}, {label:'학생 연락처', idx:6}, {label:'비고', idx:7}]);
     else if (viewName === 'instructor') this.renderFlatTable('instructor', this.data.instructors, [{label:'강사명', idx:1, fixed:true, width:'8%', left:'0'}, {label:'영역', idx:2}, {label:'과목', idx:3}, {label:'연락처', idx:4}, {label:'지메일', idx:5}, {label:'비고', idx:6}]);
     else if (viewName === 'curriculum') this.renderCurriculumPivot('curriculum');
     else if (viewName === 'curriculum_science') this.renderCurriculumPivot('curriculum_science');
-    else if (viewName === 'timetable') this.renderTimetablePivot(false);
-    else if (viewName === 'timetable_summary' || viewName === 'timetable-summary') this.renderTimetablePivot(true);
+    else if (viewName === 'timetable') this.renderTimetablePivot();
   },
 
   getCleanHTML: function(cell) {
     let html = cell.innerHTML;
     // 엔터(div)를 br로 변환하여 줄바꿈 유지
-    html = html.replace(new RegExp('<div>', 'gi'), '<br>').replace(new RegExp('</div>', 'gi'), '');
+    html = html.replace(/<div>/gi, '<br>').replace(/<\/div>/gi, '');
     // 색상, 굵기 등 안전한 태그만 남기고 전부 삭제
     html = html.replace(/<\/?(?!(span|div|font|b|i|u|br)\b)[^>]*>/gi, '');
     // 딜리미터 충돌 방지
@@ -788,7 +686,7 @@ const app = {
           if (!this.resizeTooltip) {
             this.resizeTooltip = document.createElement('div');
             this.resizeTooltip.className = 'resize-tooltip';
-            this.resizeTooltip.style.cssText = 'position: fixed; background: rgba(0,0,0,0.8); color: #06b6d4; padding: 4px 8px; border-radius: 4px; font-size: 13px; font-weight: 600; pointer-events: none; z-index: 9999; box-shadow: 0 2px 10px rgba(0,0,0,0.5); border: 1px solid rgba(6,182,212,0.3); transition: none;';
+            this.resizeTooltip.style.cssText = 'position: fixed; background: rgba(0,0,0,0.8); color: #06b6d4; padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: 600; pointer-events: none; z-index: 9999; box-shadow: 0 2px 10px rgba(0,0,0,0.5); border: 1px solid rgba(6,182,212,0.3); transition: none;';
             document.body.appendChild(this.resizeTooltip);
           }
           this.resizeTooltip.style.left = (e.clientX + 15) + 'px';
@@ -915,9 +813,7 @@ const app = {
           const statusTxt = isDone ? '🟢 완료' : '🟡 진행 중';
           const txtColor = isDone ? '#10b981' : '#ffffff';
           const fw = isDone ? '600' : 'normal';
-          html += `<td data-col-idx="${colIdx}" class="status-cell ${isFixed ? 'fixed-col label-col' : ''}" style="text-align:center; cursor:pointer; ${leftStr}" onclick="app.toggleStatus(this.querySelector('span'), '${type}', ${colIdx})"><span style="font-weight:${fw}; color:${txtColor}; font-size:13px; user-select:none; transition:all 0.2s; padding:4px 8px; border-radius:4px;" onmouseover="this.style.backgroundColor='rgba(255,255,255,0.05)'" onmouseout="this.style.backgroundColor='transparent'">${statusTxt}</span></td>`;
-        } else if (type === 'student' && colIdx === 8) {
-          html += `<td ${cellClassStr} data-col-idx="${colIdx}" onclick="app.openClassSelectModal(this)" style="cursor:pointer; text-align:center;">${val}</td>`;
+          html += `<td data-col-idx="${colIdx}" class="status-cell ${isFixed ? 'fixed-col label-col' : ''}" style="text-align:center; cursor:pointer; ${leftStr}" onclick="app.toggleStatus(this.querySelector('span'), '${type}', ${colIdx})"><span style="font-weight:${fw}; color:${txtColor}; font-size:12px; user-select:none; transition:all 0.2s; padding:4px 8px; border-radius:4px;" onmouseover="this.style.backgroundColor='rgba(255,255,255,0.05)'" onmouseout="this.style.backgroundColor='transparent'">${statusTxt}</span></td>`;
         } else if (type === 'instructor' && colIdx === 2) {
           html += `<td ${cellClassStr} data-col-idx="${colIdx}" onclick="app.openInstructorSelectModal(this, 'area')" style="cursor:pointer; text-align:center;">${val}</td>`;
         } else if (type === 'instructor' && colIdx === 3) {
@@ -1107,7 +1003,7 @@ const app = {
           app.renderView(type);
         }
       });
-    } else if (type === 'timetable' || type === 'timetable_summary') {
+    } else if (type === 'timetable') {
       if (this.dynamicCols.timetable.length === 0) this.dynamicCols.timetable.push('새 학급');
       let nextStart = '', nextEnd = '';
       const tmpDate = 'tmp-' + Date.now() + Math.random().toString(36).substr(2, 5);
@@ -1122,7 +1018,7 @@ const app = {
       this.dynamicCols.timetable.forEach(cls => {
         const newId = 'f-' + Date.now().toString(36) + '-' + Math.random().toString(36).substr(2, 5);
         const rowObj = [newId, tmpDate, '수업', nextStart, nextEnd, cls, '', '', '', ''];
-        if (insertIndex >= 0) {
+                if (insertIndex >= 0) {
           this.data.timetables.splice(actualInsertIndex + i, 0, rowObj);
         } else {
           this.data.timetables.push(rowObj);
@@ -1295,17 +1191,13 @@ const app = {
     };
   },
 
-  renderTimetablePivot: function(isSummary = false) {
-    const tableId = isSummary ? '#view-timetable-summary .excel-table' : '#view-timetable .excel-table';
-    const tbodyId = isSummary ? 'tbody-timetable-summary' : 'tbody-timetable';
-    const table = document.querySelector(tableId);
-    if (!table) return;
-    
-    let headHtml = `<thead><tr><th class="label-col-header fixed-col" style="width:12%; left:0;">${isSummary ? '요일' : '일자'}</th><th class="label-col-header fixed-col" style="width:5%; left:12%;">주차</th><th class="label-col-header fixed-col" style="width:5%; left:17%;">회차</th><th class="label-col-header fixed-col" style="width:8%; left:22%;">시작 시간</th><th class="label-col-header fixed-col" style="width:8%; left:30%;">종료 시간</th>`;
+  renderTimetablePivot: function() {
+    const table = document.querySelector('#view-timetable .excel-table');
+    let headHtml = `<thead><tr><th class="label-col-header fixed-col" style="width:12%; left:0;">일자</th><th class="label-col-header fixed-col" style="width:5%; left:12%;">주차</th><th class="label-col-header fixed-col" style="width:5%; left:17%;">회차</th><th class="label-col-header fixed-col" style="width:8%; left:22%;">시작 시간</th><th class="label-col-header fixed-col" style="width:8%; left:30%;">종료 시간</th>`;
     this.dynamicCols.timetable.forEach(cls => {
       headHtml += `<th data-colname="${cls}" onclick="app.editTimetableClassName('${cls}')" style="cursor:pointer;" title="클릭하여 반 이름 수정">${cls}</th>`;
     });
-    headHtml += `</tr></thead><tbody id="${tbodyId}">`;
+    headHtml += `</tr></thead><tbody id="tbody-timetable">`;
 
     const rowGroups = Array.from(new Set(this.data.timetables.map(r => r[1] + '|' + r[2] + '|' + r[3] + '|' + r[4]).filter(t => t !== '|||')));
 
@@ -1324,7 +1216,7 @@ const app = {
       const colorStyle = richDate.includes('날짜 선택') ? 'color:var(--text-muted);' : '';
       
       headHtml += `<tr data-ids="${idsForGrp}" data-grp="${grp}">
-        <td class="fixed-col label-col" style="text-align:center;" data-cell-key="tt_fmt_date_${grp}"><span class="drag-handle"></span><div contenteditable="true" style="display:inline-block; outline:none; min-width:30px; ${colorStyle}" onblur="app.updatePivotRowDate(this.closest('td'), this.innerText.trim())">${richDate}</div> <span class="date-picker-icon" onclick="${isSummary ? "app.openDayPicker(this.closest('td'))" : "app.openDatePicker(this.closest('td'))"}" style="cursor:pointer;" title="클릭하여 ${isSummary ? '요일' : '달력'} 선택">📅</span></td>`;
+        <td class="fixed-col label-col" style="text-align:center;" data-cell-key="tt_fmt_date_${grp}"><span class="drag-handle"></span><div contenteditable="true" style="display:inline-block; outline:none; min-width:30px; ${colorStyle}" onblur="app.updatePivotRowDate(this.closest('td'), this.innerText.trim())">${richDate}</div> <span class="date-picker-icon" onclick="app.openDatePicker(this.closest('td'))" style="cursor:pointer;" title="클릭하여 달력 선택">📅</span></td>`;
       
       const firstRow = this.data.timetables.find(r => r[1] === date && r[2] === type && r[3] === start && r[4] === end);
 
@@ -1581,7 +1473,7 @@ const app = {
     let html = '';
     this.managedSubjects.forEach((sub, idx) => {
       html += `<div style="display:flex; align-items:center; background:rgba(255,255,255,0.1); padding:5px 10px; border-radius:20px; font-size:13px;">
-        ${sub.emoji} ${sub.name} <span style="font-size:13px; margin-left:5px; opacity:0.6;">(${sub.category})</span>
+        ${sub.emoji} ${sub.name} <span style="font-size:10px; margin-left:5px; opacity:0.6;">(${sub.category})</span>
         <button style="background:transparent; border:none; color:#ff6b6b; margin-left:8px; cursor:pointer; font-weight:bold;" onclick="app.removeSubject(${idx})">✖</button>
       </div>`;
     });
@@ -1633,52 +1525,49 @@ const app = {
     }).filter(Boolean)));
     const subjects = this.managedSubjects.map(s => s.name);
 
-    let instructorOptsStr = `<option value="">선택 안함</option>` + instructors.map(i => `<option value="${i}" ${instructor===i?'selected':''}>${i}</option>`).join('');
-    let subjectOptsStr = `<option value="">선택 안함</option>` + this.managedSubjects.map(s => {
-      const sel = subject === s.name ? 'selected' : '';
-      return `<option value="${s.name}" ${sel}>${s.emoji} ${s.name} (${s.category})</option>`;
-    }).join('');
+    let instructorOptsStr = `<option value="">강사 선택</option>` + instructors.map(i => `<option value="${i}" ${instructor===i?'selected':''}>${i}</option>`).join('');
+    let subjectOptsStr = `<option value="">과목 선택</option>` + this.managedSubjects.map(s => `<option value="${s.name}" ${subject===s.name?'selected':''}>${s.emoji} ${s.name}</option>`).join('');
 
-    const existing = document.getElementById('timetable-editor-overlay');
-    if (existing) existing.remove();
+    let overlay = document.getElementById('timetable-editor-overlay');
+    if (!overlay) {
+      overlay = document.createElement('div');
+      overlay.id = 'timetable-editor-overlay';
+      overlay.className = 'modal-overlay';
+      overlay.onclick = (e) => { if(e.target === overlay) { overlay.remove(); } };
+      document.body.appendChild(overlay);
+    }
 
-    const rect = td.getBoundingClientRect();
-    const modal = document.createElement('div');
-    modal.id = 'timetable-editor-overlay';
-    modal.style.position = 'absolute';
-    modal.style.left = `${Math.min(rect.left, window.innerWidth - 300)}px`;
-    modal.style.top = `${rect.bottom + window.scrollY + 5}px`;
-    modal.style.width = '300px';
-    modal.style.background = '#1f2937';
-    modal.style.border = '1px solid #374151';
-    modal.style.borderRadius = '8px';
-    modal.style.boxShadow = '0 10px 15px -3px rgba(0,0,0,0.5)';
-    modal.style.zIndex = '9999';
-    modal.style.padding = '0';
-    document.body.appendChild(modal);
+    let modal = document.getElementById('timetable-editor-modal');
+    if (!modal) {
+      modal = document.createElement('div');
+      modal.id = 'timetable-editor-modal';
+      modal.className = 'modal-content';
+      modal.style.cssText = 'width: 320px; max-width: 90%; display: flex; flex-direction: column; gap: 0;';
+      overlay.appendChild(modal);
+    }
 
     modal.innerHTML = `
       <div class="modal-header">
-        <h3 style="margin:0; font-size:16px; color:var(--primary); text-align:left;">${cls} 수업 편집</h3>
-        <button class="close-btn" onclick="document.getElementById('timetable-editor-overlay').remove();">&times;</button>
+        <h3 style="margin:0; font-size:16px; color:var(--primary); text-align:center;">${cls} 수업 편집</h3>
+        <button class="close-btn" onclick="document.getElementById('timetable-editor-overlay').remove();">✕</button>
       </div>
       <div class="modal-body" style="display:flex; flex-direction:column; gap:15px;">
-        <div class="form-group">
-          <label>과목</label>
+        <div>
+          <label style="font-size:12px; color:var(--text-muted); margin-bottom:5px; display:block;">과목</label>
           <select id="tt-edit-subject" class="form-control" style="width:100%;">
             ${subjectOptsStr}
           </select>
         </div>
-        <div class="form-group">
-          <label>담당자</label>
+        <div>
+          <label style="font-size:12px; color:var(--text-muted); margin-bottom:5px; display:block;">담당자</label>
           <select id="tt-edit-instructor" class="form-control" style="width:100%;">
             ${instructorOptsStr}
           </select>
         </div>
       </div>
-      <div class="modal-footer">
-        <button class="btn" onclick="document.getElementById('timetable-editor-overlay').remove();">취소</button>
-        <button class="btn btn-primary" onclick="app.saveTimetableEditor('${id}', '${date}', '${start}', '${end}', '${cls}')">저장</button>
+      <div class="modal-footer" style="display:flex; gap:10px;">
+        <button class="btn" style="flex:1; background:rgba(255,255,255,0.1);" onclick="document.getElementById('timetable-editor-overlay').remove();">취소</button>
+        <button class="btn btn-primary" style="flex:1;" onclick="app.saveTimetableEditor('${id}', '${date}', '${start}', '${end}', '${cls}')">저장</button>
       </div>
     `;
   },

@@ -64,63 +64,6 @@ body {
 .nav-item {
   margin-bottom: 5px;
 }
-
-.accordion-header {
-  display: flex;
-  align-items: center;
-  gap: 13px;
-  padding: 13px 15px;
-  border-radius: 8px;
-  cursor: pointer;
-  color: var(--text-muted);
-  transition: all 0.2s ease;
-  font-size: 15px;
-  font-weight: 600;
-}
-.accordion-header:hover {
-  background: rgba(255, 255, 255, 0.05);
-}
-.accordion-header.active {
-  background: rgba(16, 185, 129, 0.15);
-  color: var(--primary);
-}
-.accordion-header .arrow {
-  margin-left: auto;
-  font-size: 12px;
-  transition: transform 0.3s ease;
-}
-.accordion-item.open .accordion-header .arrow {
-  transform: rotate(180deg);
-}
-
-.accordion-content {
-  display: none;
-  padding-left: 35px;
-  margin-top: 5px;
-}
-.accordion-item.open .accordion-content {
-  display: block;
-}
-
-.sub-item {
-  padding: 10px 15px;
-  border-radius: 8px;
-  cursor: pointer;
-  color: var(--text-muted);
-  transition: all 0.2s ease;
-  font-size: 13px;
-  font-weight: 500;
-  margin-bottom: 2px;
-}
-.sub-item:hover {
-  background: rgba(255, 255, 255, 0.05);
-}
-.sub-item.active {
-  color: var(--primary);
-  background: rgba(16, 185, 129, 0.1);
-  box-shadow: inset 2px 0 0 var(--primary);
-}
-
 .single-item, .link-item {
   display: flex;
   align-items: center;
@@ -248,7 +191,7 @@ body {
   user-select: none;
   opacity: 0.8;
 }
-.modal-header h3, #subject-manager-modal h3 { color: var(--primary) !important; font-weight: 700 !important; margin-top: 0; text-align: left; font-size: 16px; }
+.modal-header h3, #subject-manager-modal h3 { background: linear-gradient(135deg, #06b6d4, #10b981) !important; -webkit-background-clip: text !important; -webkit-text-fill-color: transparent !important; font-weight: 700 !important; margin-top: 0; text-align: center; font-size: 16px; }
 .close-btn { background: none; border: none; color: white; font-size: 16px; cursor: pointer; }
 .modal-body { padding: 20px; }
 .modal-footer {
@@ -410,7 +353,7 @@ body {
 .sort-icon {
   margin-left: 5px;
   cursor: pointer;
-  font-size: 13px;
+  font-size: 7px;
   color: #10b981;
 }
 .sort-icon:hover { color: white; }
