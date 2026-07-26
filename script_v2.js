@@ -1697,7 +1697,7 @@ const app = {
     }
   },
   openClassSelectModal: function(td) {
-    if (td.querySelector('select')) return;
+    document.getElementById('generic-modal-title').innerText = '학급 선택';
     const currentVal = td.innerText.trim();
     let optsHtml = '<option value="">선택 안함</option>';
     if (this.managedClasses && Array.isArray(this.managedClasses)) {
@@ -1705,9 +1705,25 @@ const app = {
         optsHtml += `<option value="${c}" ${c === currentVal ? 'selected' : ''}>${c}</option>`;
       });
     }
-    td.innerHTML = `<select class="form-control" style="width:100%; height:100%; min-width:80px; background:var(--bg-color, #1f2937); color:var(--text-color, #fff); border:1px solid #4b5563; border-radius:4px;" onblur="this.parentElement.innerText=this.value; app.onFlatCellBlur('student', this.parentElement);" onchange="this.blur();">${optsHtml}</select>`;
-    const select = td.querySelector('select');
-    select.focus();
+    
+    document.getElementById('generic-modal-body').innerHTML = `
+      <div class="form-group">
+        <label>학급</label>
+        <select id="class-modal-select" class="form-control">
+          ${optsHtml}
+        </select>
+      </div>
+    `;
+    
+    document.getElementById('modal-container').classList.remove('hidden');
+    document.getElementById('generic-modal').classList.remove('hidden');
+    
+    app.currentModalAction = () => {
+      const select = document.getElementById('class-modal-select');
+      td.innerHTML = select.value;
+      app.closeModal();
+      app.onFlatCellBlur('student', td);
+    };
   },
 
   openTimetableEditor: function(td) {
