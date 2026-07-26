@@ -1891,7 +1891,7 @@ const app = {
       document.getElementById('generic-modal-body').innerHTML = `<div class="form-group"><label>과목 선택 (${category})</label><select id="new-col-input" class="form-control">${optionsHtml}</select></div>`;
     } else {
       if ((this.managedClasses || []).length > 0) {
-        let optionsHtml = '<option value="">학급 선택</option>' + this.managedClasses.map(c => `<option value="${c.name}">${c.name}</option>`).join('');
+        let optionsHtml = '<option value="">학급 선택</option>' + this.managedClasses.map(c => `<option value="${c}">${c}</option>`).join('');
         document.getElementById('generic-modal-body').innerHTML = `<div class="form-group"><label>반이름 선택</label><select id="new-col-input" class="form-control">${optionsHtml}</select></div>`;
       } else {
         document.getElementById('generic-modal-body').innerHTML = `<div class="form-group"><label>반이름</label><input type="text" id="new-col-input" class="form-control" placeholder="학급 관리를 통해 반을 등록해주세요" readonly></div>`;
