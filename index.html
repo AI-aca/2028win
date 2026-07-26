@@ -173,10 +173,10 @@
           </div>
         </div>
 
-        <div id="view-student" class="view-section hidden data-view">
+      <div id="view-student" class="view-section hidden data-view">
           <div class="table-container">
             <table class="excel-table">
-              <thead><tr><th>이름</th><th>학급</th><th>사전 평가점수</th><th>학교</th><th>학년</th><th>학부모연락처</th><th>학생연락처</th><th>비고</th><th style="width: 60px;">삭제</th></tr></thead>
+              <thead><tr><th>이름</th><th style="cursor:pointer;" onclick="app.sortTable('student', 8)">학급 <span style="color:#10b981; font-size:10px;">▼</span></th><th style="cursor:pointer;" onclick="app.sortTable('student', 9)">사전 평가점수 <span style="color:#10b981; font-size:10px;">▼</span></th><th>학교</th><th>학년</th><th>학부모연락처</th><th>학생연락처</th><th>비고</th><th style="width: 60px;">삭제</th></tr></thead>
               <tbody id="tbody-student"></tbody>
             </table>
           </div>
@@ -228,8 +228,6 @@
   <!-- Context Menu -->
   <div id="context-menu" class="context-menu hidden">
     <ul id="ctx-menu-row">
-      <li onclick="app.ctxInsertRowAbove()">행 위에 삽입</li>
-      <li onclick="app.ctxInsertRowBelow()">행 아래에 삽입</li>
       <li class="menu-separator"></li>
       <li class="text-danger" onclick="app.ctxDeleteRow()">행 삭제</li>
       <li class="menu-separator"></li>

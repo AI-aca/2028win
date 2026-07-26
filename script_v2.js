@@ -697,8 +697,12 @@ const app = {
 
     dataArray.sort((a, b) => {
       let v1 = a[colIdx] || ''; let v2 = b[colIdx] || '';
-      if(typeof v1 === 'string') v1 = v1.toLowerCase();
-      if(typeof v2 === 'string') v2 = v2.toLowerCase();
+      if (!isNaN(v1) && !isNaN(v2) && v1 !== '' && v2 !== '') {
+        v1 = Number(v1); v2 = Number(v2);
+      } else {
+        if(typeof v1 === 'string') v1 = v1.toLowerCase();
+        if(typeof v2 === 'string') v2 = v2.toLowerCase();
+      }
       if (v1 < v2) return isAsc ? 1 : -1;
       if (v1 > v2) return isAsc ? -1 : 1;
       return 0;
@@ -1185,6 +1189,18 @@ const app = {
     headHtml += `</tr></thead><tbody id="tbody-${isSci ? 'curriculum-science' : 'curriculum'}">`;
 
     const grps = Array.from(new Set(dataArr.map(r => r[1] + '|' + (r[4] || '') + '|' + r[0]).filter(g => !g.startsWith('|'))));
+    
+    grps.sort((a, b) => {
+      const [weekA, hoichaA] = a.split('|');
+      const [weekB, hoichaB] = b.split('|');
+      const wA = parseInt(weekA) || 999;
+      const wB = parseInt(weekB) || 999;
+      if (wA !== wB) return wA - wB;
+      const hA = parseInt(hoichaA) || 999;
+      const hB = parseInt(hoichaB) || 999;
+      return hA - hB;
+    });
+
     const processedGrps = new Set();
     grps.forEach(grp => {
       const [week, hoicha, rowId] = grp.split('|');
@@ -1307,13 +1323,46 @@ const app = {
     
     const targetData = isSummary ? this.data.timetables.filter(r => r[2] === '요약') : this.data.timetables.filter(r => r[2] !== '요약');
     
-    let headHtml = `<thead><tr><th class="label-col-header fixed-col" style="width:12%; left:0;">${isSummary ? '요일' : '일자'}</th><th class="label-col-header fixed-col" style="width:5%; left:12%;">주차</th><th class="label-col-header fixed-col" style="width:5%; left:17%;">회차</th><th class="label-col-header fixed-col" style="width:8%; left:22%;">시작 시간</th><th class="label-col-header fixed-col" style="width:8%; left:30%;">종료 시간</th>`;
+    let headHtml = `<thead><tr><th class="label-col-header fixed-col" style="width:12%; left:0;">${isSummary ? '요일' : '일자'}</th>`;
+    
+    if (!isSummary) {
+      headHtml += `<th class="label-col-header fixed-col" style="width:5%; left:12%;">주차</th><th class="label-col-header fixed-col" style="width:5%; left:17%;">회차</th>`;
+    }
+    
+    const startLeft = isSummary ? '12%' : '22%';
+    const endLeft = isSummary ? '20%' : '30%';
+    
+    headHtml += `<th class="label-col-header fixed-col" style="width:8%; left:${startLeft};">시작 시간</th><th class="label-col-header fixed-col" style="width:8%; left:${endLeft};">종료 시간</th>`;
+    
     this.dynamicCols.timetable.forEach(cls => {
       headHtml += `<th data-colname="${cls}" onclick="app.editTimetableClassName('${cls}')" style="cursor:pointer;" title="클릭하여 반 이름 수정">${cls}</th>`;
     });
     headHtml += `</tr></thead><tbody id="${tbodyId}">`;
 
     const rowGroups = Array.from(new Set(targetData.map(r => r[1] + '|' + r[2] + '|' + r[3] + '|' + r[4]).filter(t => t !== '|||')));
+    
+    rowGroups.sort((a, b) => {
+      const [dateA, , startA] = a.split('|');
+      const [dateB, , startB] = b.split('|');
+      const cleanA = dateA.replace(/\u200B/g, '').trim();
+      const cleanB = dateB.replace(/\u200B/g, '').trim();
+      
+      if (isSummary) { 
+        const days = ['월요일', '화요일', '수요일', '목요일', '금요일', '토요일', '일요일'];
+        const idxA = days.indexOf(cleanA) !== -1 ? days.indexOf(cleanA) : 99;
+        const idxB = days.indexOf(cleanB) !== -1 ? days.indexOf(cleanB) : 99;
+        if (idxA !== idxB) return idxA - idxB;
+      } else { 
+        if (cleanA !== cleanB) {
+          if (cleanA.startsWith('tmp-') && !cleanB.startsWith('tmp-')) return 1;
+          if (!cleanA.startsWith('tmp-') && cleanB.startsWith('tmp-')) return -1;
+          return cleanA.localeCompare(cleanB);
+        }
+      }
+      const sA = startA || '24:00';
+      const sB = startB || '24:00';
+      return sA.localeCompare(sB);
+    });
 
     rowGroups.forEach(grp => {
       const [date, type, start, end] = grp.split('|');
@@ -1337,14 +1386,19 @@ const app = {
       if (isHoliday) {
         const holidayRow = targetData.find(r => r[1] === date && r[2] === '휴일');
         const holidayNote = holidayRow ? (holidayRow[8] || '') : '';
-        headHtml += `<td colspan="4" class="fixed-col label-col" data-cell-key="tt_fmt_hol_${grp}" style="text-align:center; left:12%; color:var(--danger);">🏖️ 휴일</td>`;
+        const colspanSize = isSummary ? 2 : 4;
+        headHtml += `<td colspan="${colspanSize}" class="fixed-col label-col" data-cell-key="tt_fmt_hol_${grp}" style="text-align:center; left:${startLeft}; color:var(--danger);">🏖️ 휴일</td>`;
         headHtml += `<td colspan="${this.dynamicCols.timetable.length}" class="timetable-cell" data-id="${holidayRow?holidayRow[0]:''}" data-date="${date}" contenteditable="true" onblur="app.onTimetableHolidayBlur(this)" style="text-align:center; background:rgba(255,255,255,0.05); color:var(--text-muted);">${holidayNote || '휴일/특이사항 입력'}</td>`;
       } else {
         const hoicha = firstRow ? (firstRow[8] || '') : '';
         const weekVal = this.uiSettings['tt_week_' + grp] || '';
-        headHtml += `<td class="fixed-col label-col" data-cell-key="tt_fmt_ttwk_${grp}" style="text-align:center; left:12%;" contenteditable="true" onblur="app.updateTimetableWeek(this, '${grp}')">${weekVal}</td>`;
-        headHtml += `<td class="fixed-col label-col" data-cell-key="tt_fmt_tthc_${grp}" style="text-align:center; left:17%;" contenteditable="true" onblur="app.updateTimetableHoicha(this, '${grp}')">${hoicha}</td>`;
-        headHtml += `<td class="fixed-col label-col" style="left:22%; white-space:nowrap; text-align:center; vertical-align:middle; font-weight:normal;" data-cell-key="tt_fmt_st_${grp}"><div contenteditable="true" onblur="app.updatePivotRowTime(this.closest('td'), 'start', this.innerText.trim())" style="display:inline-block; outline:none; min-width:30px; font-weight:normal;">${start || '00:00'}</div> <span onclick="app.openTimePicker(this.closest('td'), 'start')" style="cursor:pointer;" title="시간 선택">🕒</span></td><td class="fixed-col label-col" style="left:30%; white-space:nowrap; text-align:center; vertical-align:middle; font-weight:normal;" data-cell-key="tt_fmt_et_${grp}"><div contenteditable="true" onblur="app.updatePivotRowTime(this.closest('td'), 'end', this.innerText.trim())" style="display:inline-block; outline:none; min-width:30px; font-weight:normal;">${end || '00:00'}</div> <span onclick="app.openTimePicker(this.closest('td'), 'end')" style="cursor:pointer;" title="시간 선택">🕒</span></td>`;
+        
+        if (!isSummary) {
+          headHtml += `<td class="fixed-col label-col" data-cell-key="tt_fmt_ttwk_${grp}" style="text-align:center; left:12%;" contenteditable="true" onblur="app.updateTimetableWeek(this, '${grp}')">${weekVal}</td>`;
+          headHtml += `<td class="fixed-col label-col" data-cell-key="tt_fmt_tthc_${grp}" style="text-align:center; left:17%;" contenteditable="true" onblur="app.updateTimetableHoicha(this, '${grp}')">${hoicha}</td>`;
+        }
+        
+        headHtml += `<td class="fixed-col label-col" style="left:${startLeft}; white-space:nowrap; text-align:center; vertical-align:middle; font-weight:normal;" data-cell-key="tt_fmt_st_${grp}"><div contenteditable="true" onblur="app.updatePivotRowTime(this.closest('td'), 'start', this.innerText.trim())" style="display:inline-block; outline:none; min-width:30px; font-weight:normal;">${start || '00:00'}</div> <span onclick="app.openTimePicker(this.closest('td'), 'start')" style="cursor:pointer;" title="시간 선택">🕒</span></td><td class="fixed-col label-col" style="left:${endLeft}; white-space:nowrap; text-align:center; vertical-align:middle; font-weight:normal;" data-cell-key="tt_fmt_et_${grp}"><div contenteditable="true" onblur="app.updatePivotRowTime(this.closest('td'), 'end', this.innerText.trim())" style="display:inline-block; outline:none; min-width:30px; font-weight:normal;">${end || '00:00'}</div> <span onclick="app.openTimePicker(this.closest('td'), 'end')" style="cursor:pointer;" title="시간 선택">🕒</span></td>`;
         this.dynamicCols.timetable.forEach(cls => {
           const row = targetData.find(r => r[1] === date && r[2] === type && r[3] === start && r[4] === end && r[5] === cls);
           let subject = row && row[6] ? row[6] : '';
