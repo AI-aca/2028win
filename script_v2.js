@@ -431,7 +431,15 @@ const app = {
         } else {
           td.innerHTML = formatted;
         }
-        if(app.updatePivotRowDate) app.updatePivotRowDate(td, formatted);
+        
+        const type = app.currentView.replace('view-', '');
+        if (td.hasAttribute('data-col-idx')) {
+          if (div) app.onFlatCellBlur(type, div);
+          else app.onFlatCellBlur(type, td);
+        } else {
+          if(app.updatePivotRowDate) app.updatePivotRowDate(td, formatted);
+        }
+        
         setTimeout(() => { fp.destroy(); input.remove(); }, 100);
       },
       onClose: function() {
@@ -533,7 +541,7 @@ const app = {
         if (textDiv) {
           textDiv.innerText = t;
         } else {
-          td.innerHTML = t;
+          td.innerText = t;
         }
         if(app.updatePivotRowTime) app.updatePivotRowTime(td, field, t);
         dropdown.classList.add('hidden');
@@ -1537,7 +1545,10 @@ const app = {
         if (h > 23) h = 23;
         if (m > 59) m = 59;
         newTimeStr = String(h).padStart(2, '0') + ':' + String(m).padStart(2, '0');
-        el.value = newTimeStr;
+        
+        const div = el.querySelector('div[contenteditable="true"]');
+        if (div) div.innerText = newTimeStr;
+        else el.innerText = newTimeStr;
       }
     }
     if(!newTimeStr) return;

@@ -169,4 +169,8 @@
 ## 2026-07-27 (시스템 아키텍처 무결성 검증 및 핫픽스)
 - **[아키텍처 진단]**: 88개 전체 항목에 대한 1:1 매트릭스 매핑표 작성 및 실제 소스코드(`script_v2.js`) 증거 100% 매칭 완료.
 - **[무결성 검증]**: Supabase 데이터의 4단계 라이프사이클(저장-로드-UI렌더링-화면수정)이 완벽한 닫힌 고리(Closed-Loop)를 형성함을 증명 및 잠재적 취약점 진단 텍스트 파일(`[MD] MASTER_SYSTEM_AUDIT.md`) 발간.
-- **[핫픽스]**: '일자' 컬럼 내에 달력 아이콘(`🗓️`) 삽입을 위해 `<div>`를 중첩하면서 발생한 `data-col-idx` 속성 참조 불가 현상(`NaN` 에러 및 저장 누락)을 `cell.closest('td')` DOM 탐색 로직으로 교체하여 완벽 해결.\n
+- **[핫픽스]**: '일자' 컬럼 내에 달력 아이콘(`🗓️`) 삽입을 위해 `<div>`를 중첩하면서 발생한 `data-col-idx` 속성 참조 불가 현상(`NaN` 에러 및 저장 누락)을 `cell.closest('td')` DOM 탐색 로직으로 교체하여 완벽 해결.
+
+## 2026-07-27 (DOM 이벤트 바인딩 미스매치 완벽 수술)
+- **[DOM-이벤트 미스매치 핫픽스]**: `openDatePicker`가 달력을 띄운 후 날짜를 선택했을 때, 플랫 테이블(`preschedule` 등)과 피벗 테이블을 구분하지 않고 무조건 피벗 전용 저장 함수(`updatePivotRowDate`)를 호출하여 `TypeError: Cannot read properties of null (reading 'split')` 에러로 앱이 터지며 저장이 증발하던 버그를 완벽히 해결 (플랫 테이블일 경우 `onFlatCellBlur`를 타도록 로직 분기 픽스).
+- **[잠재적 치명 오류 방어]**: 시간표 시간 수정 로직(`updatePivotRowTime`)에서 과거 버전의 잔재인 `el.value = newTimeStr`로 텍스트를 주입하려던 끔찍한 핫코딩을 적발하여, 새 HTML 구조(`div[contenteditable]`)에 맞춰 `.innerText`로 정상 주입되도록 완벽히 수술 완료.\n
