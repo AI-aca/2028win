@@ -419,10 +419,18 @@ const app = {
       return 0;
     };
     
-    this.dynamicCols.curriculum = Array.from(new Set(this.data.curriculums.map(r => r[2]).filter(x => x))).sort(sortByManaged);
-    this.dynamicCols.curriculum_science = Array.from(new Set(this.data.curriculums_science.map(r => r[2]).filter(x => x))).sort(sortByManaged);
+    const mathSubjects = (this.managedSubjects || []).filter(s => s.category === '수학').map(s => s.name);
+    const sciSubjects = (this.managedSubjects || []).filter(s => s.category === '과학').map(s => s.name);
+    const mClasses = this.managedClasses || [];
+
+    const curDataCols = this.data.curriculums.map(r => r[2]).filter(x => x);
+    this.dynamicCols.curriculum = Array.from(new Set([...mathSubjects, ...curDataCols])).sort(sortByManaged);
     
-    this.dynamicCols.timetable = Array.from(new Set(this.data.timetables.map(r => r[5]).filter(x => x && x !== '전체'))).sort(sortByManagedClass);
+    const sciDataCols = this.data.curriculums_science.map(r => r[2]).filter(x => x);
+    this.dynamicCols.curriculum_science = Array.from(new Set([...sciSubjects, ...sciDataCols])).sort(sortByManaged);
+    
+    const ttDataCols = this.data.timetables.map(r => r[5]).filter(x => x && x !== '전체');
+    this.dynamicCols.timetable = Array.from(new Set([...mClasses, ...ttDataCols])).sort(sortByManagedClass);
   },
 
   openDatePicker: function(td) {
