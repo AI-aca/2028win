@@ -1455,8 +1455,13 @@ const app = {
     this.initResizers();
   },
 
-  updatePivotRowDate: async function(el, newDate) {
-    if(!newDate) return;
+  updatePivotRowDate: async function(el, newDateVal) {
+    if(!newDateVal) return;
+    
+    // DB 저장을 위한 순수 날짜 문자열 추출 (태그 제외)
+    let newDate = newDateVal.replace(/<[^>]*>/g, '').trim();
+    if (newDate === '날짜 선택' || newDate === '요일 선택' || newDate === '-- 날짜 선택 --') return;
+
     const tr = el.closest('tr');
     const oldGrp = tr.getAttribute('data-grp');
     const [oldDate, oldType, oldStart, oldEnd] = oldGrp.split('|');
