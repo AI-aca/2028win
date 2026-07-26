@@ -459,7 +459,10 @@ const app = {
       div.onmouseout = () => div.style.backgroundColor = 'transparent';
       div.onclick = () => {
         const textDiv = td.querySelector('div[contenteditable="true"]');
-        if (textDiv) textDiv.innerText = d;
+        if (textDiv) {
+          textDiv.innerText = d;
+          textDiv.style.color = '';
+        }
         else td.innerHTML = d;
         if(app.updatePivotRowDate) app.updatePivotRowDate(td, d);
         dropdown.classList.add('hidden');

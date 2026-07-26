@@ -72,7 +72,7 @@ body {
   padding: 13px 15px;
   border-radius: 8px;
   cursor: pointer;
-  color: var(--text-muted);
+  color: #cbd5e1;
   transition: all 0.2s ease;
   font-size: 15px;
   font-weight: 600;
@@ -88,6 +88,7 @@ body {
   margin-left: auto;
   font-size: 13px;
   transition: transform 0.3s ease;
+  color: var(--primary);
 }
 .accordion-item.open .accordion-header .arrow {
   transform: rotate(180deg);
@@ -128,7 +129,7 @@ body {
   padding: 13px 15px;
   border-radius: 8px;
   cursor: pointer;
-  color: var(--text-muted);
+  color: #cbd5e1;
   transition: all 0.2s ease;
   font-size: 15px;
   font-weight: 600;
@@ -693,3 +694,5 @@ span.flatpickr-weekday {
 .header-actions .btn { padding: 4px 13px !important; font-size: 14px !important; }
 
 select.form-control option { background-color: #1e293b; color: #f8fafc; }
+
+.sort-icon { color: var(--primary) !important; }
