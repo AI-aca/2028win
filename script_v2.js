@@ -997,7 +997,7 @@ const app = {
 
     let dataArray, upsertAction, keys;
     if (type === 'preschedule') { dataArray = this.data.preschedules; upsertAction = 'upsertPreSchedule'; keys = ['date', 'content', 'status', 'note']; }
-    else if (type === 'student') { dataArray = this.data.students; upsertAction = 'upsertStudent'; keys = ['name', 'center', 'school', 'grade', 'parentPhone', 'studentPhone', 'note']; }
+    else if (type === 'student') { dataArray = this.data.students; upsertAction = 'upsertStudent'; keys = ['name', 'center', 'school', 'grade', 'parentPhone', 'studentPhone', 'note', 'class_name', 'pre_score']; }
     else if (type === 'instructor') { dataArray = this.data.instructors; upsertAction = 'upsertInstructor'; keys = ['instructorName', 'subject', 'subSubject', 'phone', 'email', 'note']; } // 시트컬럼: 강사명, 영역, 과목, 연락처, 지메일, 비고
 
     const colIdx = parseInt(cell.getAttribute('data-col-idx'));
@@ -1054,7 +1054,7 @@ const app = {
       this.renderView(type);
 
       let upsertAction = type === 'preschedule' ? 'upsertPreSchedule' : (type === 'student' ? 'upsertStudent' : 'upsertInstructor');
-      let keys = type === 'preschedule' ? ['date', 'content', 'status', 'note'] : (type === 'student' ? ['center', 'name', 'school', 'grade', 'parentPhone', 'studentPhone', 'note'] : ['instructorName', 'subject', 'subSubject', 'phone', 'email', 'note']);
+      let keys = type === 'preschedule' ? ['date', 'content', 'status', 'note'] : (type === 'student' ? ['name', 'center', 'school', 'grade', 'parentPhone', 'studentPhone', 'note', 'class_name', 'pre_score'] : ['instructorName', 'subject', 'subSubject', 'phone', 'email', 'note']);
       let payload = { id: newId };
       for(let i=0; i<keys.length; i++) payload[keys[i]] = '';
       this.apiPost(upsertAction, payload).then(res => {
@@ -1620,6 +1620,54 @@ const app = {
       this.silentSave('saveUISettings', { key: 'managed_subjects', value: JSON.stringify(this.managedSubjects) });
       this.renderSubjectManagerList();
     }
+  },
+
+  openClassManagerModal: function() {
+    this.renderClassManagerList();
+    document.getElementById('class-manager-modal').classList.remove('hidden');
+  },
+  renderClassManagerList: function() {
+    const container = document.getElementById('class-list-container');
+    if (!container) return;
+    let html = '';
+    (this.managedClasses || []).forEach((cls, idx) => {
+      html += `<div style="display:flex; align-items:center; background:rgba(255,255,255,0.1); padding:5px 10px; border-radius:20px; font-size:13px; margin-bottom:5px;">
+        ${cls}
+        <button style="background:transparent; border:none; color:#ff6b6b; margin-left:auto; cursor:pointer; font-weight:bold;" onclick="app.removeClass(${idx})">✖</button>
+      </div>`;
+    });
+    container.innerHTML = html;
+  },
+  addNewClass: function() {
+    const name = document.getElementById('new-class-name').value.trim();
+    if (!name) return alert('학급명을 입력하세요.');
+    if (!this.managedClasses) this.managedClasses = [];
+    if (this.managedClasses.includes(name)) return alert('이미 존재하는 학급명입니다.');
+    
+    this.managedClasses.push(name);
+    this.silentSave('saveUISettings', { key: 'managed_classes', value: JSON.stringify(this.managedClasses) });
+    document.getElementById('new-class-name').value = '';
+    this.renderClassManagerList();
+  },
+  removeClass: function(idx) {
+    if(confirm(this.managedClasses[idx] + ' 학급을 삭제하시겠습니까?\n(이미 등록된 학생의 학급 데이터가 지워지진 않습니다)')) {
+      this.managedClasses.splice(idx, 1);
+      this.silentSave('saveUISettings', { key: 'managed_classes', value: JSON.stringify(this.managedClasses) });
+      this.renderClassManagerList();
+    }
+  },
+  openClassSelectModal: function(td) {
+    if (td.querySelector('select')) return;
+    const currentVal = td.innerText.trim();
+    let optsHtml = '<option value="">선택 안함</option>';
+    if (this.managedClasses && Array.isArray(this.managedClasses)) {
+      this.managedClasses.forEach(c => {
+        optsHtml += `<option value="${c}" ${c === currentVal ? 'selected' : ''}>${c}</option>`;
+      });
+    }
+    td.innerHTML = `<select class="form-control" style="width:100%; height:100%; min-width:80px; background:var(--bg-color, #1f2937); color:var(--text-color, #fff); border:1px solid #4b5563; border-radius:4px;" onblur="this.parentElement.innerText=this.value; app.onFlatCellBlur('student', this.parentElement);" onchange="this.blur();">${optsHtml}</select>`;
+    const select = td.querySelector('select');
+    select.focus();
   },
 
   openTimetableEditor: function(td) {
