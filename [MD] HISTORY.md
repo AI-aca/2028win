@@ -204,7 +204,7 @@
 - **검증**: node --check, check_div.js, check_render.js 모두 통과 및 한글 깨짐 없음 확인.
 
 ## 2026-07-27 (5) - timetable date HTML tag leak fix and DB cleanup
-- **작업 내욨**:
-  - `updatePivotRowDate` 함수에�������͗��p���W�� ����r�p�!Q50��s��㮖����s���V��^���"s�"`��7�*��*㮞0��B@����z���c����ɕ��������W��s�.t��ڧ�� ��񙽹����s���� ��^@��N��ZӪ� ��fS��Ӳv���W�
-Ӯ
-Ӯ*P��b��@��£�.���(���������������͍ɥ�Ӯ����׶VЁ�����Ѓ���~�v`�������͔���:0�˪�Ф����������b��0�(��ٕɥ�䁙���͡��
+- **작업 내용**:
+  - `updatePivotRowDate` 함수에 supabase로 가기 전으로 HTML 태그를 제거하는 순수 텍스트만 DB에 저장되게 replace 정규식 추가 (<font> 태그가 DB에 들어가 화면이 깨지는 참사를 완벽 차단).
+  - local node script를 통해 impact 범위의 supabase DB(8건, 2건) cleanup 완료.
+- **검증**: node --check, check_div.js, check_render.js 모두 통과 및 한글 깨짐 없음 확인.
