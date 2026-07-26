@@ -2135,15 +2135,15 @@ const app = {
       if(!confirm("이 줄에 입력된 모든 데이터가 삭제됩니다. 정말 삭제하시겠습니까?")) return;
       const isSci = type === 'curriculum_science';
       const sheetName = isSci ? '과학진도계획' : '수업진도계획';
-      const week = this.ctxTargetRow.getAttribute('data-week');
+      const grp = this.ctxTargetRow.getAttribute('data-grp');
       if (isSci) {
-        const toDelete = this.data.curriculums_science.filter(r => r[1] === week);
-        this.data.curriculums_science = this.data.curriculums_science.filter(r => r[1] !== week);
+        const toDelete = this.data.curriculums_science.filter(r => r.groupId === grp);
+        this.data.curriculums_science = this.data.curriculums_science.filter(r => r.groupId !== grp);
         const ids = toDelete.map(r => r[0]).filter(Boolean);
         if (ids.length > 0) this.silentSave('deleteMultipleData', { sheetName, ids: ids });
       } else {
-        const toDelete = this.data.curriculums.filter(r => r[1] === week);
-        this.data.curriculums = this.data.curriculums.filter(r => r[1] !== week);
+        const toDelete = this.data.curriculums.filter(r => r.groupId === grp);
+        this.data.curriculums = this.data.curriculums.filter(r => r.groupId !== grp);
         const ids = toDelete.map(r => r[0]).filter(Boolean);
         if (ids.length > 0) this.silentSave('deleteMultipleData', { sheetName, ids: ids });
       }
@@ -2152,9 +2152,8 @@ const app = {
       if(!confirm("이 줄에 입력된 모든 데이터가 삭제됩니다. 정말 삭제하시겠습니까?")) return;
       const grp = this.ctxTargetRow.getAttribute('data-grp');
       if (grp) {
-        const [date, tType, start, end] = grp.split('|');
-        const toDelete = this.data.timetables.filter(r => r[1] === date && r[2] === tType && String(r[3]) === String(start) && r[4] === end);
-        this.data.timetables = this.data.timetables.filter(r => !(r[1] === date && r[2] === tType && String(r[3]) === String(start) && r[4] === end));
+        const toDelete = this.data.timetables.filter(r => r.groupId === grp);
+        this.data.timetables = this.data.timetables.filter(r => r.groupId !== grp);
         this.renderView('timetable');
         this.renderView('timetable_summary');
         
@@ -2177,23 +2176,23 @@ const app = {
     } else if ((type === 'timetable' || type === 'timetable_summary' || type === 'timetable-summary') && targetRow) {
       const grp = targetRow.getAttribute('data-grp');
       if (grp) {
-        const [date, tType, start, end] = grp.split('|');
-        const firstIdx = this.data.timetables.findIndex(r => r[1] === date && r[2] === tType && r[3] === start && r[4] === end);
+        const firstIdx = this.data.timetables.findIndex(r => r.groupId === grp);
         if (firstIdx !== -1) {
           let lastIdx = firstIdx;
-          while (lastIdx < this.data.timetables.length && this.data.timetables[lastIdx][1] === date && this.data.timetables[lastIdx][2] === tType && this.data.timetables[lastIdx][3] === start && this.data.timetables[lastIdx][4] === end) {
+          while (lastIdx < this.data.timetables.length && this.data.timetables[lastIdx].groupId === grp) {
             lastIdx++;
           }
           insertIndex = pos === 'below' ? lastIdx : firstIdx;
         }
       }
-    } else if (type === 'curriculum' && targetRow) {
-      const week = targetRow.getAttribute('data-week');
-      if (week) {
-        const firstIdx = this.data.curriculums.findIndex(r => r[1] === week);
+    } else if ((type === 'curriculum' || type === 'curriculum_science') && targetRow) {
+      const grp = targetRow.getAttribute('data-grp');
+      if (grp) {
+        const dataArr = type === 'curriculum' ? this.data.curriculums : this.data.curriculums_science;
+        const firstIdx = dataArr.findIndex(r => r.groupId === grp);
         if (firstIdx !== -1) {
           let lastIdx = firstIdx;
-          while (lastIdx < this.data.curriculums.length && this.data.curriculums[lastIdx][1] === week) {
+          while (lastIdx < dataArr.length && dataArr[lastIdx].groupId === grp) {
             lastIdx++;
           }
           insertIndex = pos === 'below' ? lastIdx : firstIdx;
