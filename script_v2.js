@@ -1277,7 +1277,7 @@ const app = {
       const groupRows = dataArr.filter(r => r.groupId === grp);
       const idsForGrp = groupRows.map(r => r[0]).filter(Boolean).join(',');
       headHtml += `<tr data-week="${week}" data-grp="${grp}" data-ids="${idsForGrp}">
-      <td class="fixed-col label-col" data-cell-key="tt_fmt_curr_wk_${grp}" style="font-weight:bold; text-align:center; left:0;" contenteditable="true" onblur="app.updatePivotRowLabel('${type}', '${week}', this.innerText.trim(), '${grp}')">${richWeek}</td>`;
+      <td class="fixed-col label-col" data-bg-key="cell_bg_wk_${grp}" data-cell-key="tt_fmt_curr_wk_${grp}" style="font-weight:bold; text-align:center; left:0; ${this.uiSettings['cell_bg_wk_' + grp] ? 'background-color:' + this.uiSettings['cell_bg_wk_' + grp] + ';' : ''}" contenteditable="true" onblur="app.updatePivotRowLabel('${type}', '${week}', this.innerText.trim(), '${grp}')">${richWeek}</td>`;
       
       dynCols.forEach(sub => {
         const row = dataArr.find(r => r.groupId === grp && r[2] === sub);
@@ -1471,21 +1471,21 @@ const app = {
       const colorStyle = (richDate.includes('날짜 선택') || richDate.includes('요일 선택')) ? 'color:var(--text-muted);' : '';
       
       headHtml += `<tr data-ids="${idsForGrp}" data-grp="${grp}">
-        <td class="fixed-col label-col" style="text-align:center;" data-cell-key="tt_fmt_date_${grp}"><div contenteditable="true" style="display:inline-block; outline:none; min-width:30px; ${colorStyle}" onblur="app.updatePivotRowDate(this.closest('td'), app.getCleanHTML(this))">${richDate}</div> <span class="date-picker-icon" onclick="${isSummary ? "app.openDayPicker(this.closest('td'))" : "app.openDatePicker(this.closest('td'))"}" style="cursor:pointer;" title="클릭하여 ${isSummary ? '요일' : '달력'} 선택">📅</span></td>`;
+        <td class="fixed-col label-col" style="text-align:center; ${this.uiSettings['cell_bg_date_' + grp] ? 'background-color:' + this.uiSettings['cell_bg_date_' + grp] + ';' : ''}" data-bg-key="cell_bg_date_${grp}" data-cell-key="tt_fmt_date_${grp}"><div contenteditable="true" style="display:inline-block; outline:none; min-width:30px; ${colorStyle}" onblur="app.updatePivotRowDate(this.closest('td'), app.getCleanHTML(this))">${richDate}</div> <span class="date-picker-icon" onclick="${isSummary ? "app.openDayPicker(this.closest('td'))" : "app.openDatePicker(this.closest('td'))"}" style="cursor:pointer;" title="클릭하여 ${isSummary ? '요일' : '달력'} 선택">📅</span></td>`;
       
       if (isHoliday) {
         const holidayNote = firstRow[8] || ''; // note column for holiday reason
         const colspanSize = isSummary ? 2 : 3;
-        headHtml += `<td colspan="${colspanSize}" class="fixed-col label-col" data-cell-key="tt_fmt_hol_${grp}" style="text-align:center; left:${startLeft}; color:var(--danger);">🏖️ 휴일</td>`;
+        headHtml += `<td colspan="${colspanSize}" class="fixed-col label-col" data-bg-key="cell_bg_hol_${grp}" data-cell-key="tt_fmt_hol_${grp}" style="text-align:center; left:${startLeft}; color:var(--danger); ${this.uiSettings['cell_bg_hol_' + grp] ? 'background-color:' + this.uiSettings['cell_bg_hol_' + grp] + ';' : ''}">🏖️ 휴일</td>`;
         headHtml += `<td colspan="${this.dynamicCols.timetable.length}" class="timetable-cell" data-id="${firstRow?firstRow[0]:''}" data-date="${date}" contenteditable="true" onblur="app.onTimetableHolidayBlur(this)" style="text-align:center; background:rgba(255,255,255,0.05); color:var(--text-muted);">${holidayNote || '휴일/특이사항 입력'}</td>`;
       } else {
         const weekVal = this.uiSettings['tt_week_' + grp] || '';
         
         if (!isSummary) {
-          headHtml += `<td class="fixed-col label-col" data-cell-key="tt_fmt_ttwk_${grp}" style="text-align:center; left:12%;" contenteditable="true" onblur="app.updateTimetableWeek(this, '${grp}')">${weekVal}</td>`;
+          headHtml += `<td class="fixed-col label-col" data-bg-key="cell_bg_ttwk_${grp}" data-cell-key="tt_fmt_ttwk_${grp}" style="text-align:center; left:12%; ${this.uiSettings['cell_bg_ttwk_' + grp] ? 'background-color:' + this.uiSettings['cell_bg_ttwk_' + grp] + ';' : ''}" contenteditable="true" onblur="app.updateTimetableWeek(this, '${grp}')">${weekVal}</td>`;
         }
         
-        headHtml += `<td class="fixed-col label-col" style="left:${startLeft}; white-space:nowrap; text-align:center; vertical-align:middle; font-weight:normal;" data-cell-key="tt_fmt_st_${grp}"><div contenteditable="true" onblur="app.updatePivotRowTime(this.closest('td'), 'start', app.getCleanHTML(this))" style="display:inline-block; outline:none; min-width:30px; font-weight:normal;">${start || '00:00'}</div> <span onclick="app.openTimePicker(this.closest('td'), 'start')" style="cursor:pointer;" title="시간 선택">🕒</span></td><td class="fixed-col label-col" style="left:${endLeft}; white-space:nowrap; text-align:center; vertical-align:middle; font-weight:normal;" data-cell-key="tt_fmt_et_${grp}"><div contenteditable="true" onblur="app.updatePivotRowTime(this.closest('td'), 'end', app.getCleanHTML(this))" style="display:inline-block; outline:none; min-width:30px; font-weight:normal;">${end || '00:00'}</div> <span onclick="app.openTimePicker(this.closest('td'), 'end')" style="cursor:pointer;" title="시간 선택">🕒</span></td>`;
+        headHtml += `<td class="fixed-col label-col" style="left:${startLeft}; white-space:nowrap; text-align:center; vertical-align:middle; font-weight:normal; ${this.uiSettings['cell_bg_st_' + grp] ? 'background-color:' + this.uiSettings['cell_bg_st_' + grp] + ';' : ''}" data-bg-key="cell_bg_st_${grp}" data-cell-key="tt_fmt_st_${grp}"><div contenteditable="true" onblur="app.updatePivotRowTime(this.closest('td'), 'start', app.getCleanHTML(this))" style="display:inline-block; outline:none; min-width:30px; font-weight:normal;">${start || '00:00'}</div> <span onclick="app.openTimePicker(this.closest('td'), 'start')" style="cursor:pointer;" title="시간 선택">🕒</span></td><td class="fixed-col label-col" style="left:${endLeft}; white-space:nowrap; text-align:center; vertical-align:middle; font-weight:normal; ${this.uiSettings['cell_bg_et_' + grp] ? 'background-color:' + this.uiSettings['cell_bg_et_' + grp] + ';' : ''}" data-bg-key="cell_bg_et_${grp}" data-cell-key="tt_fmt_et_${grp}"><div contenteditable="true" onblur="app.updatePivotRowTime(this.closest('td'), 'end', app.getCleanHTML(this))" style="display:inline-block; outline:none; min-width:30px; font-weight:normal;">${end || '00:00'}</div> <span onclick="app.openTimePicker(this.closest('td'), 'end')" style="cursor:pointer;" title="시간 선택">🕒</span></td>`;
         this.dynamicCols.timetable.forEach(cls => {
           const row = groupRows.find(r => r[5] === cls);
           let subject = row && row[6] ? row[6] : '';
@@ -2076,16 +2076,16 @@ const app = {
     this.hideContextMenu();
     if (!this.ctxTargetCell) return;
     const td = this.ctxTargetCell;
-    const cellKey = td.getAttribute('data-cell-key');
-    if (cellKey) {
+    const bgKey = td.getAttribute('data-bg-key') || td.getAttribute('data-cell-key');
+    if (bgKey) {
       const finalColor = color === 'transparent' ? '' : color;
       if (finalColor === '') {
         td.style.removeProperty('background-color');
       } else {
         td.style.setProperty('background-color', finalColor, 'important');
       }
-      this.silentSave('saveUISettings', { key: cellKey, value: finalColor });
-      this.uiSettings[cellKey] = finalColor;
+      app.silentSave('saveUISettings', { key: bgKey, value: finalColor });
+      app.uiSettings[bgKey] = finalColor;
     } else {
       app.showToast('배경색을 적용할 수 없는 셀입니다.', true);
     }
