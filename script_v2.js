@@ -311,6 +311,8 @@ const app = {
   },
 
   processInitialData: function(res) {
+    const hashCode = s => Math.abs(String(s).split('').reduce((a,b)=>{a=((a<<5)-a)+b.charCodeAt(0);return a&a},0)).toString(36);
+    
     const cleanDate = (arr) => arr.map(r => r.map(c => {
       if (typeof c === 'string') {
         if (c.match(/^\d{4}-\d{2}-\d{2}T/)) {
@@ -332,11 +334,32 @@ const app = {
       if (numA !== numB) return numA - numB;
       return (a[1] || '').localeCompare(b[1] || '');
     };
-    this.data.curriculums = cleanDate(res['수업진도계획'] || []).sort(sortByWeekNum);
-    this.data.curriculums_science = cleanDate(res['과학진도계획'] || []).sort(sortByWeekNum);
+    let curData = cleanDate(res['수업진도계획'] || []);
+    curData.forEach(r => {
+      let groupId = r[4];
+      if (!groupId || !groupId.startsWith('g-')) groupId = 'g-' + hashCode(r[1]);
+      r.groupId = groupId;
+      r[4] = ''; // clear note for future use
+    });
+    this.data.curriculums = curData.sort(sortByWeekNum);
+    
+    let curSciData = cleanDate(res['과학진도계획'] || []);
+    curSciData.forEach(r => {
+      let groupId = r[4];
+      if (!groupId || !groupId.startsWith('g-')) groupId = 'g-' + hashCode(r[1]);
+      r.groupId = groupId;
+      r[4] = '';
+    });
+    this.data.curriculums_science = curSciData.sort(sortByWeekNum);
     
     let ttData = cleanDate(res['시간표'] || []);
     ttData.forEach(r => {
+      const typeParts = String(r[2] || '').split('|');
+      r[2] = typeParts[0] || '';
+      let groupId = typeParts[1];
+      if (!groupId) groupId = 'g-' + hashCode(r[1] + '|' + r[2] + '|' + r[3] + '|' + r[4]);
+      r.groupId = groupId;
+      
       if (!r[1]) {
         const regTimeStr = r[9] || '';
         const safeRegTime = regTimeStr.replace(/[^a-zA-Z0-9]/g, '');
@@ -1129,9 +1152,11 @@ const app = {
       
       let i = 0;
       const tasks = [];
+      const groupId = 'g-' + Date.now().toString(36) + Math.random().toString(36).substr(2, 3);
       dynCols.forEach(sub => {
         const newId = 'f-' + Date.now().toString(36) + '-' + Math.random().toString(36).substr(2, 5);
-        const rowObj = [newId, nextWeek, sub, '', ''];
+        const rowObj = [newId, nextWeek, sub, '', groupId];
+        rowObj.groupId = groupId;
         if (insertIndex >= 0) {
           dataArr.splice(actualInsertIndex + i, 0, rowObj);
         } else {
@@ -1143,7 +1168,7 @@ const app = {
       });
       this.renderView(type);
 
-      const payloadArray = tasks.map(t => ({ id: t.rowObj[0], week: nextWeek, subject: t.sub, content: '', note: '' }));
+      const payloadArray = tasks.map(t => ({ id: t.rowObj[0], week: nextWeek, subject: t.sub, content: '', note: groupId }));
       this.apiPost(action, { payloadArray }).then(res => {
         if (res && res.success) {
           if (res.returnedIds) dataArr.forEach(r => { if (res.returnedIds[r[0]]) r[0] = res.returnedIds[r[0]]; });
@@ -1163,9 +1188,11 @@ const app = {
       let i = 0;
       const tasks = [];
       const rowType = (type === 'timetable_summary' || type === 'timetable-summary') ? '요약' : '수업';
+      const groupId = 'g-' + Date.now().toString(36) + Math.random().toString(36).substr(2, 3);
       this.dynamicCols.timetable.forEach(cls => {
         const newId = 'f-' + Date.now().toString(36) + '-' + Math.random().toString(36).substr(2, 5);
         const rowObj = [newId, tmpDate, rowType, nextStart, nextEnd, cls, '', '', '', ''];
+        rowObj.groupId = groupId;
         if (insertIndex >= 0) {
           this.data.timetables.splice(actualInsertIndex + i, 0, rowObj);
         } else {
@@ -1177,7 +1204,7 @@ const app = {
       });
       this.renderView(type);
       
-      const payloadArray = tasks.map(t => ({ id: t.rowObj[0], date: tmpDate, type: rowType, start: nextStart, end: nextEnd, className: t.cls, subject: '', instructor: '', note: '' }));
+      const payloadArray = tasks.map(t => ({ id: t.rowObj[0], date: tmpDate, type: rowType + '|' + groupId, start: nextStart, end: nextEnd, className: t.cls, subject: '', instructor: '', note: '' }));
       this.apiPost('upsertMultipleTimetables', { payloadArray }).then(res => {
         if (res && res.success && res.returnedIds) {
           this.data.timetables.forEach(r => { if (res.returnedIds[r[0]]) r[0] = res.returnedIds[r[0]]; });
@@ -1213,7 +1240,6 @@ const app = {
 
     let weekHeader = this.uiSettings['header_' + viewId + '_0'] || '주차';
     let headHtml = `<thead><tr><th class="label-col-header fixed-col" style="width:5%; left:0;"><div onblur="app.onHeaderBlur(this, '${viewId}', '0')" style="display:inline-block; min-width:30px; min-height:20px; outline:none;">${weekHeader}</div></th>`;
-    headHtml += `<th class="label-col-header fixed-col" style="width:5%; left:5%;">회차</th>`;
     dynCols.forEach((sub, i) => {
       const matchedSub = this.managedSubjects.find(s => s.name === sub);
       let dynHeader = this.uiSettings['header_' + viewId + '_' + sub] || sub;
@@ -1224,36 +1250,38 @@ const app = {
     });
     headHtml += `</tr></thead><tbody id="tbody-${isSci ? 'curriculum-science' : 'curriculum'}">`;
 
-    const grps = Array.from(new Set(dataArr.map(r => r[1] + '|' + (r[4] || '') + '|' + r[0]).filter(g => !g.startsWith('|'))));
+    // 그룹 기준: groupId
+    const grps = Array.from(new Set(dataArr.map(r => r.groupId).filter(Boolean)));
     
-    grps.sort((a, b) => {
-      const [weekA, hoichaA] = a.split('|');
-      const [weekB, hoichaB] = b.split('|');
+    // 정렬: 주차(week) 기준으로 정렬
+    grps.sort((grpA, grpB) => {
+      const rowA = dataArr.find(r => r.groupId === grpA);
+      const rowB = dataArr.find(r => r.groupId === grpB);
+      const weekA = rowA ? rowA[1] : '';
+      const weekB = rowB ? rowB[1] : '';
       const wA = parseInt(weekA) || 999;
       const wB = parseInt(weekB) || 999;
       if (wA !== wB) return wA - wB;
-      const hA = parseInt(hoichaA) || 999;
-      const hB = parseInt(hoichaB) || 999;
-      return hA - hB;
+      return weekA.localeCompare(weekB);
     });
 
-    const processedGrps = new Set();
     grps.forEach(grp => {
-      const [week, hoicha, rowId] = grp.split('|');
-      const logicalGrp = week + '|' + hoicha;
-      if (processedGrps.has(logicalGrp)) return;
-      processedGrps.add(logicalGrp);
-      const richWeek = this.uiSettings['curr_wk_' + type + '_' + app.currentTerm + '_' + week] || week;
-      headHtml += `<tr data-week="${week}">
-      <td class="fixed-col label-col" data-cell-key="tt_fmt_curr_wk_${logicalGrp}" style="font-weight:bold; text-align:center; left:0;" contenteditable="true" onblur="app.updatePivotRowLabel('${type}', '${week}', '${hoicha}', this.innerText.trim())">${richWeek}</td>`;
-      const firstRow = dataArr.find(r => r[1] === week && (r[4] || '') === hoicha);
-      headHtml += `<td class="fixed-col label-col" data-cell-key="tt_fmt_curr_hc_${logicalGrp}" style="text-align:center; left:5%;" contenteditable="true" data-id="${firstRow ? firstRow[0] : ''}" data-week="${week}" data-sub="hoicha" onblur="app.onCurriculumHoichaBlur(this, '${type}', '${week}', '${hoicha}')">${hoicha}</td>`;
+      const firstRow = dataArr.find(r => r.groupId === grp);
+      if (!firstRow) return;
+      const week = firstRow[1];
+      const richWeek = this.uiSettings['tt_fmt_curr_wk_' + grp] || this.uiSettings['curr_wk_' + type + '_' + app.currentTerm + '_' + week] || week;
+      
+      const groupRows = dataArr.filter(r => r.groupId === grp);
+      const idsForGrp = groupRows.map(r => r[0]).filter(Boolean).join(',');
+      headHtml += `<tr data-week="${week}" data-grp="${grp}" data-ids="${idsForGrp}">
+      <td class="fixed-col label-col" data-cell-key="tt_fmt_curr_wk_${grp}" style="font-weight:bold; text-align:center; left:0;" contenteditable="true" onblur="app.updatePivotRowLabel('${type}', '${week}', this.innerText.trim(), '${grp}')">${richWeek}</td>`;
+      
       dynCols.forEach(sub => {
-        const row = dataArr.find(r => r[1] === week && r[2] === sub && (r[4] || '') === hoicha);
+        const row = dataArr.find(r => r.groupId === grp && r[2] === sub);
         const content = row ? row[3] : '';
         const id = row ? row[0] : '';
         let bgStyle = id && this.uiSettings['cell_bg_' + id] ? `background-color:${this.uiSettings['cell_bg_' + id]};` : '';
-        headHtml += `<td contenteditable="true" data-cell-key="cell_bg_${id}" data-id="${id}" data-week="${week}" data-sub="${sub}" onblur="app.onCurriculumBlur(this, '${type}')" onkeydown="app.onKeyDown(event, this)" style="${bgStyle}">${content}</td>`;
+        headHtml += `<td contenteditable="true" data-cell-key="cell_bg_${id}" data-id="${id}" data-week="${week}" data-sub="${sub}" data-grp="${grp}" onblur="app.onCurriculumBlur(this, '${type}')" onkeydown="app.onKeyDown(event, this)" style="${bgStyle}">${content}</td>`;
       });
       headHtml += `</tr>`;
     });
@@ -1266,48 +1294,61 @@ const app = {
     let newValue = app.getCleanHTML(cell);
     newValue = newValue.trim();
     if(newValue === '<br>') newValue = '';
-    const id = cell.getAttribute('data-id'), week = cell.getAttribute('data-week'), sub = cell.getAttribute('data-sub');
+    const id = cell.getAttribute('data-id'), week = cell.getAttribute('data-week'), sub = cell.getAttribute('data-sub'), grp = cell.getAttribute('data-grp');
     const isSci = type === 'curriculum_science';
     const dataArr = isSci ? this.data.curriculums_science : this.data.curriculums;
     const action = isSci ? 'upsertCurriculumScience' : 'upsertCurriculum';
 
-    let rowObj = dataArr.find(r => (id && r[0] === id) || (r[1] === week && r[2] === sub));
-    if (rowObj) { if (rowObj[3] === newValue) return; rowObj[3] = newValue; }
-    else { if (!newValue) return; rowObj = ['', week, sub, newValue, '']; dataArr.push(rowObj); }
+    let rowObj = dataArr.find(r => (id && r[0] === id) || (r.groupId === grp && r[2] === sub));
+    if (rowObj) { 
+      if (rowObj[3] === newValue) return; 
+      rowObj[3] = newValue; 
+    } else { 
+      if (!newValue) return; 
+      rowObj = ['', week, sub, newValue, grp];
+      rowObj.groupId = grp;
+      dataArr.push(rowObj); 
+    }
     
-    this.apiPost(action, { id: rowObj[0], week, subject: sub, content: newValue }).then(res => {
+    this.apiPost(action, { id: rowObj[0], week: rowObj[1], subject: sub, content: newValue, note: rowObj.groupId }).then(res => {
       if(res.success && res.id) { rowObj[0] = res.id; cell.setAttribute('data-id', res.id); }
     });
   },
 
-  onCurriculumHoichaBlur: function(cell, type, oldWeek, oldHoicha) {
-    let newValue = app.getCleanHTML(cell);
-    newValue = newValue.trim();
-    if (newValue === (oldHoicha || '')) return;
+  updatePivotRowLabel: async function(type, oldLabel, newLabelVal, grp) {
+    let newLabel = app.getCleanHTML(document.querySelector(`td[data-cell-key="tt_fmt_curr_wk_${grp}"]`));
+    newLabel = newLabel.trim();
+    const cleanLabel = newLabel.replace(/<[^>]*>/g, '').trim();
 
+    app.silentSave('saveUISettings', { key: 'tt_fmt_curr_wk_' + grp, value: newLabel });
+    app.uiSettings['tt_fmt_curr_wk_' + grp] = newLabel;
+
+    if (oldLabel === cleanLabel) return;
+    
     const isSci = type === 'curriculum_science';
     const dataArr = isSci ? this.data.curriculums_science : this.data.curriculums;
     const action = isSci ? 'upsertMultipleCurriculumSciences' : 'upsertMultipleCurriculums';
-
-    // 해당 주차의 모든 행에 note 필드를 업데이트하여 회차 저장
-    const rows = dataArr.filter(r => r[1] === oldWeek && (r[4] || '') === oldHoicha);
-    if (rows.length === 0) return;
-    
     const payloadArray = [];
-    rows.forEach(r => {
-      r[4] = newValue;
-      payloadArray.push({ id: r[0], week: r[1], subject: r[2], content: r[3], note: newValue });
-    });
+    const rollbackData = [];
     
-    // 전체 행을 서버로 업데이트
-    this.apiPost(action, { payloadArray }).then(res => {
-      if(res && res.success && res.returnedIds) {
-        rows.forEach(r => { if (res.returnedIds[r[0]]) r[0] = res.returnedIds[r[0]]; });
-        if (res.returnedIds[rows[0][0]]) {
-          cell.setAttribute('data-id', res.returnedIds[rows[0][0]]);
-        }
+    dataArr.forEach(r => {
+      if(r.groupId === grp) { 
+        rollbackData.push({ row: r, oldWeek: r[1] });
+        r[1] = cleanLabel; 
+        payloadArray.push({ id: r[0], week: r[1], subject: r[2], content: r[3], note: r.groupId });
       }
     });
+
+    if (payloadArray.length > 0) {
+      try {
+        const res = await this.apiPost(action, { payloadArray });
+        if (!res || !res.success) throw new Error('API Error');
+      } catch (e) {
+        app.showToast('변경 실패');
+        rollbackData.forEach(rb => { rb.row[1] = rb.oldWeek; });
+        app.renderView(type);
+      }
+    }
   },
 
   editTimetableClassName: function(oldName) {
@@ -1362,11 +1403,11 @@ const app = {
     let headHtml = `<thead><tr><th class="label-col-header fixed-col" style="width:12%; left:0;">${isSummary ? '요일' : '일자'}</th>`;
     
     if (!isSummary) {
-      headHtml += `<th class="label-col-header fixed-col" style="width:5%; left:12%;">주차</th><th class="label-col-header fixed-col" style="width:5%; left:17%;">회차</th>`;
+      headHtml += `<th class="label-col-header fixed-col" style="width:5%; left:12%;">주차</th>`;
     }
     
-    const startLeft = isSummary ? '12%' : '22%';
-    const endLeft = isSummary ? '20%' : '30%';
+    const startLeft = isSummary ? '12%' : '17%';
+    const endLeft = isSummary ? '20%' : '25%';
     
     headHtml += `<th class="label-col-header fixed-col" style="width:8%; left:${startLeft};">시작 시간</th><th class="label-col-header fixed-col" style="width:8%; left:${endLeft};">종료 시간</th>`;
     
@@ -1375,26 +1416,30 @@ const app = {
     });
     headHtml += `</tr></thead><tbody id="${tbodyId}">`;
 
-    const rowGroups = Array.from(new Set(targetData.map(r => r[1] + '|' + r[2] + '|' + r[3] + '|' + r[4]).filter(t => t !== '|||')));
+    // 그룹 기준: groupId
+    const rowGroups = Array.from(new Set(targetData.map(r => r.groupId).filter(Boolean)));
     
-    rowGroups.sort((a, b) => {
-      const [dateA, , startA] = a.split('|');
-      const [dateB, , startB] = b.split('|');
-      const cleanA = dateA.replace(/\u200B/g, '').trim();
-      const cleanB = dateB.replace(/\u200B/g, '').trim();
+    // 정렬
+    rowGroups.sort((grpA, grpB) => {
+      const rowA = targetData.find(r => r.groupId === grpA);
+      const rowB = targetData.find(r => r.groupId === grpB);
+      const dateA = rowA ? rowA[1] : '';
+      const dateB = rowB ? rowB[1] : '';
+      const startA = rowA ? rowA[3] : '';
+      const startB = rowB ? rowB[3] : '';
       
       if (isSummary) { 
         const days = ['월요일', '화요일', '수요일', '목요일', '금요일', '토요일', '일요일'];
-        const idxA = days.findIndex(d => cleanA.includes(d));
-        const idxB = days.findIndex(d => cleanB.includes(d));
+        const idxA = days.findIndex(d => dateA.includes(d));
+        const idxB = days.findIndex(d => dateB.includes(d));
         const finalIdxA = idxA !== -1 ? idxA : 99;
         const finalIdxB = idxB !== -1 ? idxB : 99;
         if (finalIdxA !== finalIdxB) return finalIdxA - finalIdxB;
       } else { 
-        if (cleanA !== cleanB) {
-          if (cleanA.startsWith('tmp-') && !cleanB.startsWith('tmp-')) return 1;
-          if (!cleanA.startsWith('tmp-') && cleanB.startsWith('tmp-')) return -1;
-          return cleanA.localeCompare(cleanB);
+        if (dateA !== dateB) {
+          if (dateA.startsWith('tmp-') && !dateB.startsWith('tmp-')) return 1;
+          if (!dateA.startsWith('tmp-') && dateB.startsWith('tmp-')) return -1;
+          return dateA.localeCompare(dateB);
         }
       }
       const sA = startA || '24:00';
@@ -1403,7 +1448,13 @@ const app = {
     });
 
     rowGroups.forEach(grp => {
-      const [date, type, start, end] = grp.split('|');
+      const groupRows = targetData.filter(r => r.groupId === grp);
+      const firstRow = groupRows[0];
+      if (!firstRow) return;
+      const date = firstRow[1];
+      const type = firstRow[2];
+      const start = firstRow[3];
+      const end = firstRow[4];
       const isHoliday = (type === '휴일');
       const isTmpDate = date.startsWith('tmp-');
       const displayDate = isTmpDate ? '' : date;
@@ -1413,32 +1464,27 @@ const app = {
       }
       if (richDate === '-- 날짜 선택 --') richDate = isSummary ? '요일 선택' : '날짜 선택';
       
-      const idsForGrp = targetData.filter(r => r[1] === date && r[2] === type && r[3] === start && r[4] === end).map(r => r[0]).join(',');
+      const idsForGrp = groupRows.map(r => r[0]).join(',');
       const colorStyle = (richDate.includes('날짜 선택') || richDate.includes('요일 선택')) ? 'color:var(--text-muted);' : '';
       
       headHtml += `<tr data-ids="${idsForGrp}" data-grp="${grp}">
         <td class="fixed-col label-col" style="text-align:center;" data-cell-key="tt_fmt_date_${grp}"><div contenteditable="true" style="display:inline-block; outline:none; min-width:30px; ${colorStyle}" onblur="app.updatePivotRowDate(this.closest('td'), app.getCleanHTML(this))">${richDate}</div> <span class="date-picker-icon" onclick="${isSummary ? "app.openDayPicker(this.closest('td'))" : "app.openDatePicker(this.closest('td'))"}" style="cursor:pointer;" title="클릭하여 ${isSummary ? '요일' : '달력'} 선택">📅</span></td>`;
       
-      const firstRow = targetData.find(r => r[1] === date && r[2] === type && r[3] === start && r[4] === end);
-
       if (isHoliday) {
-        const holidayRow = targetData.find(r => r[1] === date && r[2] === '휴일');
-        const holidayNote = holidayRow ? (holidayRow[8] || '') : '';
-        const colspanSize = isSummary ? 2 : 4;
+        const holidayNote = firstRow[8] || ''; // note column for holiday reason
+        const colspanSize = isSummary ? 2 : 3;
         headHtml += `<td colspan="${colspanSize}" class="fixed-col label-col" data-cell-key="tt_fmt_hol_${grp}" style="text-align:center; left:${startLeft}; color:var(--danger);">🏖️ 휴일</td>`;
-        headHtml += `<td colspan="${this.dynamicCols.timetable.length}" class="timetable-cell" data-id="${holidayRow?holidayRow[0]:''}" data-date="${date}" contenteditable="true" onblur="app.onTimetableHolidayBlur(this)" style="text-align:center; background:rgba(255,255,255,0.05); color:var(--text-muted);">${holidayNote || '휴일/특이사항 입력'}</td>`;
+        headHtml += `<td colspan="${this.dynamicCols.timetable.length}" class="timetable-cell" data-id="${firstRow?firstRow[0]:''}" data-date="${date}" contenteditable="true" onblur="app.onTimetableHolidayBlur(this)" style="text-align:center; background:rgba(255,255,255,0.05); color:var(--text-muted);">${holidayNote || '휴일/특이사항 입력'}</td>`;
       } else {
-        const hoicha = firstRow ? (firstRow[8] || '') : '';
         const weekVal = this.uiSettings['tt_week_' + grp] || '';
         
         if (!isSummary) {
           headHtml += `<td class="fixed-col label-col" data-cell-key="tt_fmt_ttwk_${grp}" style="text-align:center; left:12%;" contenteditable="true" onblur="app.updateTimetableWeek(this, '${grp}')">${weekVal}</td>`;
-          headHtml += `<td class="fixed-col label-col" data-cell-key="tt_fmt_tthc_${grp}" style="text-align:center; left:17%;" contenteditable="true" onblur="app.updateTimetableHoicha(this, '${grp}')">${hoicha}</td>`;
         }
         
         headHtml += `<td class="fixed-col label-col" style="left:${startLeft}; white-space:nowrap; text-align:center; vertical-align:middle; font-weight:normal;" data-cell-key="tt_fmt_st_${grp}"><div contenteditable="true" onblur="app.updatePivotRowTime(this.closest('td'), 'start', app.getCleanHTML(this))" style="display:inline-block; outline:none; min-width:30px; font-weight:normal;">${start || '00:00'}</div> <span onclick="app.openTimePicker(this.closest('td'), 'start')" style="cursor:pointer;" title="시간 선택">🕒</span></td><td class="fixed-col label-col" style="left:${endLeft}; white-space:nowrap; text-align:center; vertical-align:middle; font-weight:normal;" data-cell-key="tt_fmt_et_${grp}"><div contenteditable="true" onblur="app.updatePivotRowTime(this.closest('td'), 'end', app.getCleanHTML(this))" style="display:inline-block; outline:none; min-width:30px; font-weight:normal;">${end || '00:00'}</div> <span onclick="app.openTimePicker(this.closest('td'), 'end')" style="cursor:pointer;" title="시간 선택">🕒</span></td>`;
         this.dynamicCols.timetable.forEach(cls => {
-          const row = targetData.find(r => r[1] === date && r[2] === type && r[3] === start && r[4] === end && r[5] === cls);
+          const row = groupRows.find(r => r[5] === cls);
           let subject = row && row[6] ? row[6] : '';
           if (subject) {
             const matchedSub = this.managedSubjects.find(s => s.name === subject);
@@ -1463,32 +1509,20 @@ const app = {
   updatePivotRowDate: async function(el, newDateVal) {
     if(!newDateVal) return;
     
-    // DB 저장을 위한 순수 날짜 문자열 추출 (태그 제외)
     let newDate = newDateVal.replace(/<[^>]*>/g, '').trim();
     if (newDate === '날짜 선택' || newDate === '요일 선택' || newDate === '-- 날짜 선택 --') return;
 
     const tr = el.closest('tr');
-    const oldGrp = tr.getAttribute('data-grp');
-    const [oldDate, oldType, oldStart, oldEnd] = oldGrp.split('|');
+    const grp = tr.getAttribute('data-grp');
     
-    // 서식 저장 로직 추가 (DB 키인 newDate와 별개로)
     let richText = app.getCleanHTML(el.querySelector('div[contenteditable]') || el);
     richText = richText.trim();
-    const newGrp = [newDate, oldType, oldStart, oldEnd].join('|');
-    app.silentSave('saveUISettings', { key: 'tt_fmt_date_' + newGrp, value: richText });
-    app.uiSettings['tt_fmt_date_' + newGrp] = richText;
+    app.silentSave('saveUISettings', { key: 'tt_fmt_date_' + grp, value: richText });
+    app.uiSettings['tt_fmt_date_' + grp] = richText;
     
-    if (oldGrp !== newGrp) {
-      if (app.uiSettings['tt_week_' + oldGrp] !== undefined) {
-        app.uiSettings['tt_week_' + newGrp] = app.uiSettings['tt_week_' + oldGrp];
-        app.silentSave('saveUISettings', { key: 'tt_week_' + newGrp, value: app.uiSettings['tt_week_' + newGrp] });
-      }
-      if (app.uiSettings['tt_fmt_tthc_' + oldGrp] !== undefined) {
-        app.uiSettings['tt_fmt_tthc_' + newGrp] = app.uiSettings['tt_fmt_tthc_' + oldGrp];
-        app.silentSave('saveUISettings', { key: 'tt_fmt_tthc_' + newGrp, value: app.uiSettings['tt_fmt_tthc_' + newGrp] });
-      }
-    }
-    
+    const firstRow = this.data.timetables.find(r => r.groupId === grp);
+    if (!firstRow) return;
+    const oldDate = firstRow[1];
     if (oldDate === newDate) return;
 
     const payloadArray = [];
@@ -1496,15 +1530,14 @@ const app = {
     const rollbackData = [];
     
     this.data.timetables.forEach(r => {
-      if (r[1] === oldDate && r[2] === oldType && r[3] === oldStart && r[4] === oldEnd) {
+      if (r.groupId === grp) {
         rollbackData.push({ row: r, oldDate: r[1] });
         r[1] = newDate;
         rowsToSave.push(r);
-        payloadArray.push({ id: r[0], date: r[1], type: r[2], start: r[3], end: r[4], className: r[5], subject: r[6], instructor: r[7], note: r[8] });
+        payloadArray.push({ id: r[0], date: r[1], type: r[2] + '|' + r.groupId, start: r[3], end: r[4], className: r[5], subject: r[6], instructor: r[7], note: r[8] });
       }
     });
 
-    tr.setAttribute('data-grp', newGrp);
     tr.querySelectorAll('.timetable-cell').forEach(c => c.setAttribute('data-date', newDate));
     const h = tr.querySelector('[placeholder="어떠한 휴일인가요? (비고 입력)"]');
     if(h) h.setAttribute('data-date', newDate);
@@ -1514,13 +1547,11 @@ const app = {
         const res = await this.apiPost('upsertMultipleTimetables', { payloadArray });
         if (res && res.success) {
           if (res.returnedIds) rowsToSave.forEach(r => { if (res.returnedIds[r[0]]) r[0] = res.returnedIds[r[0]]; });
-          const newIds = rowsToSave.map(r => r[0]).join(',');
-          tr.setAttribute('data-ids', newIds);
         } else {
-          rollbackData.forEach(rb => { rb.row[1] = rb.oldDate; });
-          app.renderView(app.currentView.replace('view-', ''));
+          throw new Error(res ? res.message : '알 수 없는 에러');
         }
       } catch(e) {
+        app.showToast('저장 실패: ' + e.message, true);
         rollbackData.forEach(rb => { rb.row[1] = rb.oldDate; });
         app.renderView(app.currentView.replace('view-', ''));
       }
@@ -1537,32 +1568,8 @@ const app = {
       this.silentSave('saveUISettings', { key, value: newValue });
     }
   },
-  
-  updateTimetableHoicha: function(cell, grp) {
-    let newValue = app.getCleanHTML(cell);
-    newValue = newValue.trim();
-    const [date, type, start, end] = grp.split('|');
-    const rows = this.data.timetables.filter(r => r[1] === date && r[2] === type && r[3] === start && r[4] === end);
-    if (rows.length === 0) return;
-    
-    let isChanged = false;
-    rows.forEach(r => { if(r[8] !== newValue) { r[8] = newValue; isChanged = true; } });
-    if (!isChanged) return;
-
-    const payloadArray = rows.map(r => ({ id: r[0], date: r[1], type: r[2], start: r[3], end: r[4], className: r[5], subject: r[6], instructor: r[7], note: r[8] }));
-    this.apiPost('upsertMultipleTimetables', { payloadArray }).then(res => {
-      if (res && res.success) {
-         if (res.returnedIds) rows.forEach(r => { if (res.returnedIds[r[0]]) r[0] = res.returnedIds[r[0]]; });
-      } else {
-         app.showToast('회차 저장 실패');
-      }
-    });
-  },
-
-  
 
   updatePivotRowTime: async function(el, type, newTimeStr) {
-    // 자동 포맷: 숫자만 추출 후 HH:MM (24시간) 변환
     if (newTimeStr) {
       const digits = newTimeStr.replace(/\D/g, '');
       if (digits.length > 0) {
@@ -1583,14 +1590,14 @@ const app = {
     const tr = el.closest('tr');
     if(!tr) return;
     
-    const idsStr = tr.getAttribute('data-ids');
-    if(!idsStr) return;
-    const ids = idsStr.split(',');
+    const grp = tr.getAttribute('data-grp');
+    if(!grp) return;
 
-    const oldGrp = tr.getAttribute('data-grp');
-    if(!oldGrp) return;
+    const firstRow = this.data.timetables.find(r => r.groupId === grp);
+    if (!firstRow) return;
     
-    const [oldDate, oldType, oldStart, oldEnd] = oldGrp.split('|');
+    const oldStart = firstRow[3];
+    const oldEnd = firstRow[4];
     
     let newStart = oldStart;
     let newEnd = oldEnd;
@@ -1602,57 +1609,36 @@ const app = {
     }
     
     if (newStart === oldStart && newEnd === oldEnd) return;
-    
-    const newGrp = [oldDate, oldType, newStart, newEnd].join('|');
-    
-    if (oldGrp !== newGrp) {
-      if (app.uiSettings['tt_fmt_date_' + oldGrp] !== undefined) {
-        app.uiSettings['tt_fmt_date_' + newGrp] = app.uiSettings['tt_fmt_date_' + oldGrp];
-        app.silentSave('saveUISettings', { key: 'tt_fmt_date_' + newGrp, value: app.uiSettings['tt_fmt_date_' + newGrp] });
-      }
-      if (app.uiSettings['tt_week_' + oldGrp] !== undefined) {
-        app.uiSettings['tt_week_' + newGrp] = app.uiSettings['tt_week_' + oldGrp];
-        app.silentSave('saveUISettings', { key: 'tt_week_' + newGrp, value: app.uiSettings['tt_week_' + newGrp] });
-      }
-      if (app.uiSettings['tt_fmt_tthc_' + oldGrp] !== undefined) {
-        app.uiSettings['tt_fmt_tthc_' + newGrp] = app.uiSettings['tt_fmt_tthc_' + oldGrp];
-        app.silentSave('saveUISettings', { key: 'tt_fmt_tthc_' + newGrp, value: app.uiSettings['tt_fmt_tthc_' + newGrp] });
-      }
-    }
 
     const rowsToSave = [];
     const rollbackData = [];
+    const payloadArray = [];
 
     this.data.timetables.forEach(r => {
-      if (ids.includes(String(r[0])) || ids.includes(String(r[9]))) {
+      if (r.groupId === grp) {
         rollbackData.push({ row: r, oldStart: r[3], oldEnd: r[4] });
         r[3] = newStart; r[4] = newEnd;
         rowsToSave.push(r);
+        payloadArray.push({ id: r[0], date: r[1], type: r[2] + '|' + r.groupId, start: r[3], end: r[4], className: r[5], subject: r[6], instructor: r[7], note: r[8] });
       }
     });
 
     if (rowsToSave.length === 0) return;
 
-    tr.setAttribute('data-grp', newGrp);
     tr.querySelectorAll('.timetable-cell').forEach(c => {
       c.setAttribute('data-start', newStart);
       c.setAttribute('data-end', newEnd);
     });
 
-    const payloadArray = rowsToSave.map(r => ({ id: r[0], date: r[1], type: r[2], start: r[3], end: r[4], className: r[5], subject: r[6], instructor: r[7], note: r[8] }));
     try {
       const res = await this.apiPost('upsertMultipleTimetables', { payloadArray });
       if (res && res.success) {
         if (res.returnedIds) rowsToSave.forEach(r => { if (res.returnedIds[r[0]]) r[0] = res.returnedIds[r[0]]; });
-        const newIds = rowsToSave.map(r => r[0]).join(',');
-        tr.setAttribute('data-ids', newIds);
       } else {
-        app.showToast('저장 실패: ' + (res ? res.message : '알 수 없는 에러'), true);
-        rollbackData.forEach(rb => { rb.row[3] = rb.oldStart; rb.row[4] = rb.oldEnd; });
-        app.renderView(app.currentView.replace('view-', ''));
+        throw new Error(res ? res.message : '알 수 없는 에러');
       }
     } catch(e) {
-      app.showToast('저장 중 예외 발생: ' + e.message, true);
+      app.showToast('저장 실패: ' + e.message, true);
       rollbackData.forEach(rb => { rb.row[3] = rb.oldStart; rb.row[4] = rb.oldEnd; });
       app.renderView(app.currentView.replace('view-', ''));
     }
@@ -1669,16 +1655,17 @@ const app = {
       rowObj[8] = newValue;
     } else {
       const newId = 'f-' + Date.now().toString(36) + '-' + Math.random().toString(36).substr(2, 5);
+      const groupId = 'g-' + Date.now().toString(36) + Math.random().toString(36).substr(2, 3);
       rowObj = [newId, date, '휴일', '00:00', '00:00', '전체', '휴일', '', newValue, ''];
+      rowObj.groupId = groupId;
       this.data.timetables.push(rowObj);
     }
     
-    this.apiPost('upsertTimetable', { id: rowObj[0], date: rowObj[1], type: rowObj[2], start: rowObj[3], end: rowObj[4], className: rowObj[5], subject: rowObj[6], instructor: rowObj[7], note: rowObj[8] }).then(res => {
+    this.apiPost('upsertTimetable', { id: rowObj[0], date: rowObj[1], type: rowObj[2] + '|' + rowObj.groupId, start: rowObj[3], end: rowObj[4], className: rowObj[5], subject: rowObj[6], instructor: rowObj[7], note: rowObj[8] }).then(res => {
       if(res.success && res.id) { rowObj[0] = res.id; cell.setAttribute('data-id', res.id); }
     });
   },
 
-  
   openSubjectManagerModal: function() {
     this.renderSubjectManagerList();
     document.getElementById('subject-manager-modal').classList.remove('hidden');
@@ -1701,7 +1688,6 @@ const app = {
     if (!name) return alert('과목명을 입력하세요.');
     if (this.managedSubjects.find(s => s.name === name)) return alert('이미 존재하는 과목명입니다.');
     
-    // 자동 이모지 매핑 로직 (추론)
     let emoji = '📌';
     if (name.includes('물리')) emoji = '🍎';
     else if (name.includes('화학')) emoji = '🧪';
@@ -1794,7 +1780,10 @@ const app = {
   openTimetableEditor: function(td) {
     const id = td.getAttribute('data-id'), start = td.getAttribute('data-start'), end = td.getAttribute('data-end'), cls = td.getAttribute('data-cls'), date = td.getAttribute('data-date');
     let subject = '', instructor = '';
-    const rowObj = this.data.timetables.find(r => r[1] === date && r[2] === '수업' && r[3] === start && r[4] === end && r[5] === cls);
+    const currentType = this.currentView === 'view-timetable-summary' ? '요약' : '상세';
+    let rowObj = null;
+    if (id) rowObj = this.data.timetables.find(r => r[0] === id);
+    if (!rowObj) rowObj = this.data.timetables.find(r => r[1] === date && r[2] === currentType && r[3] === start && r[4] === end && r[5] === cls);
     if(rowObj) { subject = rowObj[6]; instructor = rowObj[7]; }
 
     const instructors = Array.from(new Set(this.data.instructors.map(r => {
@@ -1869,13 +1858,18 @@ const app = {
 
     const currentType = this.currentView === 'view-timetable-summary' ? '요약' : '상세';
 
-    let rowObj = this.data.timetables.find(r => r[1] === date && r[2] === currentType && r[3] === start && r[4] === end && r[5] === cls);
+    let rowObj = null;
+    if (id) rowObj = this.data.timetables.find(r => r[0] === id);
+    if (!rowObj) rowObj = this.data.timetables.find(r => r[1] === date && r[2] === currentType && r[3] === start && r[4] === end && r[5] === cls);
+    
     const rollbackData = {};
     let isNew = false;
     
     if (!rowObj) {
       const newId = id || 'f-' + Date.now().toString(36) + '-' + Math.random().toString(36).substr(2, 5);
+      const groupId = 'g-' + Date.now().toString(36) + Math.random().toString(36).substr(2, 3);
       rowObj = [newId, date, currentType, start, end, cls, subject, instructor, '', new Date().toLocaleString()];
+      rowObj.groupId = groupId;
       this.data.timetables.push(rowObj);
       isNew = true;
     } else {
@@ -1886,7 +1880,7 @@ const app = {
     }
 
     try {
-      const res = await this.apiPost('upsertTimetable', { id: rowObj[0], date: rowObj[1], type: rowObj[2], start: rowObj[3], end: rowObj[4], className: rowObj[5], subject: rowObj[6], instructor: rowObj[7], note: rowObj[8] });
+      const res = await this.apiPost('upsertTimetable', { id: rowObj[0], date: rowObj[1], type: rowObj[2] + '|' + rowObj.groupId, start: rowObj[3], end: rowObj[4], className: rowObj[5], subject: rowObj[6], instructor: rowObj[7], note: rowObj[8] });
       if(res && res.success && res.id) { rowObj[0] = res.id; }
       else {
         if (isNew) { this.data.timetables.pop(); } 
@@ -1906,40 +1900,6 @@ const app = {
     this.renderView(this.currentView.replace('view-', ''));
   },
 
-  updatePivotRowLabel: async function(type, oldLabel, oldHoicha, newLabel) {
-    try {
-      let cellHtml = app.getCleanHTML(window.event ? window.event.target : document.querySelector(':focus'));
-      app.silentSave('saveUISettings', { key: 'curr_wk_' + type + '_' + app.currentTerm + '_' + newLabel, value: cellHtml });
-      app.uiSettings['curr_wk_' + type + '_' + app.currentTerm + '_' + newLabel] = cellHtml;
-    } catch (e) {}
-    newLabel = newLabel.trim();
-    if(!newLabel || oldLabel === newLabel) return;
-    if(type === 'curriculum' || type === 'curriculum_science') {
-      const isSci = type === 'curriculum_science';
-      const dataArr = isSci ? this.data.curriculums_science : this.data.curriculums;
-      const action = isSci ? 'upsertMultipleCurriculumSciences' : 'upsertMultipleCurriculums';
-      const payloadArray = [];
-      const rollbackData = [];
-      
-      dataArr.forEach(r => {
-        if(r[1] === oldLabel && (r[4] || '') === oldHoicha) { 
-          rollbackData.push({ row: r, oldWeek: r[1] });
-          r[1] = newLabel; 
-          payloadArray.push({id: r[0], week: newLabel, subject: r[2], content: r[3], note: r[4]});
-        }
-      });
-      if (payloadArray.length > 0) {
-        try {
-          const res = await this.apiPost(action, { payloadArray });
-          if (!res || !res.success) throw new Error(res ? res.message : '알 수 없는 에러');
-        } catch(e) {
-          app.showToast('저장 실패: ' + e.message, true);
-          rollbackData.forEach(rb => { rb.row[1] = rb.oldWeek; rb.row[4] = rb.oldHoicha; });
-        }
-      }
-    }
-    this.renderView(type);
-  },
 
   addColumn: function(type) {
     const isCurriculum = (type === 'curriculum' || type === 'curriculum_science');
@@ -1990,15 +1950,18 @@ const app = {
         }
         if(type === 'timetable' && !this.dynamicCols.timetable.includes(val)) {
             this.dynamicCols.timetable.push(val);
-            const rowGroups = Array.from(new Set(this.data.timetables.map(r => r[1] + '|' + r[2] + '|' + r[3] + '|' + r[4]).filter(t => t !== '|||')));
+            const rowGroups = Array.from(new Set(this.data.timetables.map(r => r.groupId).filter(Boolean)));
             const payloadArray = [];
             let addedCount = 0;
             rowGroups.forEach(grp => {
-              const [date, tType, start, end] = grp.split('|');
+              const firstRow = this.data.timetables.find(r => r.groupId === grp);
+              if(!firstRow) return;
+              const date = firstRow[1], tType = firstRow[2], start = firstRow[3], end = firstRow[4];
               const newId = 'f-' + Date.now().toString(36) + '-' + Math.random().toString(36).substr(2, 5);
               const rowObj = [newId, date, tType, start, end, val, '', '', '', ''];
+              rowObj.groupId = grp;
               this.data.timetables.push(rowObj);
-              payloadArray.push({ id: newId, date, type: tType, start, end, className: val, subject: '', instructor: '', note: '' });
+              payloadArray.push({ id: newId, date, type: tType + '|' + grp, start, end, className: val, subject: '', instructor: '', note: '' });
               addedCount++;
             });
             if (payloadArray.length > 0) {

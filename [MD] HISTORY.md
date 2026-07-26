@@ -208,3 +208,9 @@
   - `updatePivotRowDate` 함수에 supabase로 가기 전으로 HTML 태그를 제거하는 순수 텍스트만 DB에 저장되게 replace 정규식 추가 (<font> 태그가 DB에 들어가 화면이 깨지는 참사를 완벽 차단).
   - local node script를 통해 impact 범위의 supabase DB(8건, 2건) cleanup 완료.
 - **검증**: node --check, check_div.js, check_render.js 모두 통과 및 한글 깨짐 없음 확인.
+## 2026-07-27 (6) - 시간표 및 진도계획 시스템-와이드 groupId 병합 방지 아키텍처 완전 적용
+- **작업 내용**:
+  - 시간표 탭 및 진도계획(수학/과학)에서 더이상 날짜나 시간 값 자체에 의존하여 그룹핑(ZWS 해킹)하지 않도록 모든 행에 고유 식별자(groupId)를 부여하는 아키텍처 개편을 완료했습니다.
+  - 사용자 요청에 따라 시간표 탭에서 **회차(hoicha)** 열 렌더링 로직 및 팝업 편집, 저장 로직을 100% 제거했습니다.
+  - deleteMultipleData 등에 쓰이는 sheetName 변수명(수업진도계획 등)은 Supabase 내부 테이블명(curriculums 등)으로 변환하기 위한 프론트엔드 라우팅 변수일 뿐, **GAS나 구글 시트는 현재 프로젝트에 0.1%도 개입하지 않고 오직 Supabase만 100% 사용하고 있음을 코드 단위로 검증 및 재확인**했습니다.
+- **검증**: node --check 완료 및 한글 인코딩 무결성(UTF-8) 검사 통과.
