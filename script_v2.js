@@ -395,7 +395,12 @@ const app = {
         const day = days[date.getDay()];
         const formatted = `${yy}-${mm}-${dd} (${day})`;
         
-        td.innerHTML = formatted;
+        const div = td.querySelector('div[contenteditable="true"]');
+        if (div) {
+          div.innerText = formatted;
+        } else {
+          td.innerHTML = formatted;
+        }
         if(app.updatePivotRowDate) app.updatePivotRowDate(td, formatted);
         setTimeout(() => { fp.destroy(); input.remove(); }, 100);
       },
