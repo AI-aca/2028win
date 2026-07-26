@@ -893,7 +893,7 @@ const app = {
         const fixedClass = (typeof c === 'object' && c.fixed) ? 'fixed-col label-col-header' : '';
         const leftStr = (typeof c === 'object' && c.left) ? `left:${c.left};`: '';
         let displayHeader = this.uiSettings['header_view-' + type + '_' + colIdx] || label;
-        if (['학생명', '센터', '학교', '학년', '강사명', '영역'].includes(label)) {
+        if (['학생명', '센터', '학교', '학년', '강사명', '영역', '학급', '사전 평가점수'].includes(label)) {
           displayHeader = app.renderSortableHeader(displayHeader, type, colIdx);
         }
         ths += `<th class="${fixedClass}" style="${widthStr} ${leftStr}"><div onblur="app.onHeaderBlur(this, 'view-' + type, ${colIdx})" style="display:inline-block; min-width:30px; min-height:20px; outline:none;">${displayHeader}</div></th>`;
@@ -1890,7 +1890,12 @@ const app = {
       let optionsHtml = '<option value="">과목 선택</option>' + filteredSubjects.map(s => `<option value="${s.name}">${s.emoji} ${s.name}</option>`).join('');
       document.getElementById('generic-modal-body').innerHTML = `<div class="form-group"><label>과목 선택 (${category})</label><select id="new-col-input" class="form-control">${optionsHtml}</select></div>`;
     } else {
-      document.getElementById('generic-modal-body').innerHTML = `<div class="form-group"><label>반이름</label><input type="text" id="new-col-input" class="form-control"></div>`;
+      if ((this.managedClasses || []).length > 0) {
+        let optionsHtml = '<option value="">학급 선택</option>' + this.managedClasses.map(c => `<option value="${c.name}">${c.name}</option>`).join('');
+        document.getElementById('generic-modal-body').innerHTML = `<div class="form-group"><label>반이름 선택</label><select id="new-col-input" class="form-control">${optionsHtml}</select></div>`;
+      } else {
+        document.getElementById('generic-modal-body').innerHTML = `<div class="form-group"><label>반이름</label><input type="text" id="new-col-input" class="form-control" placeholder="학급 관리를 통해 반을 등록해주세요" readonly></div>`;
+      }
     }
     
     document.getElementById('modal-container').classList.remove('hidden'); document.getElementById('generic-modal').classList.remove('hidden');
