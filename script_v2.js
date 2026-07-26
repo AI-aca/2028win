@@ -1017,7 +1017,7 @@ const app = {
     else if (type === 'student') { dataArray = this.data.students; upsertAction = 'upsertStudent'; keys = ['name', 'center', 'school', 'grade', 'parentPhone', 'studentPhone', 'note', 'class_name', 'pre_score']; }
     else if (type === 'instructor') { dataArray = this.data.instructors; upsertAction = 'upsertInstructor'; keys = ['instructorName', 'subject', 'subSubject', 'phone', 'email', 'note']; } // 시트컬럼: 강사명, 영역, 과목, 연락처, 지메일, 비고
 
-    const colIdx = parseInt(cell.getAttribute('data-col-idx'));
+    const colIdx = parseInt(cell.closest('td').getAttribute('data-col-idx'));
     
     if ((type === 'student' && (colIdx === 5 || colIdx === 6)) || (type === 'instructor' && colIdx === 4)) {
       newValue = app.formatPhone(newValue);
