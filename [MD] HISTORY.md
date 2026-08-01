@@ -284,3 +284,7 @@
 ## 2026-08-01 (25) - Supabase 저장(Schema) 에러 픽스
 - script_v2.js:
   - apiPost에서 classname을 강제로 class_name으로, start/end를 강제로 start_time/end_time으로 일괄 변환하던 버그(schema mismatch 원인) 제거.
+
+## 2026-08-01 (26) - 휴일 추가 렌더링 버그 픽스
+- script_v2.js:
+  - addRow(holiday) 시 새로 생성된 데이터에 groupId를 강제로 부여하여, 화면 갱신 시 누락되지 않고 실시간으로 나타나도록 수정.
