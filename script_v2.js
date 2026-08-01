@@ -1317,6 +1317,7 @@ const app = {
       const tmpDate = 'tmp-' + Date.now() + Math.random().toString(36).substr(2, 5);
       const newId = 'f-' + Date.now().toString(36) + '-' + Math.random().toString(36).substr(2, 5);
       const rowObj = [newId, tmpDate, '휴일', '00:00', '00:00', '전체', '휴일', '', '', ''];
+      rowObj.groupId = 'g-holiday-' + Date.now().toString(36);
       this.data.timetables.push(rowObj);
       this.apiPost('upsertTimetable', { id: newId, date: tmpDate, type: '휴일', start: '00:00', end: '00:00', className: '전체', subject: '휴일', instructor: '', note: '' }).then(res => {
         if (res.success && res.id) {
