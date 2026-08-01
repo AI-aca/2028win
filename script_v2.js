@@ -226,9 +226,6 @@ const app = {
             for (let k in obj) {
               if (['action', 'authpass', 'payloadarray', 'insertindex', 'regtime'].includes(k.toLowerCase())) continue;
               let key = k.toLowerCase();
-              if (key === 'classname') key = 'class_name';
-              if (key === 'start') key = 'start_time';
-              if (key === 'end') key = 'end_time';
               lowerObj[key] = obj[k];
             }
             if (['curriculums', 'curriculums_science', 'timetables', 'preschedules'].includes(table)) {
@@ -243,9 +240,6 @@ const app = {
           for (let k in data) {
             if (['action', 'authpass', 'payloadarray', 'insertindex', 'regtime'].includes(k.toLowerCase())) continue;
             let key = k.toLowerCase();
-            if (key === 'classname') key = 'class_name';
-            if (key === 'start') key = 'start_time';
-            if (key === 'end') key = 'end_time';
             lowerData[key] = data[k];
           }
           if (['curriculums', 'curriculums_science', 'timetables', 'preschedules'].includes(table)) {

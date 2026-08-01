@@ -280,3 +280,7 @@
 ## 2026-07-27 (24) - 고정열 배경색 저장(리로드) 문제 해결
 - style.css:
   - .label-col 에 있던 background: transparent !important; 제거 (인라인 배경색 덮어쓰기 방지)
+
+## 2026-08-01 (25) - Supabase 저장(Schema) 에러 픽스
+- script_v2.js:
+  - apiPost에서 classname을 강제로 class_name으로, start/end를 강제로 start_time/end_time으로 일괄 변환하던 버그(schema mismatch 원인) 제거.
