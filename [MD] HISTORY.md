@@ -288,3 +288,9 @@
 ## 2026-08-01 (26) - 휴일 추가 렌더링 버그 픽스
 - script_v2.js:
   - addRow(holiday) 시 새로 생성된 데이터에 groupId를 강제로 부여하여, 화면 갱신 시 누락되지 않고 실시간으로 나타나도록 수정.
+
+## 2026-08-01 (27) - 상단 드롭다운 버튼 UI/UX 개선
+- style.css:
+  - .curriculum-dropdown 클래스 신규 추가 (글꼴 14px 500, 패딩 6px 12px, hover 효과 추가).
+- index.html:
+  - 학급/과목 필터 드롭다운에 인라인 스타일을 제거하고 .curriculum-dropdown 적용하여 상단바 70px 높이와의 비례 및 시인성 향상.

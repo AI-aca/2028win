@@ -692,3 +692,21 @@ span.flatpickr-weekday {
 select.form-control option { background-color: #1e293b; color: #f8fafc; }
 
 .sort-icon { color: var(--primary) !important; }
+
+/* 진도계획 상단 드롭다운 (격리된 스타일) */
+.curriculum-dropdown {
+  padding: 6px 12px;
+  border-radius: 6px;
+  background: rgba(15, 23, 42, 0.6);
+  border: 1px solid rgba(255,255,255,0.2);
+  color: white;
+  outline: none;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+.curriculum-dropdown:hover, .curriculum-dropdown:focus {
+  background: rgba(16, 185, 129, 0.15);
+  border-color: var(--primary);
+}
