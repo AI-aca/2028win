@@ -2101,6 +2101,7 @@ const app = {
               return app.showToast(app.curriculumState.mode === 'class' ? '이미 표에 존재하는 과목입니다.' : '이미 표에 존재하는 학급입니다.', true);
             }
             dynCols.push(val);
+            this.silentSave('saveUISettings', { key: isSci ? 'dyn_cols_curriculum_science' : 'dyn_cols_curriculum', value: JSON.stringify(dynCols) });
             const week = dataArr.length > 0 ? dataArr[0][1] : '1주차';
             const newId = 'f-' + Date.now().toString(36) + '-' + Math.random().toString(36).substr(2, 5);
             const groupId = 'g-' + Date.now().toString(36) + Math.random().toString(36).substr(2, 3);
@@ -2126,6 +2127,7 @@ const app = {
               return app.showToast('이미 표에 존재하는 학급입니다.', true);
             }
             this.dynamicCols.timetable.push(val);
+            this.silentSave('saveUISettings', { key: 'dyn_cols_timetable', value: JSON.stringify(this.dynamicCols.timetable) });
             const rowGroups = Array.from(new Set(this.data.timetables.map(r => r.groupId).filter(Boolean)));
             const payloadArray = [];
             let addedCount = 0;
@@ -2169,12 +2171,14 @@ const app = {
       const sheetName = isSci ? '과학진도계획' : '수업진도계획';
       if (isSci) {
         this.dynamicCols.curriculum_science = this.dynamicCols.curriculum_science.filter(c => c !== colName);
+        this.silentSave('saveUISettings', { key: 'dyn_cols_curriculum_science', value: JSON.stringify(this.dynamicCols.curriculum_science) });
         const toDelete = this.data.curriculums_science.filter(r => r[2] === colName);
         this.data.curriculums_science = this.data.curriculums_science.filter(r => r[2] !== colName);
         const ids = toDelete.map(r => r[0]).filter(Boolean);
         if (ids.length > 0) this.silentSave('deleteMultipleData', { sheetName, ids: ids });
       } else {
         this.dynamicCols.curriculum = this.dynamicCols.curriculum.filter(c => c !== colName);
+        this.silentSave('saveUISettings', { key: 'dyn_cols_curriculum', value: JSON.stringify(this.dynamicCols.curriculum) });
         const toDelete = this.data.curriculums.filter(r => r[2] === colName);
         this.data.curriculums = this.data.curriculums.filter(r => r[2] !== colName);
         const ids = toDelete.map(r => r[0]).filter(Boolean);
@@ -2183,6 +2187,7 @@ const app = {
       this.renderView(this.currentView.replace('view-', ''));
     } else if(type === 'timetable' || type === 'timetable_summary' || type === 'timetable-summary') {
       this.dynamicCols.timetable = this.dynamicCols.timetable.filter(c => c !== colName);
+      this.silentSave('saveUISettings', { key: 'dyn_cols_timetable', value: JSON.stringify(this.dynamicCols.timetable) });
       const toDelete = this.data.timetables.filter(r => r[5] === colName);
       this.data.timetables = this.data.timetables.filter(r => r[5] !== colName);
       this.renderView(this.currentView.replace('view-', ''));
