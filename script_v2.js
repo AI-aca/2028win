@@ -710,9 +710,17 @@ const app = {
 
     document.querySelectorAll('.single-item').forEach(item => {
       item.addEventListener('click', (e) => {
+        const targetViewId = e.currentTarget.getAttribute('data-target');
+        if (targetViewId === 'view-student' || targetViewId === 'view-instructor') {
+          const pwd = prompt("비밀번호를 입력하세요:");
+          const validPwd = sessionStorage.getItem('auth_pass');
+          if (pwd !== validPwd && pwd !== '2028w!' && pwd !== 'weiz2028' && pwd !== '2028ㅈ!') {
+            alert('비밀번호가 일치하지 않습니다.');
+            return;
+          }
+        }
         document.querySelectorAll('.single-item, .sub-item, .accordion-header').forEach(el => el.classList.remove('active'));
         e.currentTarget.classList.add('active');
-        const targetViewId = e.currentTarget.getAttribute('data-target');
         document.getElementById('pageTitle').innerText = e.currentTarget.querySelector('.text').innerText;
         this.switchView(targetViewId);
         this.renderView(targetViewId.replace('view-', ''));
@@ -741,15 +749,13 @@ const app = {
       if (viewId === 'view-preschedule') {
         headerActions.innerHTML = `<button class="btn btn-primary" onclick="app.addRow('preschedule')">+ 내용 추가</button>`;
       } else if (viewId === 'view-curriculum') {
-        const addColText = app.curriculumState.mode === 'class' ? '+ 과목 추가' : '+ 학급 추가';
-        headerActions.innerHTML = `<button class="btn btn-primary" onclick="app.addRow('curriculum')">+ 주차 추가</button> <button class="btn btn-primary" onclick="app.addColumn('curriculum')">${addColText}</button>`;
+        headerActions.innerHTML = `<button class="btn btn-primary" onclick="app.addRow('curriculum')">+ 주차 추가</button>`;
       } else if (viewId === 'view-curriculum-science') {
-        const addColText = app.curriculumState.mode === 'class' ? '+ 과목 추가' : '+ 학급 추가';
-        headerActions.innerHTML = `<button class="btn btn-primary" onclick="app.addRow('curriculum_science')">+ 주차 추가</button> <button class="btn btn-primary" onclick="app.addColumn('curriculum_science')">${addColText}</button>`;
+        headerActions.innerHTML = `<button class="btn btn-primary" onclick="app.addRow('curriculum_science')">+ 주차 추가</button>`;
       } else if (viewId === 'view-timetable-summary') {
-        headerActions.innerHTML = `<button class="btn btn-primary" onclick="app.addRow('timetable_summary')">+ 요일 추가</button> <button class="btn btn-primary" onclick="app.addColumn('timetable')">+ 학급 추가</button>`;
+        headerActions.innerHTML = `<button class="btn btn-primary" onclick="app.addRow('timetable_summary')">+ 요일 추가</button>`;
       } else if (viewId === 'view-timetable') {
-        headerActions.innerHTML = `<button class="btn btn-primary" onclick="app.openBatchCreateTimetableModal()" style="background:#10b981; border-color:#10b981;">+ 템플릿 복사 생성</button> <button class="btn btn-primary" onclick="app.addRow('timetable')">+ 시간 추가</button> <button class="btn btn-primary" onclick="app.addRow('holiday')">+ 휴일 추가</button> <button class="btn btn-primary" onclick="app.addColumn('timetable')">+ 학급 추가</button>`;
+        headerActions.innerHTML = `<button class="btn btn-primary" onclick="app.openBatchCreateTimetableModal()" style="background:#10b981; border-color:#10b981;">+ 템플릿 복사 생성</button> <button class="btn btn-primary" onclick="app.addRow('timetable')">+ 시간 추가</button> <button class="btn btn-primary" onclick="app.addRow('holiday')">+ 휴일 추가</button>`;
       } else if (viewId === 'view-student') {
         headerActions.innerHTML = `<button class="btn btn-primary" onclick="app.addRow('student')">+ 학생 추가</button> <button class="btn btn-primary" onclick="app.openClassManagerModal()">+ 학급 관리</button>`;
       } else if (viewId === 'view-instructor') {
@@ -1059,18 +1065,18 @@ const app = {
         });
       }
       // Add right-click for column deletion
-      if (th.getAttribute('data-colname') && !th.hasAttribute('data-ctx-bound')) {
-        th.setAttribute('data-ctx-bound', 'true');
-        th.addEventListener('contextmenu', (e) => {
-          e.preventDefault();
-          this.ctxTargetColName = th.getAttribute('data-colname');
-          let tType = 'timetable';
-          if (th.closest('#view-curriculum')) tType = 'curriculum';
-          else if (th.closest('#view-curriculum-science')) tType = 'curriculum_science';
-          this.ctxTargetType = tType;
-          this.showContextMenu(e.pageX, e.pageY, 'col');
-        });
-      }
+      // if (th.getAttribute('data-colname') && !th.hasAttribute('data-ctx-bound')) {
+      //   th.setAttribute('data-ctx-bound', 'true');
+      //   th.addEventListener('contextmenu', (e) => {
+      //     e.preventDefault();
+      //     this.ctxTargetColName = th.getAttribute('data-colname');
+      //     let tType = 'timetable';
+      //     if (th.closest('#view-curriculum')) tType = 'curriculum';
+      //     else if (th.closest('#view-curriculum-science')) tType = 'curriculum_science';
+      //     this.ctxTargetType = tType;
+      //     this.showContextMenu(e.pageX, e.pageY, 'col');
+      //   });
+      // }
     });
   },
 
@@ -1392,7 +1398,12 @@ const app = {
     const isSci = type === 'curriculum_science';
     const viewId = isSci ? 'view-curriculum-science' : 'view-curriculum';
     const table = document.querySelector(`#${viewId} .excel-table`);
-    const dynCols = isSci ? this.dynamicCols.curriculum_science : this.dynamicCols.curriculum;
+    let dynCols = [];
+    if (this.curriculumState.mode === 'class') {
+      dynCols = this.managedSubjects.filter(s => s.category === (isSci ? '과학' : '수학')).map(s => s.name);
+    } else {
+      dynCols = this.managedClasses.map(c => c);
+    }
     const dataArr = isSci ? this.data.curriculums_science : this.data.curriculums;
 
     let weekHeader = this.uiSettings['header_' + viewId + '_0'] || '주차';
@@ -1577,7 +1588,7 @@ const app = {
     
     headHtml += `<th class="label-col-header fixed-col" style="width:8%; left:${startLeft};">시작 시간</th><th class="label-col-header fixed-col" style="width:8%; left:${endLeft};">종료 시간</th>`;
     
-    this.dynamicCols.timetable.forEach(cls => {
+    this.managedClasses.map(c => c).forEach(cls => {
       headHtml += `<th data-colname="${cls}">${cls}</th>`;
     });
     headHtml += `</tr></thead><tbody id="${tbodyId}">`;
@@ -1642,7 +1653,7 @@ const app = {
         const holidayNote = firstRow[8] || ''; // note column for holiday reason
         const colspanSize = isSummary ? 2 : 3;
         headHtml += `<td colspan="${colspanSize}" class="fixed-col label-col" data-bg-key="cell_bg_hol_${grp}" data-cell-key="tt_fmt_hol_${grp}" style="text-align:center; left:12%; color:var(--danger); ${this.uiSettings['cell_bg_hol_' + grp] ? 'background-color:' + this.uiSettings['cell_bg_hol_' + grp] + ' !important;' : ''}">🏖️ 휴일</td>`;
-        headHtml += `<td colspan="${this.dynamicCols.timetable.length}" class="timetable-cell" data-id="${firstRow?firstRow[0]:''}" data-date="${date}" contenteditable="true" onblur="app.onTimetableHolidayBlur(this)" style="text-align:center; background:rgba(255,255,255,0.05); color:var(--text-muted);">${holidayNote || '휴일/특이사항 입력'}</td>`;
+        headHtml += `<td colspan="${this.managedClasses.length}" class="timetable-cell" data-id="${firstRow?firstRow[0]:''}" data-date="${date}" contenteditable="true" onblur="app.onTimetableHolidayBlur(this)" style="text-align:center; background:rgba(255,255,255,0.05); color:var(--text-muted);">${holidayNote || '휴일/특이사항 입력'}</td>`;
       } else {
         const weekVal = this.uiSettings['tt_week_' + grp] || '';
         
@@ -1651,7 +1662,7 @@ const app = {
         }
         
         headHtml += `<td class="fixed-col label-col" style="left:${startLeft}; white-space:nowrap; text-align:center; vertical-align:middle; font-weight:normal; ${this.uiSettings['cell_bg_st_' + grp] ? 'background-color:' + this.uiSettings['cell_bg_st_' + grp] + ';' : ''}" data-bg-key="cell_bg_st_${grp}" data-cell-key="tt_fmt_st_${grp}"><div contenteditable="true" onblur="app.updatePivotRowTime(this.closest('td'), 'start', app.getCleanHTML(this))" style="display:inline-block; outline:none; min-width:30px; font-weight:normal;">${start || '00:00'}</div> <span onclick="app.openTimePicker(this.closest('td'), 'start')" style="cursor:pointer;" title="시간 선택">🕒</span></td><td class="fixed-col label-col" style="left:${endLeft}; white-space:nowrap; text-align:center; vertical-align:middle; font-weight:normal; ${this.uiSettings['cell_bg_et_' + grp] ? 'background-color:' + this.uiSettings['cell_bg_et_' + grp] + ';' : ''}" data-bg-key="cell_bg_et_${grp}" data-cell-key="tt_fmt_et_${grp}"><div contenteditable="true" onblur="app.updatePivotRowTime(this.closest('td'), 'end', app.getCleanHTML(this))" style="display:inline-block; outline:none; min-width:30px; font-weight:normal;">${end || '00:00'}</div> <span onclick="app.openTimePicker(this.closest('td'), 'end')" style="cursor:pointer;" title="시간 선택">🕒</span></td>`;
-        this.dynamicCols.timetable.forEach(cls => {
+        this.managedClasses.map(c => c).forEach(cls => {
           const row = groupRows.find(r => r[5] === cls);
           let subject = row && row[6] ? row[6] : '';
           
