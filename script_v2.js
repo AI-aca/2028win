@@ -568,7 +568,12 @@ const app = {
     
     const rect = td.getBoundingClientRect();
     dropdown.style.left = `${rect.left}px`;
-    dropdown.style.top = `${rect.bottom + window.scrollY + 5}px`;
+    const popHeight = 250;
+    if (rect.bottom + popHeight > window.innerHeight) {
+      dropdown.style.top = `${rect.top + window.scrollY - popHeight - 5}px`;
+    } else {
+      dropdown.style.top = `${rect.bottom + window.scrollY + 5}px`;
+    }
     dropdown.classList.remove('hidden');
     
     const closeDropdown = (e) => {
@@ -634,7 +639,12 @@ const app = {
 
     const rect = td.getBoundingClientRect();
     dropdown.style.left = `${rect.left}px`;
-    dropdown.style.top = `${rect.bottom + window.scrollY + 5}px`;
+    const popHeight = 200;
+    if (rect.bottom + popHeight > window.innerHeight) {
+      dropdown.style.top = `${rect.top + window.scrollY - popHeight - 5}px`;
+    } else {
+      dropdown.style.top = `${rect.bottom + window.scrollY + 5}px`;
+    }
     dropdown.classList.remove('hidden');
     
     const closeDropdown = (e) => {
@@ -1977,7 +1987,12 @@ const app = {
     modal.id = 'timetable-editor-overlay';
     modal.style.position = 'absolute';
     modal.style.left = `${Math.min(rect.left, window.innerWidth - 300)}px`;
-    modal.style.top = `${rect.bottom + window.scrollY + 5}px`;
+    const popHeight = 250;
+    if (rect.bottom + popHeight > window.innerHeight) {
+      modal.style.top = `${rect.top + window.scrollY - popHeight - 5}px`;
+    } else {
+      modal.style.top = `${rect.bottom + window.scrollY + 5}px`;
+    }
     modal.style.width = '300px';
     modal.style.background = '#1f2937';
     modal.style.border = '1px solid #374151';
