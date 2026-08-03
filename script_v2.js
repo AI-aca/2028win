@@ -2505,6 +2505,7 @@ const app = {
   },
 
   executeBatchCreateTimetable: function() {
+    const hashCode = s => Math.abs(String(s).split('').reduce((a,b)=>{a=((a<<5)-a)+b.charCodeAt(0);return a&a},0)).toString(36);
     const week = document.getElementById('batch-create-week').value;
     if (!week) return this.showToast('생성할 주차를 입력해주세요.', true);
     
