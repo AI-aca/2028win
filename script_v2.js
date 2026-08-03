@@ -411,6 +411,14 @@ const app = {
     }
     this.managedClasses = JSON.parse(this.uiSettings.managed_classes);
     
+    this.hiddenCols = { curriculum: [], curriculum_science: [] };
+    if (this.uiSettings.hidden_cols_curriculum) {
+      try { this.hiddenCols.curriculum = JSON.parse(this.uiSettings.hidden_cols_curriculum); } catch(e) { }
+    }
+    if (this.uiSettings.hidden_cols_curriculum_science) {
+      try { this.hiddenCols.curriculum_science = JSON.parse(this.uiSettings.hidden_cols_curriculum_science); } catch(e) { }
+    }
+    
     this.extractDynamicCols();
     this.renderAllViews();
     this.hideLoading();
@@ -451,10 +459,18 @@ const app = {
       const sciSubjects = (this.managedSubjects || []).filter(s => s.category === '과학').map(s => s.name);
       
       const curDataCols = this.data.curriculums.map(r => r[2]).filter(x => x);
-      this.dynamicCols.curriculum = Array.from(new Set([...mathSubjects, ...curDataCols])).sort(sortByManaged);
+      let curArr = Array.from(new Set([...mathSubjects, ...curDataCols])).sort(sortByManaged);
+      if (this.hiddenCols && this.hiddenCols.curriculum) {
+        curArr = curArr.filter(c => !this.hiddenCols.curriculum.includes(c));
+      }
+      this.dynamicCols.curriculum = curArr;
       
       const sciDataCols = this.data.curriculums_science.map(r => r[2]).filter(x => x);
-      this.dynamicCols.curriculum_science = Array.from(new Set([...sciSubjects, ...sciDataCols])).sort(sortByManaged);
+      let sciArr = Array.from(new Set([...sciSubjects, ...sciDataCols])).sort(sortByManaged);
+      if (this.hiddenCols && this.hiddenCols.curriculum_science) {
+        sciArr = sciArr.filter(c => !this.hiddenCols.curriculum_science.includes(c));
+      }
+      this.dynamicCols.curriculum_science = sciArr;
     }
     
     const ttDataCols = this.data.timetables.map(r => r[5]).filter(x => x && x !== '전체');
@@ -2100,6 +2116,16 @@ const app = {
             if(dynCols.includes(val)) {
               return app.showToast(app.curriculumState.mode === 'class' ? '이미 표에 존재하는 과목입니다.' : '이미 표에 존재하는 학급입니다.', true);
             }
+            
+            // 블랙리스트에서 제거 (부활)
+            if (isSci) {
+              this.hiddenCols.curriculum_science = this.hiddenCols.curriculum_science.filter(c => c !== val);
+              this.silentSave('saveUISettings', { key: 'hidden_cols_curriculum_science', value: JSON.stringify(this.hiddenCols.curriculum_science) });
+            } else {
+              this.hiddenCols.curriculum = this.hiddenCols.curriculum.filter(c => c !== val);
+              this.silentSave('saveUISettings', { key: 'hidden_cols_curriculum', value: JSON.stringify(this.hiddenCols.curriculum) });
+            }
+            
             dynCols.push(val);
             this.silentSave('saveUISettings', { key: isSci ? 'dyn_cols_curriculum_science' : 'dyn_cols_curriculum', value: JSON.stringify(dynCols) });
             const week = dataArr.length > 0 ? dataArr[0][1] : '1주차';
@@ -2170,6 +2196,10 @@ const app = {
       const isSci = type === 'curriculum_science';
       const sheetName = isSci ? '과학진도계획' : '수업진도계획';
       if (isSci) {
+        if (!this.hiddenCols.curriculum_science.includes(colName)) {
+          this.hiddenCols.curriculum_science.push(colName);
+          this.silentSave('saveUISettings', { key: 'hidden_cols_curriculum_science', value: JSON.stringify(this.hiddenCols.curriculum_science) });
+        }
         this.dynamicCols.curriculum_science = this.dynamicCols.curriculum_science.filter(c => c !== colName);
         this.silentSave('saveUISettings', { key: 'dyn_cols_curriculum_science', value: JSON.stringify(this.dynamicCols.curriculum_science) });
         const toDelete = this.data.curriculums_science.filter(r => r[2] === colName);
@@ -2177,6 +2207,10 @@ const app = {
         const ids = toDelete.map(r => r[0]).filter(Boolean);
         if (ids.length > 0) this.silentSave('deleteMultipleData', { sheetName, ids: ids });
       } else {
+        if (!this.hiddenCols.curriculum.includes(colName)) {
+          this.hiddenCols.curriculum.push(colName);
+          this.silentSave('saveUISettings', { key: 'hidden_cols_curriculum', value: JSON.stringify(this.hiddenCols.curriculum) });
+        }
         this.dynamicCols.curriculum = this.dynamicCols.curriculum.filter(c => c !== colName);
         this.silentSave('saveUISettings', { key: 'dyn_cols_curriculum', value: JSON.stringify(this.dynamicCols.curriculum) });
         const toDelete = this.data.curriculums.filter(r => r[2] === colName);
