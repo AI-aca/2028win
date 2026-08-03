@@ -2434,7 +2434,8 @@ const app = {
     if (summaries.length === 0) {
       return this.showToast('먼저 시간표 [요약] 탭에 일정을 하나 이상 등록해주세요.', true);
     }
-    const days = Array.from(new Set(summaries.map(r => r[1]).filter(Boolean)));
+    const weekOrder = { '월요일':1, '화요일':2, '수요일':3, '목요일':4, '금요일':5, '토요일':6, '일요일':7 };
+    const days = Array.from(new Set(summaries.map(r => r[1]).filter(Boolean))).sort((a, b) => weekOrder[a] - weekOrder[b]);
     
     document.getElementById('batch-create-week').value = '';
     const container = document.getElementById('batch-create-days-container');
@@ -2500,7 +2501,8 @@ const app = {
     if (!week) return this.showToast('생성할 주차를 입력해주세요.', true);
     
     const summaries = this.data.timetables.filter(r => r[2] === '요약');
-    const days = Array.from(new Set(summaries.map(r => r[1]).filter(Boolean)));
+    const weekOrder = { '월요일':1, '화요일':2, '수요일':3, '목요일':4, '금요일':5, '토요일':6, '일요일':7 };
+    const days = Array.from(new Set(summaries.map(r => r[1]).filter(Boolean))).sort((a, b) => weekOrder[a] - weekOrder[b]);
     const dateMap = {};
     let missingDate = false;
     
