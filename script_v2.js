@@ -778,12 +778,14 @@ const app = {
     let opts = [];
     let currentVal = this.curriculumState.filterValue;
 
+    const isMath = this.currentView === 'view-curriculum';
+    const hiddenList = isMath ? this.hiddenCols.curriculum : this.hiddenCols.curriculum_science;
+
     if (mode === 'subject') {
-      const isMath = this.currentView === 'view-curriculum';
       const category = isMath ? '수학' : '과학';
-      opts = this.managedSubjects.filter(s => s.category === category).map(s => s.name);
+      opts = this.managedSubjects.filter(s => s.category === category && !hiddenList.includes(s.name)).map(s => s.name);
     } else {
-      opts = this.managedClasses.map(c => c);
+      opts = this.managedClasses.filter(c => !hiddenList.includes(c)).map(c => c);
     }
     
     if (opts.length === 0) {
