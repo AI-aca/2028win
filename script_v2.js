@@ -710,6 +710,7 @@ const app = {
 
     document.querySelectorAll('.single-item').forEach(item => {
       item.addEventListener('click', (e) => {
+        const targetViewId = e.currentTarget.getAttribute('data-target');
         document.querySelectorAll('.single-item, .sub-item, .accordion-header').forEach(el => el.classList.remove('active'));
         e.currentTarget.classList.add('active');
         document.getElementById('pageTitle').innerText = e.currentTarget.querySelector('.text').innerText;
