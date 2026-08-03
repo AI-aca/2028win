@@ -237,7 +237,6 @@ const app = {
             for (let k in obj) {
               if (['action', 'authpass', 'payloadarray', 'insertindex', 'regtime'].includes(k.toLowerCase())) continue;
               let key = k.toLowerCase();
-              if (key === 'id' && (!obj[k] || (typeof obj[k] === 'string' && obj[k].startsWith('f-')))) continue;
               lowerObj[key] = obj[k];
             }
             if (['curriculums', 'curriculums_science', 'timetables', 'preschedules'].includes(table)) {
@@ -252,7 +251,6 @@ const app = {
           for (let k in data) {
             if (['action', 'authpass', 'payloadarray', 'insertindex', 'regtime'].includes(k.toLowerCase())) continue;
             let key = k.toLowerCase();
-            if (key === 'id' && (!data[k] || (typeof data[k] === 'string' && data[k].startsWith('f-')))) continue;
             lowerData[key] = data[k];
           }
           if (['curriculums', 'curriculums_science', 'timetables', 'preschedules'].includes(table)) {
@@ -1441,7 +1439,8 @@ const app = {
       rowObj[3] = newValue; 
     } else { 
       if (!newValue) return; 
-      rowObj = ['', week, sub, newValue, grp, cls];
+      const newId = 'f-' + Date.now().toString(36) + '-' + Math.random().toString(36).substr(2, 5);
+      rowObj = [newId, week, sub, newValue, grp, cls];
       rowObj.groupId = grp;
       dataArr.push(rowObj); 
     }
