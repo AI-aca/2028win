@@ -2532,6 +2532,7 @@ const app = {
     if (missingDate) return this.showToast('모든 요일의 날짜를 선택해주세요.', true);
     
     const newPayloads = [];
+    const localRows = []; // 프론트 배열 전용 데이터
     summaries.forEach(r => {
       const day = r[1];
       const targetDate = dateMap[day] || day;
@@ -2553,21 +2554,23 @@ const app = {
         end: r[4] || '',
         classname: r[5] || '',
         subject: newSubject,
-        instructor: r[7] || '',
-        groupId: groupId
+        instructor: r[7] || ''
       });
       
+      // 프론트 데이터 배열은 인덱스 기반: [id, date, type, start, end, classname, subject, instructor, note, groupId]
+      const row = [safeId, targetDate, '상세', (r[3]||''), (r[4]||''), (r[5]||''), newSubject, (r[7]||''), '', groupId];
+      row.groupId = groupId;
+      localRows.push(row);
+      
       if (week) {
-        this.uiSettings['tt_week_' + groupId] = week + '차';
-        this.silentSave('saveUISettings', { key: 'tt_week_' + groupId, value: week + '차' });
+        this.uiSettings['tt_week_' + groupId] = week; // 숫자만 저장
+        this.silentSave('saveUISettings', { key: 'tt_week_' + groupId, value: week });
       }
     });
     
     this.silentSave('upsertMultipleTimetables', { payloadArray: newPayloads });
     
-    newPayloads.forEach(obj => {
-      const row = [obj.id, obj.date, '상세', obj.start, obj.end, obj.classname, obj.subject, obj.instructor, '', obj.groupId];
-      row.groupId = obj.groupId;
+    localRows.forEach(row => {
       this.data.timetables.push(row);
     });
     
