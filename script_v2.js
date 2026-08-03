@@ -710,15 +710,6 @@ const app = {
 
     document.querySelectorAll('.single-item').forEach(item => {
       item.addEventListener('click', (e) => {
-        const targetViewId = e.currentTarget.getAttribute('data-target');
-        if (targetViewId === 'view-student' || targetViewId === 'view-instructor') {
-          const pwd = prompt("비밀번호를 입력하세요:");
-          const validPwd = sessionStorage.getItem('auth_pass');
-          if (pwd !== validPwd && pwd !== '2028w!' && pwd !== 'weiz2028' && pwd !== '2028ㅈ!') {
-            alert('비밀번호가 일치하지 않습니다.');
-            return;
-          }
-        }
         document.querySelectorAll('.single-item, .sub-item, .accordion-header').forEach(el => el.classList.remove('active'));
         e.currentTarget.classList.add('active');
         document.getElementById('pageTitle').innerText = e.currentTarget.querySelector('.text').innerText;
@@ -1855,13 +1846,18 @@ const app = {
       rowObj.groupId = groupId;
       this.data.timetables.push(rowObj);
     }
-    
     this.apiPost('upsertTimetable', { id: rowObj[0], date: rowObj[1], type: rowObj[2] + '|' + rowObj.groupId, start: rowObj[3], end: rowObj[4], className: rowObj[5], subject: rowObj[6], instructor: rowObj[7], note: rowObj[8] }).then(res => {
       if(res.success && res.id) { rowObj[0] = res.id; cell.setAttribute('data-id', res.id); }
     });
   },
 
   openSubjectManagerModal: function() {
+    const pwd = prompt("비밀번호를 입력하세요:");
+    const validPwd = sessionStorage.getItem('auth_pass');
+    if (pwd !== validPwd && pwd !== '2028w!' && pwd !== 'weiz2028' && pwd !== '2028ㅈ!') {
+      alert('비밀번호가 일치하지 않습니다.');
+      return;
+    }
     this.renderSubjectManagerList();
     document.getElementById('subject-manager-modal').classList.remove('hidden');
   },
@@ -1909,6 +1905,12 @@ const app = {
   },
 
   openClassManagerModal: function() {
+    const pwd = prompt("비밀번호를 입력하세요:");
+    const validPwd = sessionStorage.getItem('auth_pass');
+    if (pwd !== validPwd && pwd !== '2028w!' && pwd !== 'weiz2028' && pwd !== '2028ㅈ!') {
+      alert('비밀번호가 일치하지 않습니다.');
+      return;
+    }
     this.renderClassManagerList();
     document.getElementById('class-manager-modal').classList.remove('hidden');
   },
