@@ -2534,29 +2534,40 @@ const app = {
     summaries.forEach(r => {
       const day = r[1];
       const targetDate = dateMap[day] || day;
+      
       let newSubject = r[6] || '';
       if (newSubject && newSubject !== '휴일' && newSubject.trim() !== '') {
-        newSubject = newSubject.replace(/ \d+차/g, '');
-        newSubject = `${newSubject} ${week}차`;
+        newSubject = newSubject.replace(/ \d+차/g, '').trim();
       }
+      
+      let typeStr = '상세';
+      const groupId = 'g-' + hashCode(targetDate + '|' + typeStr + '|' + (r[3]||'') + '|' + (r[4]||''));
       
       const safeId = 'tt-' + Date.now() + Math.random().toString(36).substr(2, 9);
       newPayloads.push({
         id: safeId,
         date: targetDate,
-        type: '상세',
+        type: typeStr + '|' + groupId,
         start: r[3] || '',
         end: r[4] || '',
         classname: r[5] || '',
         subject: newSubject,
-        instructor: r[7] || ''
+        instructor: r[7] || '',
+        groupId: groupId
       });
+      
+      if (week) {
+        this.uiSettings['tt_week_' + groupId] = week + '차';
+        this.silentSave('saveUISettings', { key: 'tt_week_' + groupId, value: week + '차' });
+      }
     });
     
     this.silentSave('upsertMultipleTimetables', { payloadArray: newPayloads });
     
     newPayloads.forEach(obj => {
-      this.data.timetables.push([obj.id, obj.date, obj.type, obj.start, obj.end, obj.classname, obj.subject, obj.instructor]);
+      const row = [obj.id, obj.date, '상세', obj.start, obj.end, obj.classname, obj.subject, obj.instructor, '', obj.groupId];
+      row.groupId = obj.groupId;
+      this.data.timetables.push(row);
     });
     
     this.closeBatchCreateTimetableModal();
