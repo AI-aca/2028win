@@ -741,9 +741,11 @@ const app = {
       if (viewId === 'view-preschedule') {
         headerActions.innerHTML = `<button class="btn btn-primary" onclick="app.addRow('preschedule')">+ 내용 추가</button>`;
       } else if (viewId === 'view-curriculum') {
-        headerActions.innerHTML = `<button class="btn btn-primary" onclick="app.addRow('curriculum')">+ 주차 추가</button> <button class="btn btn-primary" onclick="app.addColumn('curriculum')">+ 과목 추가</button>`;
+        const addColText = app.curriculumState.mode === 'class' ? '+ 과목 추가' : '+ 학급 추가';
+        headerActions.innerHTML = `<button class="btn btn-primary" onclick="app.addRow('curriculum')">+ 주차 추가</button> <button class="btn btn-primary" onclick="app.addColumn('curriculum')">${addColText}</button>`;
       } else if (viewId === 'view-curriculum-science') {
-        headerActions.innerHTML = `<button class="btn btn-primary" onclick="app.addRow('curriculum_science')">+ 주차 추가</button> <button class="btn btn-primary" onclick="app.addColumn('curriculum_science')">+ 과목 추가</button>`;
+        const addColText = app.curriculumState.mode === 'class' ? '+ 과목 추가' : '+ 학급 추가';
+        headerActions.innerHTML = `<button class="btn btn-primary" onclick="app.addRow('curriculum_science')">+ 주차 추가</button> <button class="btn btn-primary" onclick="app.addColumn('curriculum_science')">${addColText}</button>`;
       } else if (viewId === 'view-timetable-summary') {
         headerActions.innerHTML = `<button class="btn btn-primary" onclick="app.addRow('timetable_summary')">+ 요일 추가</button> <button class="btn btn-primary" onclick="app.addColumn('timetable')">+ 학급 추가</button>`;
       } else if (viewId === 'view-timetable') {
@@ -812,6 +814,7 @@ const app = {
     if (!sel) return;
     this.curriculumState.mode = sel.value;
     this.updateCurriculumFilterDropdown();
+    this.switchView(this.currentView);
     this.renderAllViews();
   },
   
