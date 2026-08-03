@@ -44,9 +44,20 @@ const app = {
     
     app.currentModalAction = () => {
       const select = document.getElementById('instructor-modal-select');
-      td.innerHTML = select.value;
+      const val = select.value;
+      
+      let displayVal = val;
+      if (mode !== 'area' && val && app.managedSubjects && Array.isArray(app.managedSubjects)) {
+        const matchedSub = app.managedSubjects.find(s => s.name === val);
+        if (matchedSub && matchedSub.emoji) {
+          displayVal = `${matchedSub.emoji} ${val}`;
+        }
+      }
+      
+      td.innerHTML = val;
       app.closeModal();
       app.onFlatCellBlur('instructor', td);
+      td.innerHTML = displayVal;
     };
   },
 
@@ -226,6 +237,7 @@ const app = {
             for (let k in obj) {
               if (['action', 'authpass', 'payloadarray', 'insertindex', 'regtime'].includes(k.toLowerCase())) continue;
               let key = k.toLowerCase();
+              if (key === 'id' && (!obj[k] || (typeof obj[k] === 'string' && obj[k].startsWith('f-')))) continue;
               lowerObj[key] = obj[k];
             }
             if (['curriculums', 'curriculums_science', 'timetables', 'preschedules'].includes(table)) {
@@ -240,6 +252,7 @@ const app = {
           for (let k in data) {
             if (['action', 'authpass', 'payloadarray', 'insertindex', 'regtime'].includes(k.toLowerCase())) continue;
             let key = k.toLowerCase();
+            if (key === 'id' && (!data[k] || (typeof data[k] === 'string' && data[k].startsWith('f-')))) continue;
             lowerData[key] = data[k];
           }
           if (['curriculums', 'curriculums_science', 'timetables', 'preschedules'].includes(table)) {
@@ -372,7 +385,10 @@ const app = {
     this.data.timetables = ttData;
     
     this.data.students = res['학생관리'] || [];
-    this.data.instructors = res['강사관리'] || [];
+    this.data.instructors = (res['강사관리'] || []).map(r => {
+      const subParts = (r[3] || '').split('|');
+      return [r[0], r[1], r[2], subParts[0] || '', subParts[1] || '', r[4], r[5], r[6]];
+    });
     
     this.uiSettings = res.uiSettings || {};
     
@@ -791,7 +807,7 @@ const app = {
   renderView: function(viewName) {
     if (viewName === 'preschedule') this.renderFlatTable('preschedule', this.data.preschedules, [{label:'일자', idx:1, fixed:true, width:'12%', left:'0'}, {label:'상태', idx:3, fixed:true, width:'10%', left:'12%'}, {label:'내용', idx:2}, {label:'비고', idx:4}]);
     else if (viewName === 'student') this.renderFlatTable('student', this.data.students, [{label:'학생명', idx:1, fixed:true, width:'8%', left:'0'}, {label:'학급', idx:8}, {label:'사전 평가점수', idx:9}, {label:'센터', idx:2}, {label:'학교', idx:3}, {label:'학년', idx:4}, {label:'학부모 연락처', idx:5}, {label:'학생 연락처', idx:6}, {label:'비고', idx:7}]);
-    else if (viewName === 'instructor') this.renderFlatTable('instructor', this.data.instructors, [{label:'강사명', idx:1, fixed:true, width:'8%', left:'0'}, {label:'영역', idx:2}, {label:'과목', idx:3}, {label:'연락처', idx:4}, {label:'지메일', idx:5}, {label:'비고', idx:6}]);
+    else if (viewName === 'instructor') this.renderFlatTable('instructor', this.data.instructors, [{label:'강사명', idx:1, fixed:true, width:'8%', left:'0'}, {label:'영역', idx:2}, {label:'과목1', idx:3}, {label:'과목2', idx:4}, {label:'연락처', idx:5}, {label:'지메일', idx:6}, {label:'비고', idx:7}]);
     else if (viewName === 'curriculum') this.renderCurriculumPivot('curriculum');
     else if (viewName === 'curriculum_science') this.renderCurriculumPivot('curriculum_science');
     else if (viewName === 'timetable') this.renderTimetablePivot(false);
@@ -1079,7 +1095,7 @@ const app = {
           html += `<td ${cellClassStr} data-col-idx="${colIdx}" data-bg-key="${bgKey}" style="cursor:pointer; text-align:center; ${combinedStyle}" onclick="app.openClassSelectModal(this)">${val}</td>`;
         } else if (type === 'instructor' && colIdx === 2) {
           html += `<td ${cellClassStr} data-col-idx="${colIdx}" data-bg-key="${bgKey}" style="cursor:pointer; text-align:center; ${combinedStyle}" onclick="app.openInstructorSelectModal(this, 'area')">${val}</td>`;
-        } else if (type === 'instructor' && colIdx === 3) {
+        } else if (type === 'instructor' && (colIdx === 3 || colIdx === 4)) {
           let displayVal = val;
           if (val && app.managedSubjects && Array.isArray(app.managedSubjects)) {
             const matchedSub = app.managedSubjects.find(s => s.name === val);
@@ -1093,7 +1109,7 @@ const app = {
           let displayVal = val;
           let placeholder = (label === '학생명' || label === '강사명') ? 'placeholder="이름 입력"' : '';
           
-          if ((type === 'student' && (colIdx === 5 || colIdx === 6)) || (type === 'instructor' && colIdx === 4)) {
+          if ((type === 'student' && (colIdx === 5 || colIdx === 6)) || (type === 'instructor' && colIdx === 5)) {
             extraEvents = `onfocus="app.handlePhoneFocus(this)" onkeydown="app.handlePhoneKeydown(event, this)"`;
             placeholder = 'placeholder="숫자 11자리 입력"';
           }
@@ -1161,7 +1177,7 @@ const app = {
 
     const colIdx = parseInt(cell.closest('td').getAttribute('data-col-idx'));
     
-    if ((type === 'student' && (colIdx === 5 || colIdx === 6)) || (type === 'instructor' && colIdx === 4)) {
+    if ((type === 'student' && (colIdx === 5 || colIdx === 6)) || (type === 'instructor' && colIdx === 5)) {
       newValue = app.formatPhone(newValue);
       cell.innerHTML = newValue;
     }
@@ -1176,7 +1192,16 @@ const app = {
     rowObj[colIdx] = newValue;
 
     const payload = { id: currentId };
-    for(let i=0; i<keys.length; i++) payload[keys[i]] = rowObj[i+1];
+    if (type === 'instructor') {
+      payload.instructorName = rowObj[1];
+      payload.subject = rowObj[2];
+      payload.subSubject = (rowObj[3] || '') + '|' + (rowObj[4] || '');
+      payload.phone = rowObj[5];
+      payload.email = rowObj[6];
+      payload.note = rowObj[7];
+    } else {
+      for(let i=0; i<keys.length; i++) payload[keys[i]] = rowObj[i+1];
+    }
     
     this.apiPost(upsertAction, payload).then(res => {
       if(res.success && res.id) {
@@ -1215,7 +1240,11 @@ const app = {
       let upsertAction = type === 'preschedule' ? 'upsertPreSchedule' : (type === 'student' ? 'upsertStudent' : 'upsertInstructor');
       let keys = type === 'preschedule' ? ['date', 'content', 'status', 'note'] : (type === 'student' ? ['name', 'center', 'school', 'grade', 'parentPhone', 'studentPhone', 'note', 'class_name', 'pre_score'] : ['instructorName', 'subject', 'subSubject', 'phone', 'email', 'note']);
       let payload = { id: newId };
-      for(let i=0; i<keys.length; i++) payload[keys[i]] = '';
+      if (type === 'instructor') {
+        payload.instructorName = ''; payload.subject = ''; payload.subSubject = '|'; payload.phone = ''; payload.email = ''; payload.note = '';
+      } else {
+        for(let i=0; i<keys.length; i++) payload[keys[i]] = '';
+      }
       this.apiPost(upsertAction, payload).then(res => {
         if(res.success && res.id) { 
           newRow[0] = res.id; 
