@@ -1987,7 +1987,7 @@ const app = {
     modal.id = 'timetable-editor-overlay';
     modal.style.position = 'absolute';
     modal.style.left = `${Math.min(rect.left, window.innerWidth - 300)}px`;
-    const popHeight = 250;
+    const popHeight = 350;
     if (rect.bottom + popHeight > window.innerHeight) {
       modal.style.top = `${rect.top + window.scrollY - popHeight - 5}px`;
     } else {
