@@ -747,7 +747,7 @@ const app = {
       } else if (viewId === 'view-timetable-summary') {
         headerActions.innerHTML = `<button class="btn btn-primary" onclick="app.addRow('timetable_summary')">+ 요일 추가</button> <button class="btn btn-primary" onclick="app.addColumn('timetable')">+ 학급 추가</button>`;
       } else if (viewId === 'view-timetable') {
-        headerActions.innerHTML = `<button class="btn btn-primary" onclick="app.addRow('timetable')">+ 시간 추가</button> <button class="btn btn-primary" onclick="app.addRow('holiday')">+ 휴일 추가</button> <button class="btn btn-primary" onclick="app.addColumn('timetable')">+ 학급 추가</button>`;
+        headerActions.innerHTML = `<button class="btn btn-primary" onclick="app.openBatchCreateTimetableModal()" style="background:#10b981; border-color:#10b981;">+ 템플릿 복사 생성</button> <button class="btn btn-primary" onclick="app.addRow('timetable')">+ 시간 추가</button> <button class="btn btn-primary" onclick="app.addRow('holiday')">+ 휴일 추가</button> <button class="btn btn-primary" onclick="app.addColumn('timetable')">+ 학급 추가</button>`;
       } else if (viewId === 'view-student') {
         headerActions.innerHTML = `<button class="btn btn-primary" onclick="app.addRow('student')">+ 학생 추가</button> <button class="btn btn-primary" onclick="app.openClassManagerModal()">+ 학급 관리</button>`;
       } else if (viewId === 'view-instructor') {
@@ -2427,6 +2427,123 @@ const app = {
       }
     }
     this.addRow(type, insertIndex);
+  },
+
+  openBatchCreateTimetableModal: function() {
+    const summaries = this.data.timetables.filter(r => r[2] === '요약');
+    if (summaries.length === 0) {
+      return this.showToast('먼저 시간표 [요약] 탭에 일정을 하나 이상 등록해주세요.', true);
+    }
+    const days = Array.from(new Set(summaries.map(r => r[1]).filter(Boolean)));
+    
+    document.getElementById('batch-create-week').value = '';
+    const container = document.getElementById('batch-create-days-container');
+    container.innerHTML = '';
+    
+    days.forEach((day, index) => {
+      const row = document.createElement('div');
+      row.style.display = 'flex';
+      row.style.alignItems = 'center';
+      row.style.gap = '10px';
+      row.innerHTML = `
+        <label style="width:120px; text-align:right;">${day} 날짜 :</label>
+        <input type="text" id="batch-day-${index}" class="form-control batch-day-input" style="width:150px; background:#111827; border:1px solid #374151; color:#f3f4f6;" placeholder="날짜 선택">
+      `;
+      container.appendChild(row);
+    });
+    
+    document.getElementById('modal-container').classList.remove('hidden');
+    document.getElementById('batch-create-modal').classList.remove('hidden');
+    
+    setTimeout(() => {
+      const inputs = document.querySelectorAll('.batch-day-input');
+      const dayMap = { '일요일':0, '월요일':1, '화요일':2, '수요일':3, '목요일':4, '금요일':5, '토요일':6 };
+      
+      inputs.forEach((input, i) => {
+        flatpickr(input, {
+          locale: 'ko',
+          dateFormat: 'y-m-d (D)',
+          onChange: function(selectedDates, dateStr, instance) {
+            if (i === 0 && selectedDates.length > 0) {
+              const baseDate = selectedDates[0];
+              const baseDayText = days[0];
+              const baseDayIdx = dayMap[baseDayText];
+              
+              inputs.forEach((otherInput, j) => {
+                if (j === 0 || otherInput.value) return;
+                const targetDayText = days[j];
+                const targetDayIdx = dayMap[targetDayText];
+                if (baseDayIdx !== undefined && targetDayIdx !== undefined) {
+                  let diff = targetDayIdx - baseDayIdx;
+                  if (diff < 0) diff += 7;
+                  const targetDate = new Date(baseDate);
+                  targetDate.setDate(targetDate.getDate() + diff);
+                  
+                  const fp = otherInput._flatpickr;
+                  if (fp) fp.setDate(targetDate, true);
+                }
+              });
+            }
+          }
+        });
+      });
+    }, 100);
+  },
+
+  closeBatchCreateTimetableModal: function() {
+    document.getElementById('modal-container').classList.add('hidden');
+    document.getElementById('batch-create-modal').classList.add('hidden');
+  },
+
+  executeBatchCreateTimetable: function() {
+    const week = document.getElementById('batch-create-week').value;
+    if (!week) return this.showToast('생성할 주차를 입력해주세요.', true);
+    
+    const summaries = this.data.timetables.filter(r => r[2] === '요약');
+    const days = Array.from(new Set(summaries.map(r => r[1]).filter(Boolean)));
+    const dateMap = {};
+    let missingDate = false;
+    
+    days.forEach((day, index) => {
+      const val = document.getElementById(`batch-day-${index}`).value;
+      if (!val) missingDate = true;
+      dateMap[day] = val;
+    });
+    
+    if (missingDate) return this.showToast('모든 요일의 날짜를 선택해주세요.', true);
+    
+    const newPayloads = [];
+    summaries.forEach(r => {
+      const day = r[1];
+      const targetDate = dateMap[day] || day;
+      let newSubject = r[6] || '';
+      if (newSubject && newSubject !== '휴일' && newSubject.trim() !== '') {
+        newSubject = newSubject.replace(/ \d+차/g, '');
+        newSubject = `${newSubject} ${week}차`;
+      }
+      
+      const safeId = 'tt-' + Date.now() + Math.random().toString(36).substr(2, 9);
+      newPayloads.push({
+        id: safeId,
+        date: targetDate,
+        type: '상세',
+        start: r[3] || '',
+        end: r[4] || '',
+        classname: r[5] || '',
+        subject: newSubject,
+        instructor: r[7] || ''
+      });
+    });
+    
+    this.silentSave('upsertMultipleTimetables', { payloadArray: newPayloads });
+    
+    newPayloads.forEach(obj => {
+      this.data.timetables.push([obj.id, obj.date, obj.type, obj.start, obj.end, obj.classname, obj.subject, obj.instructor]);
+    });
+    
+    this.closeBatchCreateTimetableModal();
+    this.renderAllViews();
+    this.showToast(`${week}차 주차 일정(${newPayloads.length}건)이 일괄 복사 및 생성되었습니다.`);
   }
 };
 

@@ -108,11 +108,9 @@
           <span class="icon">💬</span>
           <span class="text">구글 채팅</span>
         </li>
-        <li class="nav-item link-item">
-          <a href="https://drive.google.com/drive/u/0/folders/17jmhRSlJO8qywYHyIKFWi4p5QLsW0QaF" target="_blank" style="display:flex; align-items:center; width:100%; text-decoration:none; color:inherit; gap:10px;">
-            <span class="icon">📁</span>
-            <span class="text">자료 공유</span>
-          </a>
+        <li class="nav-item link-item" onclick="if(confirm('구글 드라이브(자료 공유) 화면이 새로운 브라우저 탭으로 열립니다.\n이동하시겠습니까?')) window.open('https://drive.google.com/drive/u/0/folders/17jmhRSlJO8qywYHyIKFWi4p5QLsW0QaF', '_blank')">
+          <span class="icon">📁</span>
+          <span class="text">자료 공유</span>
         </li>
       </ul>
       <div class="weizmann-signature">Weizmann</div>
@@ -330,6 +328,32 @@
       </div>
       <div class="modal-footer">
         <button class="btn" onclick="document.getElementById('class-manager-modal').classList.add('hidden')">닫기</button>
+      </div>
+    </div>
+  </div>
+  <!-- 시간표 상세 주차 일괄 생성 모달 -->
+  <div id="batch-create-modal" class="modal-overlay hidden">
+    <div class="modal-content" style="width:500px; max-width:90%;">
+      <div class="modal-header">
+        <h3 style="color:var(--primary) !important; font-weight:700; margin:0; text-align:left; font-size:16px;">시간표 상세 주차 일괄 복사/생성</h3>
+        <button class="close-btn" onclick="app.closeBatchCreateTimetableModal()">&times;</button>
+      </div>
+      <div class="modal-body" style="display:flex; flex-direction:column; gap:15px;">
+        <div style="font-size:13px; color:var(--text-muted); line-height:1.4;">
+          '시간표 요약' 탭에 등록된 일정을 바탕으로 새로운 주차 데이터를 일괄 생성합니다.<br>생성할 주차 차수와 요일별 첫 날짜를 지정해주세요.
+        </div>
+        <div class="form-group" style="display:flex; align-items:center; gap:10px;">
+          <label style="width:120px; text-align:right;">생성할 주차 :</label>
+          <input type="number" id="batch-create-week" class="form-control" style="width:100px;" placeholder="예: 6" min="1">
+          <span style="color:var(--text-muted);">차</span>
+        </div>
+        <div id="batch-create-days-container" style="display:flex; flex-direction:column; gap:10px; margin-top:10px; border-top:1px solid rgba(255,255,255,0.1); padding-top:15px;">
+          <!-- JS로 요일별 달력 입력폼 동적 렌더링 -->
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn" onclick="app.closeBatchCreateTimetableModal()">취소</button>
+        <button class="btn btn-primary" onclick="app.executeBatchCreateTimetable()">복사 생성하기</button>
       </div>
     </div>
   </div>
