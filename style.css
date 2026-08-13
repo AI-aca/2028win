@@ -164,10 +164,10 @@ body {
   backdrop-filter: blur(5px);
 }
 .top-header h1 { font-size: 16px; font-weight: 600; color: var(--secondary); margin: 0; line-height: 1; }
-.content-wrapper { flex: 1; padding: 20px 30px 30px 30px; overflow-y: auto; }
+.content-wrapper { flex: 1; padding: 20px 30px 30px 30px; overflow: hidden; display: flex; flex-direction: column; }
 
-.view-section { display: none; animation: fadeIn 0.3s ease; }
-.view-section.active { display: block; }
+.view-section { display: none; flex: 1; flex-direction: column; min-height: 0; animation: fadeIn 0.3s ease; }
+.view-section.active { display: flex; }
 
 @keyframes fadeIn {
   from { opacity: 0; transform: translateY(10px); }
@@ -262,7 +262,9 @@ body {
 
 /* 엑셀형 테이블 스타일 추가 */
 .table-container {
-  overflow-x: auto;
+  overflow: auto;
+  flex: 1;
+  min-height: 0;
   margin-top: 0px;
   background: rgba(15, 23, 42, 0.4);
   border-radius: 8px;
@@ -284,12 +286,13 @@ body {
   vertical-align: middle;
 }
 .excel-table th {
-  background: rgba(255,255,255,0.05);
+  background: #1e293b;
   color: var(--secondary);
   font-weight: 600;
   text-align: center;
   position: sticky;
   top: 0;
+  z-index: 10;
   white-space: nowrap;
 }
 .excel-table td[contenteditable="true"], .excel-table td input {
@@ -311,7 +314,6 @@ body {
 
 .resizer { position: absolute; right: 0; top: 0; bottom: 0; width: 5px; cursor: col-resize; user-select: none; z-index: 10; }
 .resizer:hover, .resizer.resizing { background: rgba(16, 185, 129, 0.5); }
-.excel-table th { position: relative; }
 
 /* Sticky first column and border fixes */
 .excel-table th:first-child,
@@ -329,7 +331,7 @@ body {
   background: transparent;
 }
 .excel-table th.fixed-col {
-  z-index: 3 !important;
+  z-index: 11 !important;
 }
 .excel-table th.fixed-col:nth-child(1), .excel-table td.label-col:nth-child(1) { left: 0; }
 .excel-table th:last-child,
