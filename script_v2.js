@@ -833,7 +833,7 @@ const app = {
 
   renderView: function(viewName) {
     if (viewName === 'preschedule') this.renderFlatTable('preschedule', this.data.preschedules, [{label:'일자', idx:1, fixed:true, width:'12%', left:'0'}, {label:'상태', idx:3, fixed:true, width:'10%', left:'12%'}, {label:'내용', idx:2}, {label:'비고', idx:4}]);
-    else if (viewName === 'student') this.renderFlatTable('student', this.data.students, [{label:'학생명', idx:1, fixed:true, width:'8%', left:'0'}, {label:'학급', idx:8}, {label:'대수', idx:9}, {label:'기하', idx:10}, {label:'조합', idx:11}, {label:'총점', idx:12}, {label:'센터', idx:2}, {label:'학교', idx:3}, {label:'학년', idx:4}, {label:'학부모 연락처', idx:5}, {label:'학생 연락처', idx:6}, {label:'비고', idx:7}]);
+    else if (viewName === 'student') this.renderFlatTable('student', this.data.students, [{label:'학생명', idx:1, fixed:true, width:'8%', left:'0'}, {label:'학급', idx:8}, {label:'대수', idx:9, width:'5%'}, {label:'기하', idx:10, width:'5%'}, {label:'조합', idx:11, width:'5%'}, {label:'총점', idx:12, width:'5%'}, {label:'센터', idx:2}, {label:'학교', idx:3}, {label:'학년', idx:4, width:'5%'}, {label:'학부모 연락처', idx:5}, {label:'학생 연락처', idx:6}, {label:'비고', idx:7}]);
     else if (viewName === 'instructor') this.renderFlatTable('instructor', this.data.instructors, [{label:'강사명', idx:1, fixed:true, width:'8%', left:'0'}, {label:'영역', idx:2}, {label:'과목1', idx:3}, {label:'과목2', idx:4}, {label:'연락처', idx:5}, {label:'지메일', idx:6}, {label:'비고', idx:7}]);
     else if (viewName === 'curriculum') this.renderCurriculumPivot('curriculum');
     else if (viewName === 'curriculum_science') this.renderCurriculumPivot('curriculum_science');
