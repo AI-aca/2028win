@@ -1219,6 +1219,14 @@ const app = {
     const prevValue = rowObj[colIdx];
     rowObj[colIdx] = newValue;
 
+    if (type === 'student' && (colIdx === 9 || colIdx === 10)) {
+      const alg = parseFloat(rowObj[9]) || 0;
+      const geo = parseFloat(rowObj[10]) || 0;
+      rowObj[11] = String(alg + geo);
+      const totalTd = rowEl.querySelector(`td[data-col-idx="11"]`);
+      if (totalTd) totalTd.innerHTML = rowObj[11];
+    }
+
     const payload = { id: currentId };
     if (type === 'instructor') {
       payload.instructorName = rowObj[1];
