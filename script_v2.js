@@ -312,7 +312,7 @@ const app = {
         '수업진도계획': (curRes.data || []).map(r => [r.id, r.week, r.subject, r.content, r.note, r.class_name || '전체']),
         '과학진도계획': (curSciRes.data || []).map(r => [r.id, r.week, r.subject, r.content, r.note, r.class_name || '전체']),
         '시간표': (ttRes.data || []).map(r => [r.id, r.date, r.type, r.start, r.end, r.classname, r.subject, r.instructor, r.note, r.regtime]),
-        '학생관리': (stuRes.data || []).map(r => [r.id, r.name, r.center, r.school, r.grade, r.parentphone, r.studentphone, r.note, r.class_name, r.pre_score]),
+        '학생관리': (stuRes.data || []).map(r => [r.id, r.name, r.center, r.school, r.grade, r.parentphone, r.studentphone, r.note, r.class_name, r.pre_score_alg, r.pre_score_geo, r.pre_score_total]),
         '강사관리': (insRes.data || []).map(r => [r.id, r.instructorname, r.subject, r.subsubject, r.phone, r.email, r.note]),
         'uiSettings': uiMap
       };
@@ -833,7 +833,7 @@ const app = {
 
   renderView: function(viewName) {
     if (viewName === 'preschedule') this.renderFlatTable('preschedule', this.data.preschedules, [{label:'일자', idx:1, fixed:true, width:'12%', left:'0'}, {label:'상태', idx:3, fixed:true, width:'10%', left:'12%'}, {label:'내용', idx:2}, {label:'비고', idx:4}]);
-    else if (viewName === 'student') this.renderFlatTable('student', this.data.students, [{label:'학생명', idx:1, fixed:true, width:'8%', left:'0'}, {label:'학급', idx:8}, {label:'사전 평가점수', idx:9}, {label:'센터', idx:2}, {label:'학교', idx:3}, {label:'학년', idx:4}, {label:'학부모 연락처', idx:5}, {label:'학생 연락처', idx:6}, {label:'비고', idx:7}]);
+    else if (viewName === 'student') this.renderFlatTable('student', this.data.students, [{label:'학생명', idx:1, fixed:true, width:'8%', left:'0'}, {label:'학급', idx:8}, {label:'사전점수(대수)', idx:9}, {label:'사전점수(기하조합)', idx:10}, {label:'사전점수(총점)', idx:11}, {label:'센터', idx:2}, {label:'학교', idx:3}, {label:'학년', idx:4}, {label:'학부모 연락처', idx:5}, {label:'학생 연락처', idx:6}, {label:'비고', idx:7}]);
     else if (viewName === 'instructor') this.renderFlatTable('instructor', this.data.instructors, [{label:'강사명', idx:1, fixed:true, width:'8%', left:'0'}, {label:'영역', idx:2}, {label:'과목1', idx:3}, {label:'과목2', idx:4}, {label:'연락처', idx:5}, {label:'지메일', idx:6}, {label:'비고', idx:7}]);
     else if (viewName === 'curriculum') this.renderCurriculumPivot('curriculum');
     else if (viewName === 'curriculum_science') this.renderCurriculumPivot('curriculum_science');
@@ -1085,7 +1085,7 @@ const app = {
         const fixedClass = (typeof c === 'object' && c.fixed) ? 'fixed-col label-col-header' : '';
         const leftStr = (typeof c === 'object' && c.left) ? `left:${c.left};`: '';
         let displayHeader = this.uiSettings['header_view-' + type + '_' + colIdx] || label;
-        if (['학생명', '센터', '학교', '학년', '강사명', '영역', '학급', '사전 평가점수'].includes(label)) {
+        if (['학생명', '센터', '학교', '학년', '강사명', '영역', '학급', '사전점수(대수)', '사전점수(기하조합)', '사전점수(총점)'].includes(label)) {
           displayHeader = app.renderSortableHeader(displayHeader, type, colIdx);
         }
         ths += `<th class="${fixedClass}" style="${widthStr} ${leftStr}"><div onblur="app.onHeaderBlur(this, 'view-' + type, ${colIdx})" style="display:inline-block; min-width:30px; min-height:20px; outline:none;">${displayHeader}</div></th>`;
@@ -1140,7 +1140,8 @@ const app = {
             extraEvents = `onfocus="app.handlePhoneFocus(this)" onkeydown="app.handlePhoneKeydown(event, this)"`;
             placeholder = 'placeholder="숫자 11자리 입력"';
           }
-          html += `<td ${cellClassStr} style="${combinedStyle}" data-bg-key="${bgKey}" contenteditable="true" data-col-idx="${colIdx}" ${placeholder} onblur="app.onFlatCellBlur('${type}', this)" ${extraEvents}>${displayVal}</td>`;
+          let editAttr = (type === 'student' && colIdx === 11) ? 'contenteditable="false" style="background-color:rgba(0,0,0,0.02);"' : 'contenteditable="true"';
+          html += `<td ${cellClassStr} style="${combinedStyle}" data-bg-key="${bgKey}" ${editAttr} data-col-idx="${colIdx}" ${placeholder} onblur="app.onFlatCellBlur('${type}', this)" ${extraEvents}>${displayVal}</td>`;
         }
       }
       html += `</tr>`;
@@ -1199,7 +1200,7 @@ const app = {
 
     let dataArray, upsertAction, keys;
     if (type === 'preschedule') { dataArray = this.data.preschedules; upsertAction = 'upsertPreSchedule'; keys = ['date', 'content', 'status', 'note']; }
-    else if (type === 'student') { dataArray = this.data.students; upsertAction = 'upsertStudent'; keys = ['name', 'center', 'school', 'grade', 'parentPhone', 'studentPhone', 'note', 'class_name', 'pre_score']; }
+    else if (type === 'student') { dataArray = this.data.students; upsertAction = 'upsertStudent'; keys = ['name', 'center', 'school', 'grade', 'parentPhone', 'studentPhone', 'note', 'class_name', 'pre_score_alg', 'pre_score_geo', 'pre_score_total']; }
     else if (type === 'instructor') { dataArray = this.data.instructors; upsertAction = 'upsertInstructor'; keys = ['instructorName', 'subject', 'subSubject', 'phone', 'email', 'note']; } // 시트컬럼: 강사명, 영역, 과목, 연락처, 지메일, 비고
 
     const colIdx = parseInt(cell.closest('td').getAttribute('data-col-idx'));
@@ -1265,7 +1266,7 @@ const app = {
       this.renderView(type);
 
       let upsertAction = type === 'preschedule' ? 'upsertPreSchedule' : (type === 'student' ? 'upsertStudent' : 'upsertInstructor');
-      let keys = type === 'preschedule' ? ['date', 'content', 'status', 'note'] : (type === 'student' ? ['name', 'center', 'school', 'grade', 'parentPhone', 'studentPhone', 'note', 'class_name', 'pre_score'] : ['instructorName', 'subject', 'subSubject', 'phone', 'email', 'note']);
+      let keys = type === 'preschedule' ? ['date', 'content', 'status', 'note'] : (type === 'student' ? ['name', 'center', 'school', 'grade', 'parentPhone', 'studentPhone', 'note', 'class_name', 'pre_score_alg', 'pre_score_geo', 'pre_score_total'] : ['instructorName', 'subject', 'subSubject', 'phone', 'email', 'note']);
       let payload = { id: newId };
       if (type === 'instructor') {
         payload.instructorName = ''; payload.subject = ''; payload.subSubject = '|'; payload.phone = ''; payload.email = ''; payload.note = '';
