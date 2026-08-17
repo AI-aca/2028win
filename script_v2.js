@@ -922,7 +922,7 @@ const app = {
       dynThs.forEach((th, i) => {
         const dynIdx = Array.from(th.parentNode.children).indexOf(th);
         const dynId = th.closest('.view-section').id + '-col-' + dynIdx;
-        let w = this.uiSettings[dynId];
+        let w = this.uiSettings[dynId] || th.style.width;
         let val = (w && w.includes('%')) ? parseFloat(w) : (expectedDynTotal / dynThs.length);
         dynWidths.push(val);
         currentDynTotal += val;
