@@ -917,7 +917,13 @@ const app = {
   },
 
   onKeyDown: function(e, cell) {
-    // 화살표로 셀 간 이동하는 기능 완전 삭제 (글자 사이 커서 이동 기본 기능 복구)
+    if (this.currentView === 'view-student' && cell.getAttribute('data-col-idx') === '12') {
+      if (e.ctrlKey || e.metaKey) return; // 서식 단축키 허용
+      const allowedKeys = ['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Home', 'End', 'PageUp', 'PageDown', 'Escape', 'Tab'];
+      if (!allowedKeys.includes(e.key)) {
+        e.preventDefault();
+      }
+    }
   },
 
   bindRowEvents: function(tr, type) {
@@ -1202,6 +1208,7 @@ const app = {
           let editAttr = 'contenteditable="true"';
           if (type === 'student' && colIdx === 12) {
             editAttr += ' style="background-color:rgba(0,0,0,0.02);"';
+            extraEvents += ' onpaste="event.preventDefault();" ondrop="event.preventDefault();"';
           }
           html += `<td ${cellClassStr} style="${combinedStyle}" data-bg-key="${bgKey}" ${editAttr} data-col-idx="${colIdx}" ${placeholder} onblur="app.onFlatCellBlur('${type}', this)" ${extraEvents}>${displayVal}</td>`;
         }
