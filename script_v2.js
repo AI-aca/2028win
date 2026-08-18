@@ -769,6 +769,52 @@ const app = {
     }
   },
 
+  updateStudentSummary: function() {
+    const summaryEl = document.getElementById('student-summary-controls');
+    if (!summaryEl) return;
+    
+    const students = this.data.students || [];
+    const totalCount = students.length;
+    
+    let sumAlg = 0, countAlg = 0;
+    let sumGeo = 0, countGeo = 0;
+    let sumCom = 0, countCom = 0;
+    let sumTot = 0, countTot = 0;
+    
+    students.forEach(s => {
+      const alg = parseFloat(s.pre_score_alg);
+      if (!isNaN(alg)) { sumAlg += alg; countAlg++; }
+      
+      const geo = parseFloat(s.pre_score_geo);
+      if (!isNaN(geo)) { sumGeo += geo; countGeo++; }
+      
+      const com = parseFloat(s.pre_score_com);
+      if (!isNaN(com)) { sumCom += com; countCom++; }
+      
+      const tot = parseFloat(s.pre_score_total);
+      if (!isNaN(tot)) { sumTot += tot; countTot++; }
+    });
+    
+    const avgAlg = countAlg > 0 ? (sumAlg / countAlg).toFixed(1) : '-';
+    const avgGeo = countGeo > 0 ? (sumGeo / countGeo).toFixed(1) : '-';
+    const avgCom = countCom > 0 ? (sumCom / countCom).toFixed(1) : '-';
+    const avgTot = countTot > 0 ? (sumTot / countTot).toFixed(1) : '-';
+    
+    summaryEl.innerHTML = `
+      <div style="display:flex; align-items:center; gap:10px; font-size:13px; color:var(--text-main); font-weight:600; background:rgba(255,255,255,0.05); padding:6px 16px; border-radius:20px; border:1px solid rgba(255,255,255,0.1); white-space:nowrap;">
+        <span>👨‍🎓 학생: <span style="color:var(--primary);">${totalCount}</span>명</span>
+        <span style="color:rgba(255,255,255,0.3);">|</span>
+        <span>대수: <span style="color:#10b981;">${avgAlg}</span></span>
+        <span style="color:rgba(255,255,255,0.3);">|</span>
+        <span>기하: <span style="color:#10b981;">${avgGeo}</span></span>
+        <span style="color:rgba(255,255,255,0.3);">|</span>
+        <span>조합: <span style="color:#10b981;">${avgCom}</span></span>
+        <span style="color:rgba(255,255,255,0.3);">|</span>
+        <span>총점: <span style="color:#10b981;">${avgTot}</span></span>
+      </div>
+    `;
+  },
+
   updateCurriculumFilterDropdown: function() {
     const sel = document.getElementById('curriculum-filter-select');
     if (!sel) return;
@@ -833,7 +879,10 @@ const app = {
 
   renderView: function(viewName) {
     if (viewName === 'preschedule') this.renderFlatTable('preschedule', this.data.preschedules, [{label:'일자', idx:1, fixed:true, width:'12%', left:'0'}, {label:'상태', idx:3, fixed:true, width:'10%', left:'12%'}, {label:'내용', idx:2}, {label:'비고', idx:4}]);
-    else if (viewName === 'student') this.renderFlatTable('student', this.data.students, [{label:'학생명', idx:1, fixed:true, width:'8%', left:'0'}, {label:'학급', idx:8}, {label:'대수', idx:9, width:'5%'}, {label:'기하', idx:10, width:'5%'}, {label:'조합', idx:11, width:'5%'}, {label:'총점', idx:12, width:'5%'}, {label:'센터', idx:2}, {label:'학교', idx:3}, {label:'학년', idx:4, width:'5%'}, {label:'학부모 연락처', idx:5}, {label:'학생 연락처', idx:6}, {label:'비고', idx:7}]);
+    else if (viewName === 'student') {
+      this.renderFlatTable('student', this.data.students, [{label:'학생명', idx:1, fixed:true, width:'8%', left:'0'}, {label:'학급', idx:8}, {label:'대수', idx:9, width:'5%'}, {label:'기하', idx:10, width:'5%'}, {label:'조합', idx:11, width:'5%'}, {label:'총점', idx:12, width:'5%'}, {label:'센터', idx:2}, {label:'학교', idx:3}, {label:'학년', idx:4, width:'5%'}, {label:'학부모 연락처', idx:5}, {label:'학생 연락처', idx:6}, {label:'비고', idx:7}]);
+      this.updateStudentSummary();
+    }
     else if (viewName === 'instructor') this.renderFlatTable('instructor', this.data.instructors, [{label:'강사명', idx:1, fixed:true, width:'8%', left:'0'}, {label:'영역', idx:2}, {label:'과목1', idx:3}, {label:'과목2', idx:4}, {label:'연락처', idx:5}, {label:'지메일', idx:6}, {label:'비고', idx:7}]);
     else if (viewName === 'curriculum') this.renderCurriculumPivot('curriculum');
     else if (viewName === 'curriculum_science') this.renderCurriculumPivot('curriculum_science');
