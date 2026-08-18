@@ -810,16 +810,16 @@ const app = {
     const avgTot = countTot > 0 ? (sumTot / countTot).toFixed(1) : '-';
     
     summaryEl.innerHTML = `
-      <div style="display:flex; align-items:center; gap:10px; font-size:13px; color:var(--text-main); font-weight:600; background:rgba(255,255,255,0.05); padding:6px 16px; border-radius:20px; border:1px solid rgba(255,255,255,0.1); white-space:nowrap;">
+      <div style="display:flex; align-items:center; gap:10px; font-size:14px; color:var(--text-main); font-weight:600; background:rgba(255,255,255,0.05); padding:6px 16px; border-radius:20px; border:1px solid rgba(255,255,255,0.1); white-space:nowrap;">
         <span>👨‍🎓 학생: <span style="color:var(--primary);">${totalCount}</span>명</span>
         <span style="color:rgba(255,255,255,0.3);">|</span>
-        <span>대수: <span style="color:#10b981;">${avgAlg}</span></span>
+        <span>대수 평균: <span style="color:#10b981;">${avgAlg}</span></span>
         <span style="color:rgba(255,255,255,0.3);">|</span>
-        <span>기하: <span style="color:#10b981;">${avgGeo}</span></span>
+        <span>기하 평균: <span style="color:#10b981;">${avgGeo}</span></span>
         <span style="color:rgba(255,255,255,0.3);">|</span>
-        <span>조합: <span style="color:#10b981;">${avgCom}</span></span>
+        <span>조합 평균: <span style="color:#10b981;">${avgCom}</span></span>
         <span style="color:rgba(255,255,255,0.3);">|</span>
-        <span>총점: <span style="color:#10b981;">${avgTot}</span></span>
+        <span>총점 평균: <span style="color:#10b981;">${avgTot}</span></span>
       </div>
     `;
   },
