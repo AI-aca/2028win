@@ -766,6 +766,15 @@ const app = {
           currControls.classList.add('hidden');
         }
       }
+      const studentSummary = document.getElementById('student-summary-controls');
+      if (studentSummary) {
+        if (viewId === 'view-student') {
+          studentSummary.classList.remove('hidden');
+          app.updateStudentSummary();
+        } else {
+          studentSummary.classList.add('hidden');
+        }
+      }
     }
   },
 
@@ -782,16 +791,16 @@ const app = {
     let sumTot = 0, countTot = 0;
     
     students.forEach(s => {
-      const alg = parseFloat(s.pre_score_alg);
+      const alg = parseFloat(s[9]);
       if (!isNaN(alg)) { sumAlg += alg; countAlg++; }
       
-      const geo = parseFloat(s.pre_score_geo);
+      const geo = parseFloat(s[10]);
       if (!isNaN(geo)) { sumGeo += geo; countGeo++; }
       
-      const com = parseFloat(s.pre_score_com);
+      const com = parseFloat(s[11]);
       if (!isNaN(com)) { sumCom += com; countCom++; }
       
-      const tot = parseFloat(s.pre_score_total);
+      const tot = parseFloat(s[12]);
       if (!isNaN(tot)) { sumTot += tot; countTot++; }
     });
     
