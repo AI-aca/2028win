@@ -790,17 +790,18 @@ const app = {
     let sumCom = 0, countCom = 0;
     let sumTot = 0, countTot = 0;
     
+    const getNum = (v) => parseFloat(String(v || '').replace(/<[^>]*>/g, '').trim());
     students.forEach(s => {
-      const alg = parseFloat(s[9]);
+      const alg = getNum(s[9]);
       if (!isNaN(alg)) { sumAlg += alg; countAlg++; }
       
-      const geo = parseFloat(s[10]);
+      const geo = getNum(s[10]);
       if (!isNaN(geo)) { sumGeo += geo; countGeo++; }
       
-      const com = parseFloat(s[11]);
+      const com = getNum(s[11]);
       if (!isNaN(com)) { sumCom += com; countCom++; }
       
-      const tot = parseFloat(s[12]);
+      const tot = getNum(s[12]);
       if (!isNaN(tot)) { sumTot += tot; countTot++; }
     });
     
@@ -1198,7 +1199,10 @@ const app = {
             extraEvents = `onfocus="app.handlePhoneFocus(this)" onkeydown="app.handlePhoneKeydown(event, this)"`;
             placeholder = 'placeholder="숫자 11자리 입력"';
           }
-          let editAttr = (type === 'student' && colIdx === 12) ? 'contenteditable="false" style="background-color:rgba(0,0,0,0.02);"' : 'contenteditable="true"';
+          let editAttr = 'contenteditable="true"';
+          if (type === 'student' && colIdx === 12) {
+            editAttr += ' style="background-color:rgba(0,0,0,0.02);"';
+          }
           html += `<td ${cellClassStr} style="${combinedStyle}" data-bg-key="${bgKey}" ${editAttr} data-col-idx="${colIdx}" ${placeholder} onblur="app.onFlatCellBlur('${type}', this)" ${extraEvents}>${displayVal}</td>`;
         }
       }
@@ -1278,9 +1282,10 @@ const app = {
     rowObj[colIdx] = newValue;
 
     if (type === 'student' && (colIdx >= 9 && colIdx <= 11)) {
-      const alg = parseFloat(rowObj[9]) || 0;
-      const geo = parseFloat(rowObj[10]) || 0;
-      const com = parseFloat(rowObj[11]) || 0;
+      const getNum = (v) => parseFloat(String(v || '').replace(/<[^>]*>/g, '').trim()) || 0;
+      const alg = getNum(rowObj[9]);
+      const geo = getNum(rowObj[10]);
+      const com = getNum(rowObj[11]);
       rowObj[12] = String(alg + geo + com);
       const totalTd = rowEl.querySelector(`td[data-col-idx="12"]`);
       if (totalTd) totalTd.innerHTML = rowObj[12];
