@@ -954,11 +954,15 @@ const app = {
 
     dataArray.sort((a, b) => {
       let v1 = a[colIdx] || ''; let v2 = b[colIdx] || '';
+      
+      if (typeof v1 === 'string') v1 = v1.replace(/<[^>]*>/g, '').trim();
+      if (typeof v2 === 'string') v2 = v2.replace(/<[^>]*>/g, '').trim();
+
       if (!isNaN(v1) && !isNaN(v2) && v1 !== '' && v2 !== '') {
         v1 = Number(v1); v2 = Number(v2);
       } else {
-        if(typeof v1 === 'string') v1 = v1.toLowerCase();
-        if(typeof v2 === 'string') v2 = v2.toLowerCase();
+        if (typeof v1 === 'string') v1 = v1.toLowerCase();
+        if (typeof v2 === 'string') v2 = v2.toLowerCase();
       }
       if (v1 < v2) return isAsc ? 1 : -1;
       if (v1 > v2) return isAsc ? -1 : 1;
