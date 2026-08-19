@@ -816,13 +816,13 @@ const app = {
       const avgTot = countTot > 0 ? (sumTot / countTot).toFixed(1) : '-';
       
       contentHtml = `
-        <span>총점 평균: <span style="color:#10b981;">${avgTot}</span></span>
+        <span>총점 평균: <span style="color:#10b981; font-weight:800;">${avgTot}</span></span>
         <span style="color:rgba(255,255,255,0.3);">|</span>
-        <span>대수 평균: <span style="color:#10b981;">${avgAlg}</span></span>
+        <span>대수 평균: <span style="color:#10b981; font-weight:800;">${avgAlg}</span></span>
         <span style="color:rgba(255,255,255,0.3);">|</span>
-        <span>기하 평균: <span style="color:#10b981;">${avgGeo}</span></span>
+        <span>기하 평균: <span style="color:#10b981; font-weight:800;">${avgGeo}</span></span>
         <span style="color:rgba(255,255,255,0.3);">|</span>
-        <span>조합 평균: <span style="color:#10b981;">${avgCom}</span></span>
+        <span>조합 평균: <span style="color:#10b981; font-weight:800;">${avgCom}</span></span>
       `;
     } else {
       let classCounts = {};
@@ -835,10 +835,10 @@ const app = {
         }
       });
       
-      let classHtml = this.managedClasses.map(c => `<span>${String(c).replace(/\(.*?\)/g, '').trim()}: <span style="color:#10b981;">${classCounts[c]}</span>명</span>`).join('<span style="color:rgba(255,255,255,0.3);">|</span>');
+      let classHtml = this.managedClasses.map(c => `<span>${String(c).replace(/\(.*?\)/g, '').trim()}: <span style="color:#10b981; font-weight:800;">${classCounts[c]}</span>명</span>`).join('<span style="color:rgba(255,255,255,0.3);">|</span>');
       
       contentHtml = `
-        <span>👨‍🎓 총 학생: <span style="color:var(--primary);">${totalCount}</span>명</span>
+        <span>👨‍🎓 총 학생: <span style="color:var(--primary); font-weight:bold;">${totalCount}</span>명</span>
         <span style="color:rgba(255,255,255,0.3);">|</span>
         ${classHtml}
       `;
