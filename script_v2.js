@@ -826,16 +826,20 @@ const app = {
       `;
     } else {
       let classCounts = {};
+      let unassignedCount = 0;
       this.managedClasses.forEach(c => classCounts[c] = 0);
       
       students.forEach(s => {
         const cName = String(s[8] || '').replace(/<[^>]*>/g, '').trim();
         if (classCounts[cName] !== undefined) {
           classCounts[cName]++;
+        } else {
+          unassignedCount++;
         }
       });
       
       let classHtml = this.managedClasses.map(c => `<span>${String(c).replace(/\(.*?\)/g, '').trim()}: <span style="color:#10b981; font-weight:800;">${classCounts[c]}</span>명</span>`).join('<span style="color:rgba(255,255,255,0.3);">|</span>');
+      classHtml += `<span style="color:rgba(255,255,255,0.3);">|</span><span>미배정: <span style="color:#10b981; font-weight:800;">${unassignedCount}</span>명</span>`;
       
       contentHtml = `
         <span>👨‍🎓 총 학생: <span style="color:var(--primary); font-weight:bold;">${totalCount}</span>명</span>
@@ -1227,7 +1231,16 @@ const app = {
           const fw = isDone ? '600' : 'normal';
           html += `<td data-col-idx="${colIdx}" class="status-cell ${isFixed ? 'fixed-col label-col' : ''}" style="text-align:center; cursor:pointer; ${combinedStyle}" data-bg-key="${bgKey}" onclick="app.toggleStatus(this.querySelector('span'), '${type}', ${colIdx})"><span style="font-weight:${fw}; color:${txtColor}; font-size:13px; user-select:none; transition:all 0.2s; padding:4px 8px; border-radius:4px;" onmouseover="this.style.backgroundColor='rgba(255,255,255,0.05)'" onmouseout="this.style.backgroundColor='transparent'">${statusTxt}</span></td>`;
         } else if (type === 'student' && colIdx === 8) {
-          html += `<td ${cellClassStr} data-col-idx="${colIdx}" data-bg-key="${bgKey}" style="cursor:pointer; text-align:center; ${combinedStyle}" onclick="app.openClassSelectModal(this)">${val}</td>`;
+          let classBg = '';
+          if (!this.uiSettings[bgKey]) {
+            const cleanVal = String(val).replace(/<[^>]*>/g, '').trim();
+            if (cleanVal.startsWith('P반')) classBg = 'background-color:rgba(59, 130, 246, 0.2);';
+            else if (cleanVal.startsWith('T반')) classBg = 'background-color:rgba(16, 185, 129, 0.2);';
+            else if (cleanVal.startsWith('V반')) classBg = 'background-color:rgba(239, 68, 68, 0.2);';
+            else if (cleanVal.startsWith('Q반')) classBg = 'background-color:rgba(234, 179, 8, 0.2);';
+          }
+          const finalStyle = [leftStr, classBg, bgStyle].filter(Boolean).join(' ');
+          html += `<td ${cellClassStr} data-col-idx="${colIdx}" data-bg-key="${bgKey}" style="cursor:pointer; text-align:center; ${finalStyle}" onclick="app.openClassSelectModal(this)">${val}</td>`;
         } else if (type === 'instructor' && colIdx === 2) {
           html += `<td ${cellClassStr} data-col-idx="${colIdx}" data-bg-key="${bgKey}" style="cursor:pointer; text-align:center; ${combinedStyle}" onclick="app.openInstructorSelectModal(this, 'area')">${val}</td>`;
         } else if (type === 'instructor' && (colIdx === 3 || colIdx === 4)) {
