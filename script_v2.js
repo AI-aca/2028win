@@ -781,46 +781,77 @@ const app = {
   updateStudentSummary: function() {
     const summaryEl = document.getElementById('student-summary-controls');
     if (!summaryEl) return;
+    let currentMode = 'personnel';
+    const existingSelect = document.getElementById('student-summary-mode');
+    if (existingSelect) {
+      currentMode = existingSelect.value;
+    }
     
     const students = this.data.students || [];
     const totalCount = students.length;
     
-    let sumAlg = 0, countAlg = 0;
-    let sumGeo = 0, countGeo = 0;
-    let sumCom = 0, countCom = 0;
-    let sumTot = 0, countTot = 0;
+    let contentHtml = '';
     
-    const getNum = (v) => parseFloat(String(v || '').replace(/<[^>]*>/g, '').trim());
-    students.forEach(s => {
-      const alg = getNum(s[9]);
-      if (!isNaN(alg)) { sumAlg += alg; countAlg++; }
+    if (currentMode === 'score') {
+      let sumAlg = 0, countAlg = 0;
+      let sumGeo = 0, countGeo = 0;
+      let sumCom = 0, countCom = 0;
+      let sumTot = 0, countTot = 0;
       
-      const geo = getNum(s[10]);
-      if (!isNaN(geo)) { sumGeo += geo; countGeo++; }
+      const getNum = (v) => parseFloat(String(v || '').replace(/<[^>]*>/g, '').trim());
+      students.forEach(s => {
+        const alg = getNum(s[9]);
+        if (!isNaN(alg)) { sumAlg += alg; countAlg++; }
+        const geo = getNum(s[10]);
+        if (!isNaN(geo)) { sumGeo += geo; countGeo++; }
+        const com = getNum(s[11]);
+        if (!isNaN(com)) { sumCom += com; countCom++; }
+        const tot = getNum(s[12]);
+        if (!isNaN(tot)) { sumTot += tot; countTot++; }
+      });
       
-      const com = getNum(s[11]);
-      if (!isNaN(com)) { sumCom += com; countCom++; }
+      const avgAlg = countAlg > 0 ? (sumAlg / countAlg).toFixed(1) : '-';
+      const avgGeo = countGeo > 0 ? (sumGeo / countGeo).toFixed(1) : '-';
+      const avgCom = countCom > 0 ? (sumCom / countCom).toFixed(1) : '-';
+      const avgTot = countTot > 0 ? (sumTot / countTot).toFixed(1) : '-';
       
-      const tot = getNum(s[12]);
-      if (!isNaN(tot)) { sumTot += tot; countTot++; }
-    });
-    
-    const avgAlg = countAlg > 0 ? (sumAlg / countAlg).toFixed(1) : '-';
-    const avgGeo = countGeo > 0 ? (sumGeo / countGeo).toFixed(1) : '-';
-    const avgCom = countCom > 0 ? (sumCom / countCom).toFixed(1) : '-';
-    const avgTot = countTot > 0 ? (sumTot / countTot).toFixed(1) : '-';
-    
-    summaryEl.innerHTML = `
-      <div style="display:flex; align-items:center; gap:10px; font-size:14px; color:var(--text-main); font-weight:600; background:rgba(255,255,255,0.05); padding:6px 16px; border-radius:20px; border:1px solid rgba(255,255,255,0.1); white-space:nowrap;">
-        <span>👨‍🎓 학생: <span style="color:var(--primary);">${totalCount}</span>명</span>
+      contentHtml = `
+        <span>총점 평균: <span style="color:#10b981;">${avgTot}</span></span>
         <span style="color:rgba(255,255,255,0.3);">|</span>
         <span>대수 평균: <span style="color:#10b981;">${avgAlg}</span></span>
         <span style="color:rgba(255,255,255,0.3);">|</span>
         <span>기하 평균: <span style="color:#10b981;">${avgGeo}</span></span>
         <span style="color:rgba(255,255,255,0.3);">|</span>
         <span>조합 평균: <span style="color:#10b981;">${avgCom}</span></span>
+      `;
+    } else {
+      let classCounts = {};
+      this.managedClasses.forEach(c => classCounts[c] = 0);
+      
+      students.forEach(s => {
+        const cName = String(s[8] || '').replace(/<[^>]*>/g, '').trim();
+        if (classCounts[cName] !== undefined) {
+          classCounts[cName]++;
+        }
+      });
+      
+      let classHtml = this.managedClasses.map(c => `<span>${c}: <span style="color:#10b981;">${classCounts[c]}</span>명</span>`).join('<span style="color:rgba(255,255,255,0.3);">|</span>');
+      
+      contentHtml = `
+        <span>👨‍🎓 총 학생: <span style="color:var(--primary);">${totalCount}</span>명</span>
         <span style="color:rgba(255,255,255,0.3);">|</span>
-        <span>총점 평균: <span style="color:#10b981;">${avgTot}</span></span>
+        ${classHtml}
+      `;
+    }
+    
+    summaryEl.innerHTML = `
+      <div style="display:flex; align-items:center; gap:10px; font-size:14px; color:var(--text-main); font-weight:600; background:rgba(255,255,255,0.05); padding:6px 16px; border-radius:20px; border:1px solid rgba(255,255,255,0.1); white-space:nowrap;">
+        <select id="student-summary-mode" onchange="app.updateStudentSummary()" style="background:transparent; color:var(--text-main); border:none; outline:none; font-weight:bold; cursor:pointer; font-size:14px;">
+          <option value="personnel" style="color:#000;" ${currentMode === 'personnel' ? 'selected' : ''}>👥 인원 정보</option>
+          <option value="score" style="color:#000;" ${currentMode === 'score' ? 'selected' : ''}>📊 점수 정보</option>
+        </select>
+        <span style="color:rgba(255,255,255,0.3);">|</span>
+        ${contentHtml}
       </div>
     `;
   },
@@ -957,6 +988,14 @@ const app = {
       
       if (typeof v1 === 'string') v1 = v1.replace(/<[^>]*>/g, '').trim();
       if (typeof v2 === 'string') v2 = v2.replace(/<[^>]*>/g, '').trim();
+
+      if (type === 'student' && colIdx === 8) {
+        let idx1 = this.managedClasses.indexOf(v1);
+        let idx2 = this.managedClasses.indexOf(v2);
+        if (idx1 === -1) idx1 = 999;
+        if (idx2 === -1) idx2 = 999;
+        if (idx1 !== idx2) return isAsc ? (idx1 - idx2) : (idx2 - idx1);
+      }
 
       if (!isNaN(v1) && !isNaN(v2) && v1 !== '' && v2 !== '') {
         v1 = Number(v1); v2 = Number(v2);
