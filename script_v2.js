@@ -5,11 +5,6 @@ const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 
 const app = {
-  formatClass: function(name) {
-    if (!name) return '';
-    return String(name).replace(/\(.*?\)/g, '').trim();
-  },
-
   localMode: false,
   currentTerm: 1,
   currentView: 'view-dashboard',
@@ -840,7 +835,7 @@ const app = {
         }
       });
       
-      let classHtml = this.managedClasses.map(c => `<span>${app.formatClass(c)}: <span style="color:#10b981;">${classCounts[c]}</span>명</span>`).join('<span style="color:rgba(255,255,255,0.3);">|</span>');
+      let classHtml = this.managedClasses.map(c => `<span>${String(c).replace(/\(.*?\)/g, '').trim()}: <span style="color:#10b981;">${classCounts[c]}</span>명</span>`).join('<span style="color:rgba(255,255,255,0.3);">|</span>');
       
       contentHtml = `
         <span>👨‍🎓 총 학생: <span style="color:var(--primary);">${totalCount}</span>명</span>
@@ -891,14 +886,11 @@ const app = {
     
     sel.innerHTML = opts.map(o => {
       let emoji = '';
-      let displayO = o;
       if (mode === 'subject') {
         const matched = this.managedSubjects.find(s => s.name === o);
         if (matched && matched.emoji) emoji = matched.emoji + ' ';
-      } else {
-        displayO = app.formatClass(o);
       }
-      return `<option value="${o}" style="background:#1a1a2e;" ${o === currentVal ? 'selected' : ''}>${emoji}${displayO}</option>`;
+      return `<option value="${o}" style="background:#1a1a2e;" ${o === currentVal ? 'selected' : ''}>${emoji}${o}</option>`;
     }).join('');
     
     this.extractDynamicCols();
@@ -1538,8 +1530,6 @@ const app = {
         if (matchedSub && matchedSub.emoji && !dynHeader.includes(matchedSub.emoji)) {
           dynHeader = matchedSub.emoji + ' ' + dynHeader;
         }
-      } else {
-        dynHeader = app.formatClass(dynHeader);
       }
       headHtml += `<th data-colname="${colVal}"><div onblur="app.onHeaderBlur(this, '${viewId}', '${colVal}')" style="display:inline-block; min-width:30px; min-height:20px; outline:none;">${dynHeader}</div></th>`;
     });
@@ -1714,7 +1704,7 @@ const app = {
     headHtml += `<th class="label-col-header fixed-col" style="width:8%; left:${startLeft};">시작 시간</th><th class="label-col-header fixed-col" style="width:8%; left:${endLeft};">종료 시간</th>`;
     
     this.managedClasses.map(c => c).forEach(cls => {
-      headHtml += `<th data-colname="${cls}">${app.formatClass(cls)}</th>`;
+      headHtml += `<th data-colname="${cls}">${cls}</th>`;
     });
     headHtml += `</tr></thead><tbody id="${tbodyId}">`;
 
@@ -2255,7 +2245,7 @@ const app = {
         document.getElementById('generic-modal-body').innerHTML = `<div class="form-group"><label>과목 선택 (${category})</label><select id="new-col-input" class="form-control">${optionsHtml}</select></div>`;
       } else {
         if ((this.managedClasses || []).length > 0) {
-          let optionsHtml = '<option value="">학급 선택</option>' + this.managedClasses.map(c => `<option value="${c}">${app.formatClass(c)}</option>`).join('');
+          let optionsHtml = '<option value="">학급 선택</option>' + this.managedClasses.map(c => `<option value="${c}">${c}</option>`).join('');
           document.getElementById('generic-modal-body').innerHTML = `<div class="form-group"><label>학급 선택</label><select id="new-col-input" class="form-control">${optionsHtml}</select></div>`;
         } else {
           document.getElementById('generic-modal-body').innerHTML = `<div class="form-group"><label>학급</label><input type="text" id="new-col-input" class="form-control" placeholder="학급 관리를 통해 반을 등록해주세요" readonly></div>`;
@@ -2263,7 +2253,7 @@ const app = {
       }
     } else {
       if ((this.managedClasses || []).length > 0) {
-        let optionsHtml = '<option value="">학급 선택</option>' + this.managedClasses.map(c => `<option value="${c}">${app.formatClass(c)}</option>`).join('');
+        let optionsHtml = '<option value="">학급 선택</option>' + this.managedClasses.map(c => `<option value="${c}">${c}</option>`).join('');
         document.getElementById('generic-modal-body').innerHTML = `<div class="form-group"><label>반이름 선택</label><select id="new-col-input" class="form-control">${optionsHtml}</select></div>`;
       } else {
         document.getElementById('generic-modal-body').innerHTML = `<div class="form-group"><label>반이름</label><input type="text" id="new-col-input" class="form-control" placeholder="학급 관리를 통해 반을 등록해주세요" readonly></div>`;
